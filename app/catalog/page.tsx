@@ -9,23 +9,33 @@ import ProductCard from '@/components/shop/ProductCard';
 import { ProductCategory, SortOption } from '@/lib/types';
 import { categories } from '@/lib/data/products';
 
+const transformProduct = (product: any): Product => ({
+    ...product,
+    inStock: product.in_stock,
+    stockQuantity: product.stock_quantity,
+    compareAtPrice: product.compare_at_price,
+    reviewCount: product.review_count,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+});
+
 interface Product {
     id: string;
     name: string;
     slug: string;
     description: string;
     price: number;
-    compare_at_price?: number;
+    compareAtPrice?: number;
     images: string[];
-    category: string;
+    category: ProductCategory; // ← Изменено с string на ProductCategory
     brand?: string;
-    in_stock: boolean;
-    stock_quantity: number;
+    inStock: boolean;
+    stockQuantity: number;
     tags: string[];
     rating?: number;
-    review_count?: number;
-    created_at: string;
-    updated_at: string;
+    reviewCount?: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export default function CatalogPage() {
@@ -52,7 +62,10 @@ export default function CatalogPage() {
 
             const response = await fetch(`/api/products?${params}`);
             const data = await response.json();
-            setProducts(data);
+
+            // Преобразуем данные
+            const transformedData = data.map(transformProduct);
+            setProducts(transformedData);
         } catch (error) {
             console.error('Error fetching products:', error);
         } finally {
@@ -72,10 +85,10 @@ export default function CatalogPage() {
             case 'name-desc':
                 return b.name.localeCompare(a.name);
             case 'popular':
-                return (b.review_count || 0) - (a.review_count || 0);
+                return (b.reviewCount || 0) - (a.reviewCount || 0); // ← Изменено
             case 'newest':
             default:
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // ← Изменено
         }
     });
 
@@ -101,8 +114,8 @@ export default function CatalogPage() {
                             <button
                                 onClick={() => setSelectedCategory('all')}
                                 className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-rose-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 Alle Produkte
@@ -112,8 +125,8 @@ export default function CatalogPage() {
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
                                     className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                            ? 'bg-rose-600 text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {category.name}
