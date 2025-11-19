@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { useEffect, useState } from 'react'; // ← Убрали use
+import { notFound, useParams } from 'next/navigation'; // ← Добавили useParams
 import Link from 'next/link';
 import { ShoppingBag, Heart, Star, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
 import Header from '@/components/layout/Header';
@@ -38,12 +38,12 @@ interface Product {
     reviewCount?: number;
 }
 
-interface ProductPageProps {
-    params: Promise<{ slug: string }>;
-}
+// ← Убрали interface ProductPageProps
 
-export default function ProductPage({ params }: ProductPageProps) {
-    const { slug } = use(params);
+export default function ProductPage() { // ← Убрали params из пропсов
+    const params = useParams(); // ← Используем useParams hook
+    const slug = params.slug as string; // ← Получаем slug
+
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -54,7 +54,9 @@ export default function ProductPage({ params }: ProductPageProps) {
     const [isAdding, setIsAdding] = useState(false);
 
     useEffect(() => {
-        fetchProduct();
+        if (slug) {
+            fetchProduct();
+        }
     }, [slug]);
 
     const fetchProduct = async () => {
