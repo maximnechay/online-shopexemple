@@ -1,10 +1,19 @@
 // components/layout/Header.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Heart, Search, Menu, Sparkles } from 'lucide-react';
+import { useCartStore } from '@/lib/store/useCartStore';
 
 export default function Header() {
+    const [mounted, setMounted] = useState(false);
+    const itemCount = useCartStore((state) => state.getItemCount());
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     return (
         <header className="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -43,12 +52,14 @@ export default function Header() {
                         <button className="text-gray-600 hover:text-rose-600 transition-colors">
                             <Heart className="w-5 h-5" />
                         </button>
-                        <button className="relative text-gray-600 hover:text-rose-600 transition-colors">
+                        <Link href="/cart" className="relative text-gray-600 hover:text-rose-600 transition-colors">
                             <ShoppingBag className="w-5 h-5" />
-                            <span className="absolute -top-2 -right-2 w-5 h-5 bg-rose-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                                0
-                            </span>
-                        </button>
+                            {mounted && itemCount > 0 && (
+                                <span className="absolute -top-2 -right-2 w-5 h-5 bg-rose-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                                    {itemCount}
+                                </span>
+                            )}
+                        </Link>
                         <button className="lg:hidden text-gray-600">
                             <Menu className="w-6 h-6" />
                         </button>
