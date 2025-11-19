@@ -1,16 +1,42 @@
-// app/product/[slug]/page.tsx
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ShoppingBag, Heart, Star, Minus, Plus, ChevronLeft, Truck, Shield, RotateCcw } from 'lucide-react';
+import { ShoppingBag, Heart, Star, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { products } from '@/lib/data/products';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/lib/store/useCartStore';
-import { useState } from 'react';
+import { ProductCategory } from '@/lib/types';
+
+// Функция преобразования данных
+const transformProduct = (product: any) => ({
+    ...product,
+    inStock: product.in_stock,
+    stockQuantity: product.stock_quantity,
+    compareAtPrice: product.compare_at_price,
+    reviewCount: product.review_count,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+});
+
+interface Product {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    price: number;
+    compareAtPrice?: number;
+    images: string[];
+    category: ProductCategory;
+    brand?: string;
+    inStock: boolean;
+    stockQuantity: number;
+    tags: string[];
+    rating?: number;
+    reviewCount?: number;
+}
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
@@ -18,29 +44,101 @@ interface ProductPageProps {
 
 export default function ProductPage({ params }: ProductPageProps) {
     const { slug } = use(params);
-    const product = products.find(p => p.slug === slug);
+    const [product, setProduct] = useState<Product | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     const addItem = useCartStore((state) => state.addItem);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(0);
     const [isAdding, setIsAdding] = useState(false);
 
-    if (!product) {
-        notFound();
-    }
+    useEffect(() => {
+        fetchProduct();
+    }, [slug]);
 
-    const discount = product.compareAtPrice
-        ? calculateDiscount(product.price, product.compareAtPrice)
-        : 0;
+    const fetchProduct = async () => {
+        setLoading(true);
+        setError(false);
+        try {
+            const response = await fetch(`/api/products/${slug}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    notFound();
+                }
+                throw new Error('Failed to fetch product');
+            }
+            const data = await response.json();
+            // Преобразуем данные
+            const transformedProduct = transformProduct(data);
+            setProduct(transformedProduct);
+        } catch (err) {
+            console.error('Error fetching product:', err);
+            setError(true);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleAddToCart = () => {
+        if (!product) return;
         setIsAdding(true);
-        addItem(product, quantity);
+        addItem(product as any, quantity);
 
         setTimeout(() => {
             setIsAdding(false);
         }, 1000);
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white">
+                <Header />
+                <main className="pt-24 pb-16">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="animate-pulse">
+                            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8" />
+                            <div className="grid lg:grid-cols-2 gap-12">
+                                <div className="aspect-square bg-gray-200 rounded-2xl" />
+                                <div className="space-y-4">
+                                    <div className="h-12 bg-gray-200 rounded w-3/4" />
+                                    <div className="h-8 bg-gray-200 rounded w-1/2" />
+                                    <div className="h-24 bg-gray-200 rounded" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (error || !product) {
+        return (
+            <div className="min-h-screen bg-white">
+                <Header />
+                <main className="pt-24 pb-16">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center py-16">
+                        <h1 className="text-3xl font-serif text-gray-900 mb-4">
+                            Produkt nicht gefunden
+                        </h1>
+                        <Link
+                            href="/catalog"
+                            className="inline-block px-8 py-3 bg-rose-600 text-white rounded-full font-medium hover:bg-rose-700 transition-colors"
+                        >
+                            Zurück zum Katalog
+                        </Link>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    const discount = product.compareAtPrice
+        ? calculateDiscount(product.price, product.compareAtPrice)
+        : 0;
 
     return (
         <div className="min-h-screen bg-white">
@@ -81,8 +179,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                                             key={index}
                                             onClick={() => setSelectedImage(index)}
                                             className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index
-                                                    ? 'border-rose-600'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-rose-600'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                         >
                                             <div
@@ -117,8 +215,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                                             <Star
                                                 key={i}
                                                 className={`w-5 h-5 ${i < Math.floor(product.rating!)
-                                                        ? 'text-amber-400 fill-amber-400'
-                                                        : 'text-gray-300'
+                                                    ? 'text-amber-400 fill-amber-400'
+                                                    : 'text-gray-300'
                                                     }`}
                                             />
                                         ))}
@@ -195,8 +293,8 @@ export default function ProductPage({ params }: ProductPageProps) {
                                     disabled={!product.inStock || isAdding}
                                     onClick={handleAddToCart}
                                     className={`flex-1 py-4 rounded-xl font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg ${isAdding
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-rose-600 text-white hover:bg-rose-700'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-rose-600 text-white hover:bg-rose-700'
                                         }`}
                                 >
                                     <ShoppingBag className="w-6 h-6" />
