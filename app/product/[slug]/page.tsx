@@ -9,6 +9,7 @@ import Footer from '@/components/layout/Footer';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { ProductCategory } from '@/lib/types';
+import { useWishlistStore } from '@/lib/store/useWishlistStore';
 
 // Функция преобразования данных
 const transformProduct = (product: any) => ({
@@ -81,7 +82,17 @@ export default function ProductPage() { // ← Убрали params из проп
             setLoading(false);
         }
     };
+    const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+    const inWishlist = product ? isInWishlist(product.id) : false;
 
+    const handleWishlistToggle = () => {
+        if (!product) return;
+        if (inWishlist) {
+            removeFromWishlist(product.id);
+        } else {
+            addToWishlist(product as any);
+        }
+    };
     const handleAddToCart = () => {
         if (!product) return;
         setIsAdding(true);
@@ -302,8 +313,14 @@ export default function ProductPage() { // ← Убрали params из проп
                                     <ShoppingBag className="w-6 h-6" />
                                     {isAdding ? 'Hinzugefügt!' : 'In den Warenkorb'}
                                 </button>
-                                <button className="w-14 h-14 border-2 border-gray-300 rounded-xl flex items-center justify-center hover:border-rose-600 hover:text-rose-600 transition-colors">
-                                    <Heart className="w-6 h-6" />
+                                <button
+                                    onClick={handleWishlistToggle}
+                                    className={`w-14 h-14 border-2 rounded-xl flex items-center justify-center transition-colors ${inWishlist
+                                            ? 'bg-rose-600 border-rose-600 text-white'
+                                            : 'border-gray-300 hover:border-rose-600 hover:text-rose-600'
+                                        }`}
+                                >
+                                    <Heart className={`w-6 h-6 ${inWishlist ? 'fill-current' : ''}`} />
                                 </button>
                             </div>
 
