@@ -9,14 +9,16 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 export default function CheckoutPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const { items, getTotal, clearCart } = useCartStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderComplete, setOrderComplete] = useState(false);
     const [orderNumber, setOrderNumber] = useState('');
-    const [isReady, setIsReady] = useState(false); // <- добавили
+    const [isReady, setIsReady] = useState(false);
 
     const total = getTotal();
     const shipping = total > 5000 ? 0 : 490;
@@ -43,6 +45,23 @@ export default function CheckoutPage() {
         notes: '',
         newsletter: false,
     });
+
+    // Автозаполнение данных пользователя
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                firstName: user.user_metadata?.first_name || '',
+                lastName: user.user_metadata?.last_name || '',
+                email: user.email || '',
+                phone: user.user_metadata?.phone || '',
+                street: user.user_metadata?.street || '',
+                houseNumber: user.user_metadata?.house_number || '',
+                postalCode: user.user_metadata?.postal_code || '',
+                city: user.user_metadata?.city || '',
+            }));
+        }
+    }, [user]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
