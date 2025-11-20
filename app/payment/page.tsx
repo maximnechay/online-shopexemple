@@ -2,33 +2,48 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CreditCard, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice } from '@/lib/utils';
 
-export default function PaymentPage() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+type PaymentPageProps = {
+    searchParams: { [key: string]: string | string[] | undefined };
+};
 
-    const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'invoice'>('card');
+export default function PaymentPage({ searchParams }: PaymentPageProps) {
+    const router = useRouter();
+
+    // безопасно достаём значения из searchParams
+    const getParam = (name: string): string | undefined => {
+        const value = searchParams[name];
+        if (Array.isArray(value)) return value[0];
+        return value ?? undefined;
+    };
+
+    const totalParam = getParam('total');
+    const methodParam = getParam('method') as 'card' | 'paypal' | 'invoice' | undefined;
+
+    const total = Number.isNaN(parseInt(totalParam ?? '0', 10))
+        ? 0
+        : parseInt(totalParam ?? '0', 10);
+
+    const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'invoice'>(
+        methodParam ?? 'card'
+    );
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [paymentError, setPaymentError] = useState(false);
     const [orderNumber, setOrderNumber] = useState('');
 
-    // Получаем данные из URL параметров
-    const total = parseInt(searchParams.get('total') || '0');
-    const method = searchParams.get('method') as 'card' | 'paypal' | 'invoice' || 'card';
-
+    // если total == 0 → отправляем обратно на checkout (только на клиенте)
     useEffect(() => {
-        setPaymentMethod(method);
         if (total === 0) {
             router.push('/checkout');
         }
-    }, [method, total, router]);
+    }, [total, router]);
 
     const [cardData, setCardData] = useState({
         number: '',
@@ -41,13 +56,11 @@ export default function PaymentPage() {
         const { name, value } = e.target;
         let formattedValue = value;
 
-        // Форматирование номера карты
         if (name === 'number') {
             formattedValue = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
             if (formattedValue.length > 19) return;
         }
 
-        // Форматирование срока действия
         if (name === 'expiry') {
             formattedValue = value.replace(/\D/g, '');
             if (formattedValue.length >= 2) {
@@ -56,7 +69,6 @@ export default function PaymentPage() {
             if (formattedValue.length > 5) return;
         }
 
-        // Ограничение CVV
         if (name === 'cvv') {
             formattedValue = value.replace(/\D/g, '');
             if (formattedValue.length > 3) return;
@@ -70,10 +82,10 @@ export default function PaymentPage() {
         setIsProcessing(true);
         setPaymentError(false);
 
-        // Симуляция обработки платежа
+        // симуляция обработки платежа
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // Симуляция успеха/неудачи (90% успех)
+        // симуляция успеха/неудачи (90% успех)
         const success = Math.random() > 0.1;
 
         if (success) {
@@ -81,7 +93,6 @@ export default function PaymentPage() {
             setOrderNumber(orderNum);
             setPaymentSuccess(true);
 
-            // Редирект через 2 секунды
             setTimeout(() => {
                 router.push(`/order-success?order=${orderNum}`);
             }, 2000);
