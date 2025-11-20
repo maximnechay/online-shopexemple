@@ -108,12 +108,12 @@ export default function CheckoutPage() {
         loadUserProfile();
     }, [user]);
 
-    // Редирект если корзина пуста
+    // Редирект если корзина пуста (только при первой загрузке, не во время оформления)
     useEffect(() => {
-        if (items.length === 0) {
+        if (items.length === 0 && !isSubmitting) {
             router.push('/cart');
         }
-    }, [items, router]);
+    }, [items.length, isSubmitting, router]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -173,17 +173,21 @@ export default function CheckoutPage() {
                 throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
             }
 
-            // Очищаем корзину
-            clearCart();
+            // ✅ ВАЖНО: Сначала редирект, потом очистка
+            // Используем window.location для полной перезагрузки
+            window.location.href = `/order-success/${result.orderId}`;
 
-            // Редирект на страницу успеха
-            router.push(`/order-success/${result.orderId}`);
+            // Очищаем корзину с задержкой (на случай если редирект медленный)
+            setTimeout(() => {
+                clearCart();
+            }, 500);
+
         } catch (err: any) {
             console.error('Checkout error:', err);
             setError(err.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
-        } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // ← Сбрасываем только при ошибке
         }
+        // ← Убираем finally блок полностью!
     };
 
     const total = getTotal();
@@ -325,8 +329,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-2 gap-4 mb-6">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'delivery'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -349,8 +353,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'pickup'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -452,8 +456,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'card'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -477,8 +481,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cash'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
