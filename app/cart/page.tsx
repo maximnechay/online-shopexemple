@@ -11,7 +11,7 @@ import { formatPrice } from '@/lib/utils';
 export default function CartPage() {
     const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
     const total = getTotal();
-    const shipping = total > 5000 ? 0 : 490; // Бесплатная доставка от 50€
+    const shipping = total > 100 ? 0 : 6; // Бесплатная доставка от 100€
     const finalTotal = total + shipping;
 
     if (items.length === 0) {
@@ -187,7 +187,7 @@ export default function CartPage() {
                                         <div className="pt-2">
                                             <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                                                 <span>Bis kostenloser Versand:</span>
-                                                <span className="font-medium">{formatPrice(5000 - total)}</span>
+                                                <span className="font-medium">{formatPrice(100 - total)}</span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
