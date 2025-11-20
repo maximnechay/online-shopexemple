@@ -129,7 +129,7 @@ export default function CheckoutPage() {
         setError(null);
 
         try {
-            // Подготавливаем данные заказа
+            // Подготавливаем данные заказа (как у тебя уже есть)
             const orderData: any = {
                 userId: user?.id || null,
                 customerName: `${formData.firstName} ${formData.lastName}`.trim(),
@@ -141,54 +141,79 @@ export default function CheckoutPage() {
                 items: items.map(item => ({
                     productId: item.product.id,
                     productName: item.product.name,
-                    productPrice: item.product.price,
+                    productPrice: item.product.price, // ВАЖНО: тут в € (20, 15 и тд)
                     quantity: item.quantity,
                 })),
             };
 
-            // Для доставки добавляем адрес
             if (formData.deliveryMethod === 'delivery') {
                 orderData.deliveryAddress = `${formData.street} ${formData.houseNumber}`;
                 orderData.deliveryCity = formData.city;
                 orderData.deliveryPostalCode = formData.postalCode;
             } else {
-                // Для самовывоза указываем адрес салона
                 orderData.deliveryAddress = 'Самовывоз';
                 orderData.deliveryCity = 'Salon';
                 orderData.deliveryPostalCode = '';
             }
 
-            // Отправляем заказ
-            const response = await fetch('/api/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(orderData),
-            });
+            // 1) Если оплата НАЛИЧНЫМИ — как раньше
+            if (formData.paymentMethod === 'cash') {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData),
+                });
 
-            const result = await response.json();
+                const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
+                if (!response.ok) {
+                    throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
+                }
+
+                window.location.href = `/order-success/${result.orderId}`;
+
+                setTimeout(() => {
+                    clearCart();
+                }, 500);
+
+                return;
             }
 
-            // ✅ ВАЖНО: Сначала редирект, потом очистка
-            // Используем window.location для полной перезагрузки
-            window.location.href = `/order-success/${result.orderId}`;
+            // 2) Если оплата КАРТОЙ — идём через Stripe
+            if (formData.paymentMethod === 'card') {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: orderData.items,
+                        deliveryMethod: orderData.deliveryMethod,
+                        customer: {
+                            name: orderData.customerName,
+                            email: orderData.customerEmail,
+                            phone: orderData.customerPhone,
+                        },
+                        // если хочешь, можно метадату с адресом тоже положить сюда
+                    }),
+                });
 
-            // Очищаем корзину с задержкой (на случай если редирект медленный)
-            setTimeout(() => {
-                clearCart();
-            }, 500);
+                const result = await response.json();
 
+                if (!response.ok) {
+                    throw new Error(result.error || 'Fehler beim Starten der Zahlung');
+                }
+
+                // Stripe URL
+                window.location.href = result.url;
+
+                return;
+            }
         } catch (err: any) {
             console.error('Checkout error:', err);
             setError(err.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
-            setIsSubmitting(false); // ← Сбрасываем только при ошибке
+            setIsSubmitting(false);
         }
-        // ← Убираем finally блок полностью!
     };
+
 
     const total = getTotal();
     const shipping = formData.deliveryMethod === 'delivery' ? 4.99 : 0;
