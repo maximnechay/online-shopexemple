@@ -1,45 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react'; // ← Убрали use
-import { notFound, useParams } from 'next/navigation'; // ← Добавили useParams
+import { useEffect, useState } from 'react';
+import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingBag, Heart, Star, Minus, Plus, Truck, Shield, RotateCcw } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/lib/store/useCartStore';
-import { ProductCategory } from '@/lib/types';
+import { Product } from '@/lib/types';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
-
-// Функция преобразования данных
-const transformProduct = (product: any) => ({
-    ...product,
-    inStock: product.in_stock,
-    stockQuantity: product.stock_quantity,
-    compareAtPrice: product.compare_at_price,
-    reviewCount: product.review_count,
-    createdAt: product.created_at,
-    updatedAt: product.updated_at,
-});
-
-interface Product {
-    id: string;
-    name: string;
-    slug: string;
-    description: string;
-    price: number;
-    compareAtPrice?: number;
-    images: string[];
-    category: ProductCategory;
-    brand?: string;
-    inStock: boolean;
-    stockQuantity: number;
-    tags: string[];
-    rating?: number;
-    reviewCount?: number;
-}
-
-// ← Убрали interface ProductPageProps
 
 export default function ProductPage() { // ← Убрали params из пропсов
     const params = useParams(); // ← Используем useParams hook
@@ -72,9 +42,7 @@ export default function ProductPage() { // ← Убрали params из проп
                 throw new Error('Failed to fetch product');
             }
             const data = await response.json();
-            // Преобразуем данные
-            const transformedProduct = transformProduct(data);
-            setProduct(transformedProduct);
+            setProduct(data);
         } catch (err) {
             console.error('Error fetching product:', err);
             setError(true);

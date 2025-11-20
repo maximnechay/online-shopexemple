@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { transformProductsFromDB } from '@/lib/supabase/helpers';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -19,7 +20,10 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
-        return NextResponse.json(data || []);
+        // Transform data from snake_case to camelCase
+        const transformedProducts = transformProductsFromDB(data || []);
+
+        return NextResponse.json(transformedProducts);
     } catch (error) {
         console.error('Error searching products:', error);
         return NextResponse.json(

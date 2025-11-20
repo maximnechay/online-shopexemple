@@ -6,37 +6,8 @@ import { Filter } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/shop/ProductCard';
-import { ProductCategory, SortOption } from '@/lib/types';
+import { Product, ProductCategory, SortOption } from '@/lib/types';
 import { categories } from '@/lib/data/products';
-
-const transformProduct = (product: any): Product => ({
-    ...product,
-    inStock: product.in_stock,
-    stockQuantity: product.stock_quantity,
-    compareAtPrice: product.compare_at_price,
-    reviewCount: product.review_count,
-    createdAt: product.created_at,
-    updatedAt: product.updated_at,
-});
-
-interface Product {
-    id: string;
-    name: string;
-    slug: string;
-    description: string;
-    price: number;
-    compareAtPrice?: number;
-    images: string[];
-    category: ProductCategory;
-    brand?: string;
-    inStock: boolean;
-    stockQuantity: number;
-    tags: string[];
-    rating?: number;
-    reviewCount?: number;
-    createdAt: string;
-    updatedAt: string;
-}
 
 export default function CatalogPage() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -66,10 +37,7 @@ export default function CatalogPage() {
             }
 
             const data = await response.json();
-
-            // Преобразуем данные из Supabase
-            const transformedData = data.map(transformProduct);
-            setProducts(transformedData);
+            setProducts(data);
         } catch (error) {
             console.error('Error fetching products:', error);
             setError(true);

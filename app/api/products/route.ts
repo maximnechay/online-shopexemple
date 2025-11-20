@@ -1,6 +1,7 @@
 // app/api/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { transformProductsFromDB } from '@/lib/supabase/helpers';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,10 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        return NextResponse.json(products || []);
+        // Transform data from snake_case to camelCase
+        const transformedProducts = transformProductsFromDB(products || []);
+
+        return NextResponse.json(transformedProducts);
     } catch (error: any) {
         console.error('Products API error:', error);
         return NextResponse.json(

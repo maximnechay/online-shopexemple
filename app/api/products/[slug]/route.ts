@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { transformProductFromDB } from '@/lib/supabase/helpers';
 
 export async function GET(
     request: Request,
@@ -21,7 +22,10 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(product);
+        // Transform data from snake_case to camelCase
+        const transformedProduct = transformProductFromDB(product);
+
+        return NextResponse.json(transformedProduct);
     } catch (error) {
         console.error('Error fetching product:', error);
         return NextResponse.json(
