@@ -1,5 +1,5 @@
 'use client';
-
+export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -284,8 +284,8 @@ export default function ProductPage() { // ← Убрали params из проп
                                 <button
                                     onClick={handleWishlistToggle}
                                     className={`w-14 h-14 border-2 rounded-xl flex items-center justify-center transition-colors ${inWishlist
-                                            ? 'bg-rose-600 border-rose-600 text-white'
-                                            : 'border-gray-300 hover:border-rose-600 hover:text-rose-600'
+                                        ? 'bg-rose-600 border-rose-600 text-white'
+                                        : 'border-gray-300 hover:border-rose-600 hover:text-rose-600'
                                         }`}
                                 >
                                     <Heart className={`w-6 h-6 ${inWishlist ? 'fill-current' : ''}`} />
