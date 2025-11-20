@@ -27,7 +27,7 @@ interface Product {
     price: number;
     compareAtPrice?: number;
     images: string[];
-    category: ProductCategory; // ← Изменено с string на ProductCategory
+    category: ProductCategory;
     brand?: string;
     inStock: boolean;
     stockQuantity: number;
@@ -41,40 +41,50 @@ interface Product {
 export default function CatalogPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
     const [sortBy, setSortBy] = useState<SortOption>('newest');
     const [inStockOnly, setInStockOnly] = useState(false);
 
     useEffect(() => {
         fetchProducts();
-    }, [selectedCategory, inStockOnly]);
+    }, [selectedCategory]);
 
     const fetchProducts = async () => {
         setLoading(true);
+        setError(false);
         try {
             const params = new URLSearchParams();
             if (selectedCategory !== 'all') {
                 params.append('category', selectedCategory);
             }
-            if (inStockOnly) {
-                params.append('inStockOnly', 'true');
-            }
 
             const response = await fetch(`/api/products?${params}`);
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch products');
+            }
+
             const data = await response.json();
 
-            // Преобразуем данные
+            // Преобразуем данные из Supabase
             const transformedData = data.map(transformProduct);
             setProducts(transformedData);
         } catch (error) {
             console.error('Error fetching products:', error);
+            setError(true);
         } finally {
             setLoading(false);
         }
     };
 
-    // Sort products
-    const sortedProducts = [...products].sort((a, b) => {
+    // Фильтруем товары
+    const filteredProducts = inStockOnly
+        ? products.filter(p => p.inStock)
+        : products;
+
+    // Сортируем товары
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
         switch (sortBy) {
             case 'price-asc':
                 return a.price - b.price;
@@ -85,10 +95,10 @@ export default function CatalogPage() {
             case 'name-desc':
                 return b.name.localeCompare(a.name);
             case 'popular':
-                return (b.reviewCount || 0) - (a.reviewCount || 0); // ← Изменено
+                return (b.reviewCount || 0) - (a.reviewCount || 0);
             case 'newest':
             default:
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // ← Изменено
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
     });
 
@@ -114,8 +124,8 @@ export default function CatalogPage() {
                             <button
                                 onClick={() => setSelectedCategory('all')}
                                 className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                    ? 'bg-rose-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 Alle Produkte
@@ -125,8 +135,8 @@ export default function CatalogPage() {
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
                                     className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-rose-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {category.name}
@@ -172,7 +182,7 @@ export default function CatalogPage() {
 
                     {/* Products Grid */}
                     {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                             {[...Array(8)].map((_, i) => (
                                 <div key={i} className="animate-pulse">
                                     <div className="aspect-square bg-gray-200 rounded-2xl mb-4" />
@@ -181,26 +191,29 @@ export default function CatalogPage() {
                                 </div>
                             ))}
                         </div>
-                    ) : sortedProducts.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {sortedProducts.map((product) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                        </div>
-                    ) : (
+                    ) : error ? (
                         <div className="text-center py-16">
-                            <p className="text-xl text-gray-600 mb-4">
-                                Keine Produkte gefunden
+                            <p className="text-gray-600 mb-4">
+                                Fehler beim Laden der Produkte.
                             </p>
                             <button
-                                onClick={() => {
-                                    setSelectedCategory('all');
-                                    setInStockOnly(false);
-                                }}
-                                className="text-rose-600 hover:text-rose-700 font-medium"
+                                onClick={fetchProducts}
+                                className="px-6 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors"
                             >
-                                Filter zurücksetzen
+                                Erneut versuchen
                             </button>
+                        </div>
+                    ) : sortedProducts.length === 0 ? (
+                        <div className="text-center py-16">
+                            <p className="text-lg text-gray-600">
+                                Keine Produkte in dieser Kategorie gefunden.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                            {sortedProducts.map((product) => (
+                                <ProductCard key={product.id} product={product as any} />
+                            ))}
                         </div>
                     )}
                 </div>
