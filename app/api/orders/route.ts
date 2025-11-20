@@ -1,145 +1,118 @@
 // app/api/orders/route.ts
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// GET - получить заказы пользователя
-export async function GET(request: Request) {
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function POST(request: NextRequest) {
     try {
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() {
-                        return cookieStore.getAll();
-                    },
-                },
-            }
-        );
+        const body = await request.json();
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+            userId,
+            customerName,
+            customerEmail,
+            customerPhone,
+            deliveryAddress,
+            deliveryCity,
+            deliveryPostalCode,
+            deliveryMethod,
+            paymentMethod,
+            notes,
+            items,
+        } = body;
 
-        if (authError || !user) {
+        // Валидация основных данных
+        if (!customerName || !customerEmail || !customerPhone) {
             return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+                { error: 'Fehlende Kundendaten' },
+                { status: 400 }
             );
         }
 
-        // Получаем заказы пользователя
-        const { data: orders, error: ordersError } = await supabaseAdmin
-            .from('orders')
-            .select(`
-                *,
-                order_items (
-                    id,
-                    product_name,
-                    product_price,
-                    quantity,
-                    total
-                )
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+        if (!deliveryMethod || !paymentMethod) {
+            return NextResponse.json(
+                { error: 'Fehlende Liefer- oder Zahlungsmethode' },
+                { status: 400 }
+            );
+        }
 
-        if (ordersError) throw ordersError;
+        if (!items || items.length === 0) {
+            return NextResponse.json(
+                { error: 'Warenkorb ist leer' },
+                { status: 400 }
+            );
+        }
 
-        // Добавляем количество позиций в каждый заказ
-        const ordersWithCount = orders?.map(order => ({
-            ...order,
-            items_count: order.order_items?.length || 0
-        })) || [];
-
-        return NextResponse.json({
-            success: true,
-            orders: ordersWithCount
-        });
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch orders' },
-            { status: 500 }
+        // Вычисляем общую сумму
+        const totalAmount = items.reduce(
+            (sum: number, item: any) => sum + item.productPrice * item.quantity,
+            0
         );
-    }
-}
 
-// POST - создать новый заказ
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const {
-            userId,
-            customerInfo,
-            items,
-            subtotal,
-            shipping,
-            total,
-            deliveryMethod,
-            paymentMethod,
-            notes
-        } = body;
-
-        // Генерируем номер заказа
-        const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
-
-        // Создаём заказ с user_id (если пользователь авторизован)
-        const { data: order, error: orderError } = await supabaseAdmin
+        // Создаем заказ
+        const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
-                order_number: orderNumber,
                 user_id: userId || null,
-                email: customerInfo.email,
-                phone: customerInfo.phone,
-                first_name: customerInfo.firstName,
-                last_name: customerInfo.lastName,
-                street: customerInfo.street,
-                house_number: customerInfo.houseNumber,
-                postal_code: customerInfo.postalCode,
-                city: customerInfo.city,
-                subtotal,
-                shipping,
-                total,
+                customer_name: customerName,
+                customer_email: customerEmail,
+                customer_phone: customerPhone,
+                delivery_address: deliveryAddress || 'Самовывоз',
+                delivery_city: deliveryCity || 'Salon',
+                delivery_postal_code: deliveryPostalCode || null,
                 delivery_method: deliveryMethod,
                 payment_method: paymentMethod,
-                payment_status: 'pending',
+                total_amount: totalAmount,
+                notes: notes || null,
                 status: 'pending',
-                notes: notes || null
             })
             .select()
             .single();
 
-        if (orderError) throw orderError;
+        if (orderError) {
+            console.error('Order creation error:', orderError);
+            return NextResponse.json(
+                { error: 'Fehler beim Erstellen der Bestellung', details: orderError.message },
+                { status: 500 }
+            );
+        }
 
-        // Создаём позиции заказа
+        // Создаем товары заказа
         const orderItems = items.map((item: any) => ({
             order_id: order.id,
-            product_id: item.product.id,
-            product_name: item.product.name,
-            product_price: item.product.price,
+            product_id: item.productId,
+            product_name: item.productName,
+            product_price: item.productPrice,
             quantity: item.quantity,
-            total: item.product.price * item.quantity
         }));
 
-        const { error: itemsError } = await supabaseAdmin
+        const { error: itemsError } = await supabase
             .from('order_items')
             .insert(orderItems);
 
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+            console.error('Order items creation error:', itemsError);
+            // Откатываем создание заказа
+            await supabase.from('orders').delete().eq('id', order.id);
+            return NextResponse.json(
+                { error: 'Fehler beim Erstellen der Bestellpositionen', details: itemsError.message },
+                { status: 500 }
+            );
+        }
 
         return NextResponse.json({
             success: true,
-            order: {
-                id: order.id,
-                orderNumber: order.order_number
-            }
+            orderId: order.id,
+            order,
         });
-    } catch (error) {
-        console.error('Error creating order:', error);
+    } catch (error: any) {
+        console.error('Create order error:', error);
         return NextResponse.json(
-            { error: 'Failed to create order' },
+            { error: 'Interner Serverfehler', details: error.message },
             { status: 500 }
         );
     }
