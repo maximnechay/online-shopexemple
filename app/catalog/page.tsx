@@ -92,8 +92,8 @@ export default function CatalogPage() {
                             <button
                                 onClick={() => setSelectedCategory('all')}
                                 className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-rose-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 Alle Produkte
@@ -103,8 +103,8 @@ export default function CatalogPage() {
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
                                     className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                            ? 'bg-rose-600 text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {category.name}
