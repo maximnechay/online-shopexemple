@@ -1,7 +1,7 @@
 // app/checkout/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, Truck, Package, CheckCircle } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderComplete, setOrderComplete] = useState(false);
     const [orderNumber, setOrderNumber] = useState('');
+    const [isReady, setIsReady] = useState(false); // <- добавили
 
     const total = getTotal();
     const shipping = total > 5000 ? 0 : 490;
@@ -68,9 +69,16 @@ export default function CheckoutPage() {
         router.push(`/payment?total=${totalWithShipping}&method=${formData.paymentMethod}`);
     };
 
-    // Если корзина пуста - редирект
-    if (items.length === 0 && !orderComplete) {
-        router.push('/cart');
+    useEffect(() => {
+        if (items.length === 0 && !orderComplete) {
+            router.replace('/cart');
+        } else {
+            setIsReady(true);
+        }
+    }, [items.length, orderComplete, router]);
+
+    if (!isReady && !orderComplete) {
+        // можно показать лоадер, а можно просто null
         return null;
     }
 
