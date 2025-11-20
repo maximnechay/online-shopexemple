@@ -1,98 +1,92 @@
-import { type ClassValue, clsx } from 'clsx';
+import { type ClassValue, clsx } from 'clsx'
 
-// Utility for merging Tailwind classes
+// Merge Tailwind classes
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return clsx(inputs)
 }
 
-// Format price in rubles
+// Format price in EUR (Germany)
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat('de-DE', {
     style: 'currency',
-    currency: 'RUB',
+    currency: 'EUR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(price);
+  }).format(price)
 }
 
 // Calculate discount percentage
 export function calculateDiscount(price: number, compareAtPrice: number): number {
-  if (!compareAtPrice || compareAtPrice <= price) return 0;
-  return Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
+  if (!compareAtPrice || compareAtPrice <= price) return 0
+  return Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
 }
 
-// Generate slug from string
+// Generate slug for German text (umlauts → ae/oe/ue, ß → ss)
 export function slugify(text: string): string {
-  const translitMap: Record<string, string> = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
-    'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-  };
+  const map: Record<string, string> = {
+    'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss'
+  }
 
   return text
     .toLowerCase()
-    .split('')
-    .map(char => translitMap[char] || char)
-    .join('')
+    .replace(/[äöüß]/g, char => map[char])
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
 }
 
 // Validate email
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
 }
 
-// Validate phone (Russian format)
+// Validate German phone number
 export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^(\+7|8)?[\s-]?\(?[0-9]{3}\)?[\s-]?[0-9]{3}[\s-]?[0-9]{2}[\s-]?[0-9]{2}$/;
-  return phoneRegex.test(phone);
+  // Accept formats:
+  // +49 1523 1234567
+  // 01523 1234567
+  // +4915231234567
+  const regex = /^(\+49|0)[1-9][0-9\s\-]{6,}$/
+  return regex.test(phone)
 }
 
-// Format phone number
+// Format German phone
 export function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '');
-  const match = cleaned.match(/^(\d{1})(\d{3})(\d{3})(\d{2})(\d{2})$/);
-  if (match) {
-    return `+${match[1]} (${match[2]}) ${match[3]}-${match[4]}-${match[5]}`;
+  const cleaned = phone.replace(/\D/g, '')
+
+  if (cleaned.startsWith('49')) {
+    return `+49 ${cleaned.slice(2)}`
   }
-  return phone;
+
+  if (cleaned.startsWith('0')) {
+    return `+49 ${cleaned.slice(1)}`
+  }
+
+  return phone
 }
 
-// Debounce function
-export function debounce<T extends (...args: any[]) => any>(
+// Debounce helper
+export function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+  let timeout: NodeJS.Timeout
+
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
 }
 
-// Generate order number
+// Generate unique order number
 export function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 7);
-  return `ORD-${timestamp}-${random}`.toUpperCase();
+  const timestamp = Date.now().toString(36)
+  const random = Math.random().toString(36).substring(2, 7)
+  return `ORD-${timestamp}-${random}`.toUpperCase()
 }
 
-// Pluralize words (Russian)
-export function pluralize(count: number, one: string, few: string, many: string): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
+// German pluralization
+// Example: pluralizeDe(3, "Stück", "Stücke")
+export function pluralizeDe(count: number, singular: string, plural: string): string {
+  return count === 1 ? singular : plural
 }
-
-// Example: pluralize(1, 'товар', 'товара', 'товаров') => 'товар'
