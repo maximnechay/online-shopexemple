@@ -1,22 +1,49 @@
-// components/shop/ProductCard.tsx
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShoppingBag, Heart } from 'lucide-react';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { Product } from '@/lib/types';
+import { useWishlistStore } from '@/lib/store/useWishlistStore';
+import { useCartStore } from '@/lib/store/useCartStore';
+import { useState } from 'react';
 
 interface ProductCardProps {
     product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+    const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+    const { addItem: addToCart } = useCartStore();
+    const [isAdding, setIsAdding] = useState(false);
+
+    const inWishlist = isInWishlist(product.id);
+
     const discount = product.compareAtPrice
         ? calculateDiscount(product.price, product.compareAtPrice)
         : 0;
 
+    const handleWishlistToggle = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (inWishlist) {
+            removeFromWishlist(product.id);
+        } else {
+            addToWishlist(product as any);
+        }
+    };
+
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!product.inStock) return;
+
+        setIsAdding(true);
+        addToCart(product as any, 1);
+        setTimeout(() => setIsAdding(false), 1000);
+    };
+
     return (
         <div className="group relative bg-white rounded-2xl overflow-hidden transition-all hover:shadow-xl">
-            <Link href={`/product/${product.slug}`}> {/* ← Правильная ссылка */}
+            <Link href={`/product/${product.slug}`}>
                 {/* Image */}
                 <div className="relative aspect-square overflow-hidden bg-gray-50">
                     <div
@@ -80,21 +107,21 @@ export default function ProductCard({ product }: ProductCardProps) {
             {/* Actions - Outside Link */}
             <div className="absolute top-4 right-4 flex flex-col gap-2">
                 <button
-                    className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        // TODO: Add to wishlist
-                    }}
+                    onClick={handleWishlistToggle}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${inWishlist
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-white hover:bg-rose-600 hover:text-white'
+                        }`}
                 >
-                    <Heart className="w-5 h-5" />
+                    <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
                 </button>
                 {product.inStock && (
                     <button
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            // TODO: Add to cart
-                        }}
+                        onClick={handleAddToCart}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${isAdding
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white hover:bg-rose-600 hover:text-white'
+                            }`}
                     >
                         <ShoppingBag className="w-5 h-5" />
                     </button>
