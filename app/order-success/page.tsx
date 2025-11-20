@@ -1,13 +1,14 @@
 // app/order-success/page.tsx
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, Package, Mail, Download, ArrowRight } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
     const searchParams = useSearchParams();
     const orderNumber = searchParams.get('order') || 'ORD-UNKNOWN';
 
@@ -114,7 +115,10 @@ export default function OrderSuccessPage() {
                                     +49 (30) 123 456 789
                                 </a>
                                 <span className="text-gray-400">•</span>
-                                <a href="mailto:support@elegance-beauty.de" className="text-rose-600 hover:text-rose-700 font-medium">
+                                <a
+                                    href="mailto:support@elegance-beauty.de"
+                                    className="text-rose-600 hover:text-rose-700 font-medium"
+                                >
                                     support@elegance-beauty.de
                                 </a>
                             </div>
@@ -125,5 +129,19 @@ export default function OrderSuccessPage() {
 
             <Footer />
         </div>
+    );
+}
+
+export default function OrderSuccessPageWrapper() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen bg-white flex items-center justify-center">
+                    <p className="text-gray-600">Lädt...</p>
+                </div>
+            }
+        >
+            <OrderSuccessContent />
+        </Suspense>
     );
 }
