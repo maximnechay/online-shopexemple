@@ -4,18 +4,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Package, Mail, ArrowRight, Home, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Package, Mail, Home, ShoppingBag } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { createClient } from '@/lib/supabase/client';
 
 interface Order {
     id: string;
     customer_name: string;
     customer_email: string;
-    total_amount: number;
-    delivery_method: string;
-    payment_method: string;
+    total_amount: string;      // numeric из Supabase приходит как string
+    delivery_method: 'delivery' | 'pickup';
+    payment_method: 'card' | 'cash';
     created_at: string;
 }
 
@@ -28,17 +27,13 @@ export default function OrderSuccessPage() {
     useEffect(() => {
         const loadOrder = async () => {
             try {
-                const supabase = createClient();
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('id', orderId)
-                    .single();
+                const res = await fetch(`/api/orders/${orderId}`);
+                const orderData = await res.json();
 
-                if (error) {
-                    console.error('Error loading order:', error);
+                if (!res.ok) {
+                    console.error('Error loading order:', orderData);
                 } else {
-                    setOrder(data);
+                    setOrder(orderData);
                 }
             } catch (err) {
                 console.error('Error:', err);
@@ -93,13 +88,15 @@ export default function OrderSuccessPage() {
         );
     }
 
+    const totalNumber = Number(order.total_amount ?? 0);
+
     return (
         <div className="min-h-screen bg-white">
             <Header />
 
             <main className="pt-24 pb-16">
                 <div className="max-w-3xl mx-auto px-6">
-                    {/* Success Icon */}
+                    {/* Спасибо за заказ */}
                     <div className="text-center mb-12">
                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -112,7 +109,7 @@ export default function OrderSuccessPage() {
                         </p>
                     </div>
 
-                    {/* Order Details Card */}
+                    {/* Краткие детали */}
                     <div className="bg-gray-50 rounded-2xl p-8 mb-8">
                         <h2 className="text-xl font-serif text-gray-900 mb-6">
                             Bestelldetails
@@ -122,7 +119,7 @@ export default function OrderSuccessPage() {
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Bestellnummer</p>
                                 <p className="text-lg font-mono text-gray-900">
-                                    #{orderId.substring(0, 8).toUpperCase()}
+                                    #{order.id.substring(0, 8).toUpperCase()}
                                 </p>
                             </div>
 
@@ -140,7 +137,7 @@ export default function OrderSuccessPage() {
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Gesamtbetrag</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {order.total_amount.toFixed(2)} €
+                                    {totalNumber.toFixed(2)} €
                                 </p>
                             </div>
 
@@ -155,7 +152,7 @@ export default function OrderSuccessPage() {
                         </div>
                     </div>
 
-                    {/* What's Next */}
+                    {/* Что дальше */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
                         <h2 className="text-2xl font-serif text-gray-900 mb-6">
                             Wie geht es weiter?
@@ -194,27 +191,11 @@ export default function OrderSuccessPage() {
                                     </p>
                                 </div>
                             </div>
-
-                            {order.delivery_method === 'delivery' && (
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <CheckCircle className="w-5 h-5 text-rose-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-medium text-gray-900 mb-1">
-                                            Lieferung
-                                        </h3>
-                                        <p className="text-gray-600">
-                                            Ihre Bestellung wird in 2-3 Werktagen geliefert.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    {/* Кнопки */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                         <Link
                             href="/catalog"
                             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 transition-colors"
@@ -231,7 +212,16 @@ export default function OrderSuccessPage() {
                         </Link>
                     </div>
 
-                    {/* Help */}
+                    {/* ВАЖНО: ссылка на детальную страницу из профиля */}
+                    <div className="text-center">
+                        <Link
+                            href={`/profile/orders/${order.id}`}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm text-rose-600 hover:text-rose-700 font-medium"
+                        >
+                            Bestelldetails anzeigen
+                        </Link>
+                    </div>
+
                     <div className="mt-12 text-center">
                         <p className="text-gray-600 mb-2">
                             Haben Sie Fragen zu Ihrer Bestellung?
