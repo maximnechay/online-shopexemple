@@ -1,91 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
     apiVersion: '2023-10-16',
 });
 
-// чтобы не кешировалось
-export const dynamic = 'force-dynamic';
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
-        const body = await req.json();
+        const { items, customer, deliveryMethod, address, userId } = await req.json();
 
-        const items = body.items as {
-            productId: string;
-            productName: string;
-            productPrice: number; // сейчас в € (10, 20, 45...)
-            quantity: number;
-        }[];
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return NextResponse.json({ error: 'Keine Artikel im Warenkorb' }, { status: 400 });
+        }
 
-        const deliveryMethod = body.deliveryMethod as 'delivery' | 'pickup' | undefined;
-        const customer = body.customer as {
-            name?: string;
-            email?: string;
-            phone?: string;
-        };
+        // считаем сумму в €
+        const total = items.reduce(
+            (sum: number, item: any) => sum + item.productPrice * item.quantity,
+            0
+        );
 
-        if (!items || items.length === 0) {
+        // готовим адрес для записи в orders
+        let delivery_address: string;
+        let delivery_city: string | null;
+        let delivery_postal_code: string | null;
+
+        if (deliveryMethod === 'delivery') {
+            delivery_address = `${address?.street ?? ''} ${address?.houseNumber ?? ''}`.trim();
+            delivery_city = address?.city ?? '';
+            delivery_postal_code = address?.postalCode ?? '';
+        } else {
+            // самовывоз — чтобы не было null в NOT NULL колонках
+            delivery_address = 'Abholung im Salon';
+            delivery_city = 'Hannover';
+            delivery_postal_code = '0';
+        }
+
+        // 1) создаём заказ в Supabase
+        const { data: order, error: orderError } = await supabaseAdmin
+            .from('orders')
+            .insert({
+                user_id: userId || null,
+                customer_name: customer.name,
+                customer_email: customer.email,
+                customer_phone: customer.phone,
+                total_amount: total,
+                delivery_method: deliveryMethod,
+                payment_method: 'card',
+                status: 'pending',
+                delivery_address,
+                delivery_city,
+                delivery_postal_code,
+                items, // jsonb колонка
+            })
+            .select('*')
+            .single();
+
+        if (orderError) {
+            console.error('Order insert error:', orderError);
             return NextResponse.json(
-                { error: 'Keine Artikel im Warenkorb' },
-                { status: 400 }
+                { error: 'Fehler beim Speichern der Bestellung' },
+                { status: 500 }
             );
         }
 
-        // Линии товаров
-        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(
-            (item) => ({
-                quantity: item.quantity,
+        // 2) создаём Stripe session
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            payment_method_types: ['card'],
+            line_items: items.map((item: any) => ({
                 price_data: {
                     currency: 'eur',
+                    unit_amount: Math.round(item.productPrice * 100),
                     product_data: {
                         name: item.productName,
                     },
-                    // ВАЖНО: у тебя сейчас price в € → Stripe ждёт в центах
-                    unit_amount: Math.round(item.productPrice * 100),
                 },
-            })
-        );
-
-        // Доставка как отдельная позиция (4.99 € если delivery)
-        if (deliveryMethod === 'delivery') {
-            lineItems.push({
-                quantity: 1,
-                price_data: {
-                    currency: 'eur',
-                    product_data: {
-                        name: 'Versand',
-                    },
-                    unit_amount: 499, // 4.99 €
-                },
-            });
-        }
-
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            line_items: lineItems,
-            customer_email: customer?.email,
-            // Авто-методы (карта, Klarna, Sofort и тд — что включишь в Stripe Dashboard)
-            automatic_payment_methods: {
-                enabled: true,
-            },
-            locale: 'de',
-            success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1`,
+                quantity: item.quantity,
+            })),
+            customer_email: customer.email,
             metadata: {
-                customerName: customer?.name || '',
-                customerPhone: customer?.phone || '',
-                deliveryMethod: deliveryMethod || '',
+                orderId: order.id,
             },
+            success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success/${order.id}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1`,
         });
 
+
+
         return NextResponse.json({ url: session.url });
-    } catch (error) {
-        console.error('Stripe checkout error:', error);
-        return NextResponse.json(
-            { error: 'Fehler bei Stripe Checkout' },
-            { status: 500 }
-        );
+    } catch (err: any) {
+        console.error('Stripe error:', err);
+        return NextResponse.json({ error: err.message ?? 'Stripe error' }, { status: 500 });
     }
 }
