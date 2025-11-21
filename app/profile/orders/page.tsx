@@ -4,21 +4,35 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Package, Calendar, CreditCard, Truck, ChevronRight } from 'lucide-react';
+import { User, Package, Calendar, ChevronRight, Truck } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { formatPrice } from '@/lib/utils';
 
+interface OrderItem {
+    productId: string;
+    productName: string;
+    productPrice: number;
+    quantity: number;
+}
+
 interface Order {
     id: string;
-    order_number: string;
+    user_id: string | null;
+    customer_name: string;
+    customer_email: string;
+    customer_phone: string;
+    delivery_address: string;
+    delivery_city: string;
+    delivery_postal_code: string;
+    delivery_method: 'delivery' | 'pickup';
+    payment_method: 'card' | 'cash';
+    total_amount: string; // из Supabase приходит numeric как string
+    status: string;       // 'pending' и тд
+    notes: string | null;
     created_at: string;
-    total: number;
-    status: string;
-    payment_status: string;
-    delivery_method: string;
-    items_count: number;
+    items: OrderItem[] | null;
 }
 
 export default function OrdersPage() {
@@ -34,20 +48,20 @@ export default function OrdersPage() {
         }
 
         if (user) {
-            loadOrders();
+            loadOrders(user.id);
         }
     }, [user, loading, router]);
 
-    const loadOrders = async () => {
+    const loadOrders = async (userId: string) => {
         try {
-            const response = await fetch('/api/orders');
+            const response = await fetch(`/api/orders/user/${userId}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch orders');
             }
 
-            const data = await response.json();
-            setOrders(data.orders || []);
+            const data: Order[] = await response.json();
+            setOrders(data || []);
         } catch (error) {
             console.error('Error loading orders:', error);
             setOrders([]);
@@ -72,6 +86,18 @@ export default function OrdersPage() {
                 {config.label}
             </span>
         );
+    };
+
+    const getItemsCount = (order: Order) => {
+        if (!order.items || !Array.isArray(order.items)) return 0;
+        return order.items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+    };
+
+    const getPaymentStatusLabel = (order: Order) => {
+        // можно усложнить логику позже, пока так:
+        if (order.payment_method === 'card') return 'Bezahlt';
+        if (order.status === 'cancelled') return 'Storniert';
+        return 'Ausstehend';
     };
 
     if (loading || isLoading) {
@@ -147,65 +173,73 @@ export default function OrdersPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {orders.map((order) => (
-                                        <div
-                                            key={order.id}
-                                            className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow"
-                                        >
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div>
-                                                    <h3 className="text-lg font-medium text-gray-900 mb-1">
-                                                        Bestellung #{order.order_number}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                        <Calendar className="w-4 h-4" />
-                                                        {new Date(order.created_at).toLocaleDateString('de-DE', {
-                                                            day: '2-digit',
-                                                            month: '2-digit',
-                                                            year: 'numeric',
-                                                        })}
+                                    {orders.map((order) => {
+                                        const itemsCount = getItemsCount(order);
+                                        const totalNumber = Number(order.total_amount ?? 0);
+
+                                        return (
+                                            <div
+                                                key={order.id}
+                                                className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-shadow"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div>
+                                                        <h3 className="text-lg font-medium text-gray-900 mb-1">
+                                                            Bestellung #{order.id.slice(0, 8).toUpperCase()}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                            <Calendar className="w-4 h-4" />
+                                                            {new Date(order.created_at).toLocaleDateString('de-DE', {
+                                                                day: '2-digit',
+                                                                month: '2-digit',
+                                                                year: 'numeric',
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                    {getStatusBadge(order.status)}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 mb-1">Artikel</p>
+                                                        <p className="font-medium text-gray-900">{itemsCount}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 mb-1">Gesamt</p>
+                                                        <p className="font-medium text-gray-900">
+                                                            {formatPrice(totalNumber)}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 mb-1">Versand</p>
+                                                        <p className="font-medium text-gray-900 flex items-center gap-1">
+                                                            <Truck className="w-4 h-4" />
+                                                            {order.delivery_method === 'pickup'
+                                                                ? 'Abholung'
+                                                                : 'Standard'}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 mb-1">Zahlung</p>
+                                                        <p className="font-medium text-gray-900">
+                                                            {getPaymentStatusLabel(order)}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                {getStatusBadge(order.status)}
-                                            </div>
 
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Artikel</p>
-                                                    <p className="font-medium text-gray-900">{order.items_count}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Gesamt</p>
-                                                    <p className="font-medium text-gray-900">{formatPrice(order.total)}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Versand</p>
-                                                    <p className="font-medium text-gray-900">
-                                                        {order.delivery_method === 'express'
-                                                            ? 'Express'
-                                                            : order.delivery_method === 'pickup'
-                                                            ? 'Abholung'
-                                                            : 'Standard'}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Zahlung</p>
-                                                    <p className="font-medium text-gray-900">
-                                                        {order.payment_status === 'paid'
-                                                            ? 'Bezahlt'
-                                                            : order.payment_status === 'pending'
-                                                            ? 'Ausstehend'
-                                                            : 'Fehlgeschlagen'}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                                <Link
+                                                    href={`/order-success/${order.id}`}
+                                                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                                                >
+                                                    <span className="text-sm font-medium text-gray-700">
+                                                        Details anzeigen
+                                                    </span>
+                                                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                </Link>
 
-                                            <button className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-                                                <span className="text-sm font-medium text-gray-700">Details anzeigen</span>
-                                                <ChevronRight className="w-5 h-5 text-gray-400" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
