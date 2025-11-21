@@ -1,3 +1,4 @@
+// app/api/checkout/route.ts
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase/admin';
@@ -13,6 +14,8 @@ export async function POST(req: Request) {
         if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json({ error: 'Keine Artikel im Warenkorb' }, { status: 400 });
         }
+
+        console.log('🛒 Creating order with items:', items);
 
         // считаем сумму в €
         const total = items.reduce(
@@ -51,20 +54,49 @@ export async function POST(req: Request) {
                 delivery_address,
                 delivery_city,
                 delivery_postal_code,
-                items, // jsonb колонка
+                notes: null,
             })
             .select('*')
             .single();
 
         if (orderError) {
-            console.error('Order insert error:', orderError);
+            console.error('❌ Order insert error:', orderError);
             return NextResponse.json(
                 { error: 'Fehler beim Speichern der Bestellung' },
                 { status: 500 }
             );
         }
 
-        // 2) создаём Stripe session
+        console.log('✅ Order created:', order.id);
+
+        // 2) создаём order_items
+        const orderItems = items.map((item: any) => ({
+            order_id: order.id,
+            product_id: item.productId,
+            product_name: item.productName,
+            product_price: item.productPrice,
+            quantity: item.quantity,
+        }));
+
+        console.log('📦 Creating order items:', orderItems);
+
+        const { error: itemsError } = await supabaseAdmin
+            .from('order_items')
+            .insert(orderItems);
+
+        if (itemsError) {
+            console.error('❌ Order items creation error:', itemsError);
+            // Удаляем заказ если items не создались
+            await supabaseAdmin.from('orders').delete().eq('id', order.id);
+            return NextResponse.json(
+                { error: 'Fehler beim Erstellen der Bestellpositionen', details: itemsError.message },
+                { status: 500 }
+            );
+        }
+
+        console.log('✅ Order items created');
+
+        // 3) создаём Stripe session
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             payment_method_types: ['card'],
@@ -86,11 +118,11 @@ export async function POST(req: Request) {
             cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1`,
         });
 
-
+        console.log('✅ Stripe session created:', session.id);
 
         return NextResponse.json({ url: session.url });
     } catch (err: any) {
-        console.error('Stripe error:', err);
+        console.error('❌ Stripe error:', err);
         return NextResponse.json({ error: err.message ?? 'Stripe error' }, { status: 500 });
     }
 }
