@@ -185,6 +185,7 @@ export default function CheckoutPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        userId: user?.id ?? null,
                         items: orderData.items,
                         deliveryMethod: orderData.deliveryMethod,
                         customer: {
@@ -192,8 +193,17 @@ export default function CheckoutPage() {
                             email: orderData.customerEmail,
                             phone: orderData.customerPhone,
                         },
-                        // если хочешь, можно метадату с адресом тоже положить сюда
+                        address:
+                            orderData.deliveryMethod === 'delivery'
+                                ? {
+                                    street: formData.street,
+                                    houseNumber: formData.houseNumber,
+                                    postalCode: formData.postalCode,
+                                    city: formData.city,
+                                }
+                                : null,
                     }),
+
                 });
 
                 const result = await response.json();
