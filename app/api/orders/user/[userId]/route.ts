@@ -4,50 +4,30 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(
     _req: NextRequest,
-    { params }: { params: { userId: string } }
+    { params }: { params: Promise<{ userId: string }> }
 ) {
-    const { userId } = params;
+    const { userId } = await params;
 
-    const { data: orders, error } = await supabaseAdmin
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+    console.log('🔍 Fetching orders for user:', userId);
+
+    const { data, error } = await supabaseAdmin
+        .rpc('get_user_orders_with_items', { p_user_id: userId });
 
     if (error) {
-        console.error('Load orders error:', error);
+        console.error('❌ Load orders error:', error);
         return NextResponse.json(
             { error: 'Failed to load orders' },
             { status: 500 }
         );
     }
 
-    const ordersWithItems = await Promise.all(
-        (orders ?? []).map(async (order: any) => {
-            const { data: items, error: itemsError } = await supabaseAdmin
-                .from('order_items')
-                .select('*')
-                .eq('order_id', order.id);
+    console.log('✅ Orders loaded:', data?.length || 0);
 
-            if (itemsError) {
-                console.error(
-                    `Load items error for order ${order.id}:`,
-                    itemsError
-                );
-            }
-
-            return {
-                ...order,
-                // numeric может прийти строкой, во фронте ты уже делаешь Number(...)
-                items: items ?? [],
-            };
-        })
-    );
-    console.log(
-        'SUPABASE URL:',
-        process.env.NEXT_PUBLIC_SUPABASE_URL
-    );
-
-    console.log('ORDERS FROM DB:', orders?.length, orders);
-    return NextResponse.json(ordersWithItems);
+    return NextResponse.json(data || [], {
+        headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        },
+    });
 }
