@@ -1,11 +1,6 @@
 // app/api/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,7 +20,6 @@ export async function POST(request: NextRequest) {
             items,
         } = body;
 
-        // Валидация основных данных
         if (!customerName || !customerEmail || !customerPhone) {
             return NextResponse.json(
                 { error: 'Fehlende Kundendaten' },
@@ -47,14 +41,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Вычисляем общую сумму
         const totalAmount = items.reduce(
             (sum: number, item: any) => sum + item.productPrice * item.quantity,
             0
         );
 
-        // Создаем заказ
-        const { data: order, error: orderError } = await supabase
+        const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .insert({
                 user_id: userId || null,
@@ -73,15 +65,14 @@ export async function POST(request: NextRequest) {
             .select()
             .single();
 
-        if (orderError) {
+        if (orderError || !order) {
             console.error('Order creation error:', orderError);
             return NextResponse.json(
-                { error: 'Fehler beim Erstellen der Bestellung', details: orderError.message },
+                { error: 'Fehler beim Erstellen der Bestellung', details: orderError?.message },
                 { status: 500 }
             );
         }
 
-        // Создаем товары заказа
         const orderItems = items.map((item: any) => ({
             order_id: order.id,
             product_id: item.productId,
@@ -90,14 +81,13 @@ export async function POST(request: NextRequest) {
             quantity: item.quantity,
         }));
 
-        const { error: itemsError } = await supabase
+        const { error: itemsError } = await supabaseAdmin
             .from('order_items')
             .insert(orderItems);
 
         if (itemsError) {
             console.error('Order items creation error:', itemsError);
-            // Откатываем создание заказа
-            await supabase.from('orders').delete().eq('id', order.id);
+            await supabaseAdmin.from('orders').delete().eq('id', order.id);
             return NextResponse.json(
                 { error: 'Fehler beim Erstellen der Bestellpositionen', details: itemsError.message },
                 { status: 500 }
