@@ -129,7 +129,7 @@ export default function CheckoutPage() {
         setError(null);
 
         try {
-            // Подготавливаем данные заказа (как у тебя уже есть)
+            // Подготавливаем данные заказа
             const orderData: any = {
                 userId: user?.id || null,
                 customerName: `${formData.firstName} ${formData.lastName}`.trim(),
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
                 items: items.map(item => ({
                     productId: item.product.id,
                     productName: item.product.name,
-                    productPrice: item.product.price, // ВАЖНО: тут в € (20, 15 и тд)
+                    productPrice: item.product.price,
                     quantity: item.quantity,
                 })),
             };
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
                 orderData.deliveryPostalCode = '';
             }
 
-            // 1) Если оплата НАЛИЧНЫМИ — как раньше
+            // 1) Если оплата НАЛИЧНЫМИ
             if (formData.paymentMethod === 'cash') {
                 const response = await fetch('/api/orders', {
                     method: 'POST',
@@ -170,12 +170,13 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
                 }
 
+                // ✅ ОЧИЩАЕМ КОРЗИНУ ПЕРЕД редиректом
+                clearCart();
+
+                // Небольшая задержка чтобы clearCart успел выполниться
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 window.location.href = `/order-success/${result.orderId}`;
-
-                setTimeout(() => {
-                    clearCart();
-                }, 500);
-
                 return;
             }
 
@@ -203,7 +204,6 @@ export default function CheckoutPage() {
                                 }
                                 : null,
                     }),
-
                 });
 
                 const result = await response.json();
@@ -212,9 +212,14 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Starten der Zahlung');
                 }
 
-                // Stripe URL
-                window.location.href = result.url;
+                // ✅ ОЧИЩАЕМ КОРЗИНУ ПЕРЕД редиректом на Stripe
+                clearCart();
 
+                // Небольшая задержка чтобы clearCart успел выполниться
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Редирект на Stripe
+                window.location.href = result.url;
                 return;
             }
         } catch (err: any) {
