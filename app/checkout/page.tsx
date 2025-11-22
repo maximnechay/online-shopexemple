@@ -23,6 +23,7 @@ import Footer from '@/components/layout/Footer';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
+import PayPalButtonsWrapper from '@/components/checkout/PayPalButtons';
 
 interface CheckoutFormData {
     firstName: string;
@@ -34,7 +35,7 @@ interface CheckoutFormData {
     postalCode: string;
     city: string;
     deliveryMethod: 'delivery' | 'pickup';
-    paymentMethod: 'card' | 'cash';
+    paymentMethod: 'card' | 'cash' | 'paypal';
     notes: string;
 }
 
@@ -44,6 +45,7 @@ export default function CheckoutPage() {
     const { user, loading: authLoading } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<CheckoutFormData>({
         firstName: '',
@@ -143,6 +145,78 @@ export default function CheckoutPage() {
         setError(null);
     };
 
+    // Функция создания заказа в БД
+    const createOrder = async () => {
+        const supabase = createClient();
+
+        const orderData: any = {
+            user_id: user?.id || null,
+            customer_name: `${formData.firstName} ${formData.lastName}`.trim(),
+            customer_email: formData.email,
+            customer_phone: formData.phone,
+            delivery_method: formData.deliveryMethod,
+            payment_method: formData.paymentMethod,
+            total_amount: finalTotal,
+            status: 'pending',
+            notes: formData.notes || null,
+        };
+
+        // Добавляем payment_status только для PayPal (если поле существует)
+        if (formData.paymentMethod === 'paypal') {
+            orderData.payment_status = 'pending';
+        }
+
+        if (formData.deliveryMethod === 'delivery') {
+            orderData.delivery_address = `${formData.street} ${formData.houseNumber}`.trim();
+            orderData.delivery_city = formData.city;
+            orderData.delivery_postal_code = formData.postalCode;
+        } else {
+            orderData.delivery_address = 'Selbstabholung';
+            orderData.delivery_city = 'Salon';
+            orderData.delivery_postal_code = null;
+        }
+
+        console.log('🔍 Creating order with data:', orderData);
+
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert(orderData)
+            .select()
+            .single();
+
+        if (orderError) {
+            console.error('❌ Order creation error:', orderError);
+            console.error('Error details:', {
+                message: orderError.message,
+                details: orderError.details,
+                hint: orderError.hint,
+                code: orderError.code
+            });
+            throw new Error(`Fehler beim Erstellen der Bestellung: ${orderError.message}`);
+        }
+
+        console.log('✅ Order created:', order);
+
+        const orderItems = items.map(item => ({
+            order_id: order.id,
+            product_id: item.product.id,
+            product_name: item.product.name,
+            product_price: item.product.price,
+            quantity: item.quantity,
+        }));
+
+        const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems);
+
+        if (itemsError) {
+            await supabase.from('orders').delete().eq('id', order.id);
+            throw new Error('Fehler beim Erstellen der Bestellpositionen');
+        }
+
+        return order.id;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -171,7 +245,7 @@ export default function CheckoutPage() {
                 orderData.deliveryCity = formData.city;
                 orderData.deliveryPostalCode = formData.postalCode;
             } else {
-                orderData.deliveryAddress = 'Самовывоз';
+                orderData.deliveryAddress = 'Selbstabholung';
                 orderData.deliveryCity = 'Salon';
                 orderData.deliveryPostalCode = '';
             }
@@ -242,6 +316,15 @@ export default function CheckoutPage() {
                 window.location.href = result.url;
                 return;
             }
+
+            // 3) Если оплата PAYPAL
+            if (formData.paymentMethod === 'paypal') {
+                // Создаём заказ в БД
+                const orderId = await createOrder();
+                setCreatedOrderId(orderId);
+                // PayPal кнопки появятся и обработают оплату
+                return;
+            }
         } catch (err: any) {
             console.error('Checkout error:', err);
             setError(err.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
@@ -249,6 +332,15 @@ export default function CheckoutPage() {
         }
     };
 
+    const handlePayPalSuccess = (paypalOrderId: string, transactionId: string) => {
+        clearCart();
+        router.push(`/order-success/${createdOrderId}`);
+    };
+
+    const handlePayPalError = () => {
+        setIsSubmitting(false);
+        setCreatedOrderId(null);
+    };
 
     const total = getTotal();
     const FREE_SHIPPING_THRESHOLD = 50; // Бесплатная доставка от 50€
@@ -521,7 +613,7 @@ export default function CheckoutPage() {
                                         </h2>
                                     </div>
 
-                                    <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="grid md:grid-cols-3 gap-4">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'card'
                                                 ? 'border-rose-600 bg-rose-50'
@@ -571,6 +663,35 @@ export default function CheckoutPage() {
                                                 </div>
                                             </div>
                                         </label>
+
+                                        <label
+                                            className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'paypal'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
+                                                }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="paypal"
+                                                checked={formData.paymentMethod === 'paypal'}
+                                                onChange={handleInputChange}
+                                                className="sr-only"
+                                            />
+                                            <div className="w-6 h-6 flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+                                                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.76-4.852.072-.454.462-.788.922-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.72-4.46z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-medium text-gray-900">
+                                                    PayPal
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    Sicher online
+                                                </div>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -597,23 +718,41 @@ export default function CheckoutPage() {
                                 )}
 
                                 {/* Submit Button */}
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-rose-600 text-white py-4 rounded-xl font-medium hover:bg-rose-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            Bestellung wird erstellt...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle2 className="w-5 h-5" />
-                                            Zahlungspflichtig bestellen
-                                        </>
-                                    )}
-                                </button>
+                                {formData.paymentMethod === 'paypal' && createdOrderId ? (
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-gray-600 text-center">
+                                            Schließen Sie die Zahlung mit PayPal ab:
+                                        </p>
+                                        <PayPalButtonsWrapper
+                                            amount={finalTotal}
+                                            onSuccess={handlePayPalSuccess}
+                                            onError={handlePayPalError}
+                                            supabaseOrderId={createdOrderId}
+                                        />
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full bg-rose-600 text-white py-4 rounded-xl font-medium hover:bg-rose-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                {formData.paymentMethod === 'paypal'
+                                                    ? 'Bestellung wird vorbereitet...'
+                                                    : 'Bestellung wird erstellt...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                {formData.paymentMethod === 'paypal'
+                                                    ? 'Weiter zu PayPal'
+                                                    : 'Zahlungspflichtig bestellen'}
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </form>
                         </div>
 
