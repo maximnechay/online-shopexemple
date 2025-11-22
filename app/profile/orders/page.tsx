@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Package, Calendar, ChevronRight, Truck } from 'lucide-react';
+import { User, Package, Calendar, ChevronRight, Truck, RefreshCw } from 'lucide-react';
+
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -28,8 +29,8 @@ interface Order {
     delivery_postal_code: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'cash';
-    total_amount: string; // из Supabase приходит numeric как string
-    status: string;       // 'pending' и тд
+    total_amount: string;
+    status: string;
     notes: string | null;
     created_at: string;
     items: OrderItem[] | null;
@@ -37,12 +38,13 @@ interface Order {
 
 export default function OrdersPage() {
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (!authLoading && !user) {
             router.push('/auth/login');
             return;
         }
@@ -50,21 +52,29 @@ export default function OrdersPage() {
         if (user) {
             loadOrders(user.id);
         }
-    }, [user, loading, router]);
+    }, [user, authLoading, router]);
 
     const loadOrders = async (userId: string) => {
         try {
-            const response = await fetch(`/api/orders/user/${userId}`);
+            setIsLoading(true);
+            setError(null);
+
+            const response = await fetch(`/api/orders/user/${userId}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                },
+            });
 
             if (!response.ok) {
-                throw new Error('Failed to fetch orders');
+                throw new Error('Fehler beim Laden der Bestellungen');
             }
 
-            const data: Order[] = await response.json();
-            setOrders(data || []);
-        } catch (error) {
-            console.error('Error loading orders:', error);
-            setOrders([]);
+            const data = await response.json();
+            setOrders(data);
+        } catch (err: any) {
+            console.error('Load orders error:', err);
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
@@ -94,13 +104,12 @@ export default function OrdersPage() {
     };
 
     const getPaymentStatusLabel = (order: Order) => {
-        // можно усложнить логику позже, пока так:
         if (order.payment_method === 'card') return 'Bezahlt';
         if (order.status === 'cancelled') return 'Storniert';
         return 'Ausstehend';
     };
 
-    if (loading || isLoading) {
+    if (authLoading || isLoading) {
         return (
             <div className="min-h-screen bg-white">
                 <Header />
@@ -153,6 +162,12 @@ export default function OrdersPage() {
 
                         {/* Main Content */}
                         <div className="md:col-span-3">
+                            {error && (
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             {orders.length === 0 ? (
                                 <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
                                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
