@@ -74,15 +74,6 @@ export default function CheckoutPage() {
 
                     if (error) {
                         console.error('Profile load error:', error);
-                        // Используем данные из user.user_metadata если профиль не загрузился
-                        const metadata = user.user_metadata || {};
-                        setFormData(prev => ({
-                            ...prev,
-                            firstName: metadata.first_name || '',
-                            lastName: metadata.last_name || '',
-                            email: user.email || '',
-                            phone: metadata.phone || '',
-                        }));
                         return;
                     }
 
@@ -91,12 +82,32 @@ export default function CheckoutPage() {
                         const [firstName = '', ...lastNameParts] = fullName.split(' ');
                         const lastName = lastNameParts.join(' ');
 
+                        // Парсим адрес из БД (формат: "Улица Номер")
+                        let street = '';
+                        let houseNumber = '';
+                        if (data.address) {
+                            const addressParts = data.address.trim().split(/\s+/);
+                            if (addressParts.length > 0) {
+                                const lastPart = addressParts[addressParts.length - 1];
+                                if (/^\d+[a-zA-Z]?$/.test(lastPart)) {
+                                    houseNumber = lastPart;
+                                    street = addressParts.slice(0, -1).join(' ');
+                                } else {
+                                    street = data.address;
+                                }
+                            }
+                        }
+
                         setFormData(prev => ({
                             ...prev,
                             firstName,
                             lastName,
                             email: data.email || user.email || '',
                             phone: data.phone || '',
+                            street: street || '',
+                            houseNumber: houseNumber || '',
+                            postalCode: data.postal_code || '',
+                            city: data.city || '',
                         }));
                     }
                 } catch (err) {
