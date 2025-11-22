@@ -74,6 +74,15 @@ export default function CheckoutPage() {
 
                     if (error) {
                         console.error('Profile load error:', error);
+                        // Используем данные из user.user_metadata если профиль не загрузился
+                        const metadata = user.user_metadata || {};
+                        setFormData(prev => ({
+                            ...prev,
+                            firstName: metadata.first_name || '',
+                            lastName: metadata.last_name || '',
+                            email: user.email || '',
+                            phone: metadata.phone || '',
+                        }));
                         return;
                     }
 
@@ -242,7 +251,15 @@ export default function CheckoutPage() {
 
 
     const total = getTotal();
-    const shipping = formData.deliveryMethod === 'delivery' ? 4.99 : 0;
+    const FREE_SHIPPING_THRESHOLD = 50; // Бесплатная доставка от 50€
+
+    // Доставка бесплатна если:
+    // 1. Выбрана Abholung (самовывоз) ИЛИ
+    // 2. Сумма заказа >= 50€
+    const shipping = formData.deliveryMethod === 'pickup'
+        ? 0
+        : (total >= FREE_SHIPPING_THRESHOLD ? 0 : 4.99);
+
     const finalTotal = total + shipping;
 
     if (items.length === 0) {
@@ -636,6 +653,24 @@ export default function CheckoutPage() {
                                     ))}
                                 </div>
 
+                                {/* Free Shipping Progress */}
+                                {formData.deliveryMethod === 'delivery' && total < FREE_SHIPPING_THRESHOLD && (
+                                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-blue-900">
+                                                Noch {(FREE_SHIPPING_THRESHOLD - total).toFixed(2)}€ bis zur kostenlosen Lieferung!
+                                            </span>
+                                            <Truck className="w-5 h-5 text-blue-600" />
+                                        </div>
+                                        <div className="w-full bg-blue-200 rounded-full h-2">
+                                            <div
+                                                className="bg-blue-600 h-2 rounded-full transition-all"
+                                                style={{ width: `${Math.min((total / FREE_SHIPPING_THRESHOLD) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Totals */}
                                 <div className="space-y-3 pt-6 border-t border-gray-300">
                                     <div className="flex justify-between text-gray-600">
@@ -645,7 +680,13 @@ export default function CheckoutPage() {
                                     <div className="flex justify-between text-gray-600">
                                         <span>Versandkosten</span>
                                         <span>
-                                            {shipping === 0 ? 'Kostenlos' : `${shipping.toFixed(2)} €`}
+                                            {shipping === 0
+                                                ? (formData.deliveryMethod === 'delivery' && total >= FREE_SHIPPING_THRESHOLD
+                                                    ? <span className="text-green-600 font-medium">Kostenlos ab {FREE_SHIPPING_THRESHOLD}€</span>
+                                                    : 'Kostenlos'
+                                                )
+                                                : `${shipping.toFixed(2)} €`
+                                            }
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-xl font-semibold text-gray-900 pt-3 border-t border-gray-300">
@@ -667,7 +708,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>Schneller Versand</span>
+                                        <span>Kostenlose Lieferung ab {FREE_SHIPPING_THRESHOLD}€</span>
                                     </div>
                                 </div>
                             </div>
