@@ -15,14 +15,16 @@ export default function AboutPage() {
                     <div className="max-w-7xl mx-auto">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
                             <div className="space-y-6">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100 rounded-full">
-                                    <Sparkles className="w-4 h-4 text-rose-600" />
-                                    <span className="text-sm text-rose-900 font-medium">Über uns</span>
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-100 rounded-full border border-gray-200">
+                                    <Sparkles className="w-4 h-4 text-gray-900" strokeWidth={1.5} />
+                                    <span className="text-xs uppercase tracking-[0.16em] text-gray-900 font-medium">
+                                        Über uns
+                                    </span>
                                 </div>
 
-                                <h1 className="text-5xl lg:text-6xl font-serif font-light text-gray-900 leading-tight">
+                                <h1 className="text-5xl lg:text-6xl font-light text-gray-900 leading-tight tracking-tight">
                                     Ihre Schönheit ist<br />
-                                    <span className="italic text-rose-600">unsere Passion</span>
+                                    <span className="font-normal">unsere Passion</span>
                                 </h1>
 
                                 <p className="text-lg text-gray-600 leading-relaxed">
@@ -49,20 +51,20 @@ export default function AboutPage() {
                     <div className="max-w-7xl mx-auto">
                         <div className="grid md:grid-cols-4 gap-8">
                             <div className="text-center">
-                                <div className="text-5xl font-serif text-rose-600 mb-2">15+</div>
-                                <p className="text-gray-600">Jahre Erfahrung</p>
+                                <div className="text-5xl font-light text-gray-900 mb-2">15+</div>
+                                <p className="text-sm text-gray-600">Jahre Erfahrung</p>
                             </div>
                             <div className="text-center">
-                                <div className="text-5xl font-serif text-rose-600 mb-2">5000+</div>
-                                <p className="text-gray-600">Zufriedene Kunden</p>
+                                <div className="text-5xl font-light text-gray-900 mb-2">5000+</div>
+                                <p className="text-sm text-gray-600">Zufriedene Kunden</p>
                             </div>
                             <div className="text-center">
-                                <div className="text-5xl font-serif text-rose-600 mb-2">50+</div>
-                                <p className="text-gray-600">Premium Marken</p>
+                                <div className="text-5xl font-light text-gray-900 mb-2">50+</div>
+                                <p className="text-sm text-gray-600">Premium Marken</p>
                             </div>
                             <div className="text-center">
-                                <div className="text-5xl font-serif text-rose-600 mb-2">500+</div>
-                                <p className="text-gray-600">Produkte</p>
+                                <div className="text-5xl font-light text-gray-900 mb-2">500+</div>
+                                <p className="text-sm text-gray-600">Produkte</p>
                             </div>
                         </div>
                     </div>
@@ -204,19 +206,19 @@ export default function AboutPage() {
                 {/* CTA Section */}
                 <section className="px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
-                        <div className="bg-gradient-to-r from-rose-600 to-pink-600 rounded-3xl p-12 text-center text-white">
-                            <h2 className="text-4xl font-serif mb-4">
+                        <div className="bg-gray-900 rounded-3xl p-12 text-center text-white">
+                            <h2 className="text-4xl font-light mb-4 tracking-tight">
                                 Bereit für Ihre Beauty-Reise?
                             </h2>
-                            <p className="text-lg mb-8 text-white/90">
+                            <p className="text-lg mb-8 text-gray-300">
                                 Entdecken Sie unsere exklusive Produktauswahl
                             </p>
                             <Link
                                 href="/catalog"
-                                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-rose-600 rounded-full font-medium hover:shadow-lg transition-all"
+                                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-full font-medium hover:bg-gray-100 transition-all"
                             >
                                 Zum Katalog
-                                <ArrowRight className="w-5 h-5" />
+                                <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
                             </Link>
                         </div>
                     </div>

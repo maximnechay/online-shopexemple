@@ -62,18 +62,18 @@ export default function LoginPage() {
                 <div className="max-w-md mx-auto px-6">
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-rose-600 transition-colors mb-8"
+                        className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors mb-8"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
                         Zurück zur Startseite
                     </Link>
 
-                    <div className="bg-white border border-gray-200 rounded-2xl p-8">
+                    <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
                         <div className="text-center mb-8">
-                            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <LogIn className="w-8 h-8 text-rose-600" />
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <LogIn className="w-8 h-8 text-gray-900" strokeWidth={1.5} />
                             </div>
-                            <h1 className="text-3xl font-serif text-gray-900 mb-2">
+                            <h1 className="text-3xl font-light text-gray-900 mb-2 tracking-tight">
                                 Willkommen zurück
                             </h1>
                             <p className="text-gray-600">

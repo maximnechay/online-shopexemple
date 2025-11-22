@@ -106,7 +106,7 @@ export default function ProductPage() { // ← Убрали params из проп
                         </h1>
                         <Link
                             href="/catalog"
-                            className="inline-block px-8 py-3 bg-rose-600 text-white rounded-full font-medium hover:bg-rose-700 transition-colors"
+                            className="inline-block px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
                         >
                             Zurück zum Katalog
                         </Link>
@@ -128,10 +128,14 @@ export default function ProductPage() { // ← Убрали params из проп
             <main className="pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Breadcrumb */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
-                        <Link href="/" className="hover:text-rose-600">Startseite</Link>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+                        <Link href="/" className="hover:text-gray-900 transition-colors">
+                            Startseite
+                        </Link>
                         <span>/</span>
-                        <Link href="/catalog" className="hover:text-rose-600">Katalog</Link>
+                        <Link href="/catalog" className="hover:text-gray-900 transition-colors">
+                            Katalog
+                        </Link>
                         <span>/</span>
                         <span className="text-gray-900">{product.name}</span>
                     </div>
@@ -140,13 +144,13 @@ export default function ProductPage() { // ← Убрали params из проп
                         {/* Images */}
                         <div className="space-y-4">
                             {/* Main Image */}
-                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50">
+                            <div className="relative aspect-square rounded-3xl overflow-hidden bg-gray-50 border border-gray-100">
                                 <div
                                     className="absolute inset-0 bg-cover bg-center"
                                     style={{ backgroundImage: `url(${product.images[selectedImage]})` }}
                                 />
                                 {discount > 0 && (
-                                    <span className="absolute top-4 left-4 bg-rose-600 text-white text-sm font-bold px-4 py-2 rounded-full">
+                                    <span className="absolute top-4 left-4 bg-black/80 text-white text-xs font-medium px-4 py-2 rounded-full uppercase tracking-wider">
                                         -{discount}%
                                     </span>
                                 )}
@@ -159,10 +163,11 @@ export default function ProductPage() { // ← Убрали params из проп
                                         <button
                                             key={index}
                                             onClick={() => setSelectedImage(index)}
-                                            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index
-                                                ? 'border-rose-600'
-                                                : 'border-gray-200 hover:border-gray-300'
-                                                }`}
+                                            className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                                                selectedImage === index
+                                                    ? 'border-gray-900'
+                                                    : 'border-gray-200 hover:border-gray-300'
+                                            }`}
                                         >
                                             <div
                                                 className="absolute inset-0 bg-cover bg-center"
@@ -178,13 +183,13 @@ export default function ProductPage() { // ← Убрали params из проп
                         <div className="space-y-6">
                             {/* Brand */}
                             {product.brand && (
-                                <p className="text-sm text-gray-600 uppercase tracking-wide">
+                                <p className="text-xs text-gray-500 uppercase tracking-[0.18em]">
                                     {product.brand}
                                 </p>
                             )}
 
                             {/* Title */}
-                            <h1 className="text-4xl lg:text-5xl font-serif text-gray-900">
+                            <h1 className="text-4xl lg:text-5xl font-light text-gray-900 tracking-tight">
                                 {product.name}
                             </h1>
 
@@ -273,37 +278,42 @@ export default function ProductPage() { // ← Убрали params из проп
                                 <button
                                     disabled={!product.inStock || isAdding}
                                     onClick={handleAddToCart}
-                                    className={`flex-1 py-4 rounded-xl font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg ${isAdding
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-rose-600 text-white hover:bg-rose-700'
-                                        }`}
+                                    className={`flex-1 py-4 rounded-full font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${
+                                        isAdding
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-black text-white hover:bg-gray-800'
+                                    }`}
                                 >
-                                    <ShoppingBag className="w-6 h-6" />
+                                    <ShoppingBag className="w-5 h-5" strokeWidth={1.5} />
                                     {isAdding ? 'Hinzugefügt!' : 'In den Warenkorb'}
                                 </button>
                                 <button
                                     onClick={handleWishlistToggle}
-                                    className={`w-14 h-14 border-2 rounded-xl flex items-center justify-center transition-colors ${inWishlist
-                                        ? 'bg-rose-600 border-rose-600 text-white'
-                                        : 'border-gray-300 hover:border-rose-600 hover:text-rose-600'
-                                        }`}
+                                    className={`w-14 h-14 border-2 rounded-full flex items-center justify-center transition-colors ${
+                                        inWishlist
+                                            ? 'bg-black border-black text-white'
+                                            : 'border-gray-200 hover:border-black hover:bg-black hover:text-white'
+                                    }`}
                                 >
-                                    <Heart className={`w-6 h-6 ${inWishlist ? 'fill-current' : ''}`} />
+                                    <Heart
+                                        className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`}
+                                        strokeWidth={1.5}
+                                    />
                                 </button>
                             </div>
 
                             {/* Features */}
-                            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+                            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                                 <div className="text-center">
-                                    <Truck className="w-8 h-8 text-rose-600 mx-auto mb-2" />
+                                    <Truck className="w-7 h-7 text-gray-900 mx-auto mb-2" strokeWidth={1.5} />
                                     <p className="text-xs text-gray-600">Kostenloser Versand ab 50€</p>
                                 </div>
                                 <div className="text-center">
-                                    <Shield className="w-8 h-8 text-rose-600 mx-auto mb-2" />
+                                    <Shield className="w-7 h-7 text-gray-900 mx-auto mb-2" strokeWidth={1.5} />
                                     <p className="text-xs text-gray-600">100% Original Garantie</p>
                                 </div>
                                 <div className="text-center">
-                                    <RotateCcw className="w-8 h-8 text-rose-600 mx-auto mb-2" />
+                                    <RotateCcw className="w-7 h-7 text-gray-900 mx-auto mb-2" strokeWidth={1.5} />
                                     <p className="text-xs text-gray-600">14 Tage Rückgaberecht</p>
                                 </div>
                             </div>

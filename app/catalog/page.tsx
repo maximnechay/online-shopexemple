@@ -75,26 +75,27 @@ export default function CatalogPage() {
             <Header />
 
             <main className="pt-24 pb-16">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-4">
+                    <div className="mb-12">
+                        <h1 className="text-4xl lg:text-5xl font-light text-gray-900 mb-4 tracking-tight">
                             Produktkatalog
                         </h1>
-                        <p className="text-lg text-gray-600">
+                        <p className="text-lg text-gray-600 max-w-2xl">
                             Entdecken Sie unsere exklusive Auswahl an Premium-Kosmetik
                         </p>
                     </div>
 
                     {/* Categories */}
-                    <div className="mb-8 overflow-x-auto">
+                    <div className="mb-10 overflow-x-auto">
                         <div className="flex gap-3 pb-2">
                             <button
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                    ? 'bg-rose-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                                    selectedCategory === 'all'
+                                        ? 'bg-black text-white'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                }`}
                             >
                                 Alle Produkte
                             </button>
@@ -102,10 +103,11 @@ export default function CatalogPage() {
                                 <button
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
-                                    className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
+                                    className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                                        selectedCategory === category.id
+                                            ? 'bg-black text-white'
+                                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                    }`}
                                 >
                                     {category.name}
                                 </button>
@@ -114,29 +116,29 @@ export default function CatalogPage() {
                     </div>
 
                     {/* Filters & Sort Bar */}
-                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-gray-100">
                         <div className="flex items-center gap-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={inStockOnly}
                                     onChange={(e) => setInStockOnly(e.target.checked)}
-                                    className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                                    className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                                 />
                                 <span className="text-sm text-gray-700">Nur verfügbare</span>
                             </label>
 
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-gray-500">
                                 {sortedProducts.length} {sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 hidden sm:block">Sortieren:</span>
+                            <span className="text-sm text-gray-500 hidden sm:block">Sortieren:</span>
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                className="px-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent bg-white"
                             >
                                 <option value="newest">Neueste</option>
                                 <option value="popular">Beliebteste</option>
@@ -153,20 +155,18 @@ export default function CatalogPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                             {[...Array(8)].map((_, i) => (
                                 <div key={i} className="animate-pulse">
-                                    <div className="aspect-square bg-gray-200 rounded-2xl mb-4" />
-                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                                    <div className="aspect-[4/5] bg-gray-100 rounded-3xl mb-4" />
+                                    <div className="h-3 bg-gray-100 rounded w-3/4 mb-2" />
+                                    <div className="h-3 bg-gray-100 rounded w-1/2" />
                                 </div>
                             ))}
                         </div>
                     ) : error ? (
                         <div className="text-center py-16">
-                            <p className="text-gray-600 mb-4">
-                                Fehler beim Laden der Produkte.
-                            </p>
+                            <p className="text-gray-600 mb-6">Fehler beim Laden der Produkte.</p>
                             <button
                                 onClick={fetchProducts}
-                                className="px-6 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors"
+                                className="px-8 py-3 bg-black text-white rounded-full hover:bg-gray-800 transition-colors text-sm font-medium"
                             >
                                 Erneut versuchen
                             </button>
