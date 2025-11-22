@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Filter } from 'lucide-react';
+import { Filter, Sparkles } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/shop/ProductCard';
@@ -71,30 +71,35 @@ export default function CatalogPage() {
     });
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-28 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-4">
+                    <div className="mb-12 animate-fade-in-up">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-50 rounded-full border border-primary-200/50 mb-6">
+                            <Sparkles className="w-4 h-4 text-primary-600" />
+                            <span className="text-sm text-primary-900 font-semibold">Entdecken Sie</span>
+                        </div>
+                        <h1 className="text-5xl lg:text-6xl font-serif text-neutral-900 mb-4 text-balance">
                             Produktkatalog
                         </h1>
-                        <p className="text-lg text-gray-600">
+                        <p className="text-xl text-neutral-600 font-light max-w-2xl">
                             Entdecken Sie unsere exklusive Auswahl an Premium-Kosmetik
                         </p>
                     </div>
 
                     {/* Categories */}
-                    <div className="mb-8 overflow-x-auto">
+                    <div className="mb-10 overflow-x-auto scrollbar-hide">
                         <div className="flex gap-3 pb-2">
                             <button
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                    ? 'bg-rose-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                className={`px-6 py-3 rounded-2xl font-semibold whitespace-nowrap transition-all duration-300 transform hover:scale-105 ${
+                                    selectedCategory === 'all'
+                                        ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-glow'
+                                        : 'bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 shadow-soft'
+                                }`}
                             >
                                 Alle Produkte
                             </button>
@@ -102,10 +107,11 @@ export default function CatalogPage() {
                                 <button
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
-                                    className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
+                                    className={`px-6 py-3 rounded-2xl font-semibold whitespace-nowrap transition-all duration-300 transform hover:scale-105 ${
+                                        selectedCategory === category.id
+                                            ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-glow'
+                                            : 'bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 shadow-soft'
+                                    }`}
                                 >
                                     {category.name}
                                 </button>
@@ -114,29 +120,33 @@ export default function CatalogPage() {
                     </div>
 
                     {/* Filters & Sort Bar */}
-                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10 p-6 bg-white rounded-2xl shadow-soft border border-neutral-100">
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-3 cursor-pointer group">
                                 <input
                                     type="checkbox"
                                     checked={inStockOnly}
                                     onChange={(e) => setInStockOnly(e.target.checked)}
-                                    className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                                    className="w-5 h-5 text-primary-600 border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 transition-all"
                                 />
-                                <span className="text-sm text-gray-700">Nur verfügbare</span>
+                                <span className="text-sm text-neutral-700 font-medium group-hover:text-primary-600 transition-colors">
+                                    Nur verfügbare
+                                </span>
                             </label>
 
-                            <span className="text-sm text-gray-600">
-                                {sortedProducts.length} {sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}
+                            <div className="h-6 w-px bg-neutral-200" />
+
+                            <span className="text-sm text-neutral-600 font-semibold">
+                                {sortedProducts.length} <span className="text-neutral-500 font-normal">{sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}</span>
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 hidden sm:block">Sortieren:</span>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <span className="text-sm text-neutral-600 font-medium hidden sm:block">Sortieren:</span>
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                className="flex-1 sm:flex-none px-4 py-2.5 border border-neutral-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white hover:border-neutral-400 transition-all cursor-pointer"
                             >
                                 <option value="newest">Neueste</option>
                                 <option value="popular">Beliebteste</option>

@@ -48,24 +48,24 @@ export default function CartPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-28 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center justify-between mb-10 animate-fade-in-up">
                         <div>
-                            <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-2">
+                            <h1 className="text-5xl lg:text-6xl font-serif text-neutral-900 mb-3 text-balance">
                                 Warenkorb
                             </h1>
-                            <p className="text-gray-600">
-                                {items.length} {items.length === 1 ? 'Artikel' : 'Artikel'}
+                            <p className="text-lg text-neutral-600 font-light">
+                                {items.length} {items.length === 1 ? 'Artikel' : 'Artikel'} in Ihrem Warenkorb
                             </p>
                         </div>
                         <button
                             onClick={clearCart}
-                            className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                            className="text-sm text-neutral-600 hover:text-red-600 transition-all font-medium hover:scale-105 px-4 py-2 rounded-xl hover:bg-red-50"
                         >
                             Alle entfernen
                         </button>
@@ -161,8 +161,8 @@ export default function CartPage() {
 
                         {/* Summary */}
                         <div className="lg:col-span-1">
-                            <div className="bg-gray-50 rounded-2xl p-6 sticky top-24">
-                                <h2 className="text-2xl font-serif text-gray-900 mb-6">
+                            <div className="bg-white rounded-3xl p-8 sticky top-24 shadow-medium border border-neutral-100">
+                                <h2 className="text-3xl font-serif font-semibold text-neutral-900 mb-8">
                                     Zusammenfassung
                                 </h2>
 
@@ -211,17 +211,17 @@ export default function CartPage() {
 
                                 <Link
                                     href="/checkout"
-                                    className="w-full bg-rose-600 text-white py-4 rounded-xl font-medium hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 mb-4"
+                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-500 text-white py-4 rounded-2xl font-semibold hover:from-primary-700 hover:to-primary-600 transition-all duration-300 shadow-medium hover:shadow-glow-lg transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 mb-4 group"
                                 >
                                     Zur Kasse
-                                    <ArrowRight className="w-5 h-5" />
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </Link>
 
                                 <Link
                                     href="/catalog"
-                                    className="w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-medium hover:border-gray-400 transition-colors flex items-center justify-center gap-2"
+                                    className="w-full border-2 border-neutral-300 text-neutral-700 py-4 rounded-2xl font-semibold hover:border-neutral-400 hover:bg-neutral-50 transition-all duration-300 shadow-soft hover:shadow-medium transform hover:scale-105 flex items-center justify-center gap-2 group"
                                 >
-                                    <ArrowLeft className="w-5 h-5" />
+                                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                                     Weiter einkaufen
                                 </Link>
 
