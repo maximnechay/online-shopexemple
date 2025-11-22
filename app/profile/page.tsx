@@ -32,18 +32,62 @@ export default function ProfilePage() {
         }
 
         if (user) {
-            // Загружаем данные пользователя
-            setFormData({
-                firstName: user.user_metadata?.first_name || '',
-                lastName: user.user_metadata?.last_name || '',
-                phone: user.user_metadata?.phone || '',
-                street: user.user_metadata?.street || '',
-                houseNumber: user.user_metadata?.house_number || '',
-                postalCode: user.user_metadata?.postal_code || '',
-                city: user.user_metadata?.city || '',
-            });
+            loadProfile();
         }
     }, [user, loading, router]);
+
+    const loadProfile = async () => {
+        if (!user) return;
+
+        try {
+            const supabase = createClient();
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (error) {
+                console.error('Load profile error:', error);
+                return;
+            }
+
+            if (data) {
+                const fullName = data.full_name || '';
+                const [firstName = '', ...lastNameParts] = fullName.split(' ');
+                const lastName = lastNameParts.join(' ');
+
+                // Парсим адрес (формат: "Улица Номер")
+                let street = '';
+                let houseNumber = '';
+                if (data.address) {
+                    const addressParts = data.address.trim().split(/\s+/);
+                    if (addressParts.length > 0) {
+                        const lastPart = addressParts[addressParts.length - 1];
+                        if (/^\d+[a-zA-Z]?$/.test(lastPart)) {
+                            houseNumber = lastPart;
+                            street = addressParts.slice(0, -1).join(' ');
+                        } else {
+                            street = data.address;
+                        }
+                    }
+                }
+
+                setFormData({
+                    firstName,
+                    lastName,
+                    phone: data.phone || '',
+                    street: street || '',
+                    houseNumber: houseNumber || '',
+                    postalCode: data.postal_code || '',
+                    city: data.city || '',
+                });
+            }
+        } catch (err) {
+            console.error('Error loading profile:', err);
+        }
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -60,22 +104,37 @@ export default function ProfilePage() {
         try {
             const supabase = createClient();
 
-            // Обновляем метаданные пользователя
-            const { error: updateError } = await supabase.auth.updateUser({
-                data: {
-                    first_name: formData.firstName,
-                    last_name: formData.lastName,
-                    phone: formData.phone,
-                    street: formData.street,
-                    house_number: formData.houseNumber,
-                    postal_code: formData.postalCode,
-                    city: formData.city,
-                },
-            });
+            // Формируем полное имя
+            const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+
+            // Формируем адрес из улицы и номера
+            const address = formData.street && formData.houseNumber
+                ? `${formData.street} ${formData.houseNumber}`
+                : formData.street || '';
+
+            // Обновляем профиль в БД
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: fullName,
+                    phone: formData.phone || null,
+                    address: address || null,
+                    city: formData.city || null,
+                    postal_code: formData.postalCode || null,
+                })
+                .eq('id', user!.id);
 
             if (updateError) {
                 throw updateError;
             }
+
+            // Также обновляем user_metadata для имени
+            await supabase.auth.updateUser({
+                data: {
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                },
+            });
 
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
