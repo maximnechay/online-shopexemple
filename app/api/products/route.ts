@@ -1,4 +1,7 @@
 // app/api/products/route.ts
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { transformProductsFromDB } from '@/lib/supabase/helpers';
