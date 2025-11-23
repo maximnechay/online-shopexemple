@@ -324,7 +324,7 @@ export default function HomePage() {
                             {bestsellers.map((product) => (
                                 <Link
                                     key={product.id}
-                                    href={`/catalog/${product.id}`}
+                                    href={`/product/${product.slug}`}
                                     className="group rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 flex flex-col shadow-sm hover:shadow-md transition-shadow"
                                 >
                                     <div className="aspect-[4/5] rounded-2xl bg-gray-50 mb-4 overflow-hidden relative">
