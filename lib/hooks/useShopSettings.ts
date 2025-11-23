@@ -16,6 +16,13 @@ export interface ShopSettings {
     freeShippingFrom: number | null;
     taxRate: number | null;
     homepageHeroText: string;
+
+    // Контактная информация
+    address: string;
+    phone: string;
+    email: string;
+    openHours: string;
+    mapEmbedUrl: string;
 }
 
 export function useShopSettings() {
@@ -24,55 +31,65 @@ export function useShopSettings() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-
-                const res = await fetch('/api/admin/settings');
-
-                // если настроек ещё нет, просто оставляем null
-                if (res.status === 404) {
-                    setSettings(null);
-                    return;
-                }
-
-                if (!res.ok) {
-                    throw new Error('Fehler beim Laden der Einstellungen');
-                }
-
-                const data = await res.json();
-                setSettings({
-                    shopName: data.shopName ?? '',
-                    shopSubtitle: data.shopSubtitle ?? '',
-                    supportEmail: data.supportEmail ?? '',
-                    supportPhone: data.supportPhone ?? '',
-                    addressLine: data.addressLine ?? '',
-                    postalCode: data.postalCode ?? '',
-                    city: data.city ?? '',
-                    country: data.country ?? '',
-                    defaultCurrency: data.defaultCurrency ?? 'EUR',
-                    freeShippingFrom:
-                        typeof data.freeShippingFrom === 'number'
-                            ? data.freeShippingFrom
-                            : null,
-                    taxRate:
-                        typeof data.taxRate === 'number'
-                            ? data.taxRate
-                            : null,
-                    homepageHeroText: data.homepageHeroText ?? '',
-                });
-            } catch (e: any) {
-                console.error(e);
-                setError(e.message || 'Unbekannter Fehler');
-                setSettings(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        load();
+        loadSettings();
     }, []);
 
-    return { settings, loading, error };
+    async function loadSettings() {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch('/api/admin/settings', {
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                // Если настройки не найдены, возвращаем дефолты
+                if (response.status === 404) {
+                    setSettings(getDefaultSettings());
+                    return;
+                }
+                throw new Error('Failed to load settings');
+            }
+
+            const data = await response.json();
+            setSettings(data);
+        } catch (err) {
+            console.error('Error loading shop settings:', err);
+            setError(err instanceof Error ? err.message : 'Unknown error');
+            // В случае ошибки тоже показываем дефолты
+            setSettings(getDefaultSettings());
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function getDefaultSettings(): ShopSettings {
+        return {
+            shopName: 'Beauty Salon Shop',
+            shopSubtitle: '',
+            supportEmail: '',
+            supportPhone: '',
+            addressLine: '',
+            postalCode: '',
+            city: '',
+            country: 'Deutschland',
+            defaultCurrency: 'EUR',
+            freeShippingFrom: null,
+            taxRate: null,
+            homepageHeroText: '',
+            address: '',
+            phone: '',
+            email: '',
+            openHours: '',
+            mapEmbedUrl: '',
+        };
+    }
+
+    return {
+        settings,
+        loading,
+        error,
+        reload: loadSettings,
+    };
 }
