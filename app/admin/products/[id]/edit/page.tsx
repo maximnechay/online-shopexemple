@@ -3,12 +3,22 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Tag, Euro, ImagePlus, FileText, PackagePlus, ToggleLeft, ToggleRight, ArrowLeft } from 'lucide-react';
+import {
+    Tag,
+    Euro,
+    ImagePlus,
+    FileText,
+    PackagePlus,
+    ToggleLeft,
+    ToggleRight,
+    ArrowLeft,
+} from 'lucide-react';
 import Link from 'next/link';
 
 interface FormState {
     name: string;
     price: string;
+    compare_at_price: string; // старая цена
     images: string;
     category: string;
     description: string;
@@ -24,6 +34,7 @@ export default function EditProductPage() {
     const [form, setForm] = useState<FormState>({
         name: '',
         price: '',
+        compare_at_price: '',
         images: '',
         category: '',
         description: '',
@@ -53,9 +64,13 @@ export default function EditProductPage() {
                 setForm({
                     name: data.name ?? '',
                     price: data.price != null ? String(data.price) : '',
+                    compare_at_price:
+                        data.compare_at_price != null
+                            ? String(data.compare_at_price)
+                            : '',
                     images: Array.isArray(data.images)
                         ? data.images.join(', ')
-                        : (data.images || ''),
+                        : data.images || '',
                     category: data.category ?? '',
                     description: data.description ?? '',
                     stock_quantity:
@@ -101,6 +116,9 @@ export default function EditProductPage() {
                     ? Number(form.stock_quantity)
                     : 0,
                 in_stock: form.in_stock,
+                compare_at_price: form.compare_at_price
+                    ? Number(form.compare_at_price)
+                    : null,
                 images: form.images
                     ? form.images.split(',').map(i => i.trim())
                     : [],
@@ -111,7 +129,6 @@ export default function EditProductPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -178,22 +195,48 @@ export default function EditProductPage() {
                         </div>
                     </div>
 
-                    {/* Price */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Preis (€) *
-                        </label>
-                        <div className="flex items-center gap-3">
-                            <Euro className="w-5 h-5 text-gray-500" />
-                            <input
-                                name="price"
-                                type="number"
-                                step="0.01"
-                                value={form.price}
-                                onChange={change}
-                                required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                            />
+                    {/* Price + old price */}
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Preis (€) *
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Euro className="w-5 h-5 text-gray-500" />
+                                <input
+                                    name="price"
+                                    type="number"
+                                    step="0.01"
+                                    value={form.price}
+                                    onChange={change}
+                                    required
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Alter Preis (€)
+                                <span className="text-gray-400 text-xs ml-1">
+                                    (optional)
+                                </span>
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Euro className="w-5 h-5 text-gray-400" />
+                                <input
+                                    name="compare_at_price"
+                                    type="number"
+                                    step="0.01"
+                                    value={form.compare_at_price}
+                                    onChange={change}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                    placeholder="z. B. 59.99"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Wird zur Anzeige von Rabatten genutzt.
+                            </p>
                         </div>
                     </div>
 
@@ -306,7 +349,6 @@ export default function EditProductPage() {
                         </div>
                     </div>
 
-                    {/* Error */}
                     {error && (
                         <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
                             {error}
