@@ -9,6 +9,7 @@ function mapDbToResponse(row: any) {
     if (!row) return null;
 
     return {
+        // Основная информация
         shopName: row.shop_name ?? '',
         shopSubtitle: row.shop_subtitle ?? '',
         supportEmail: row.support_email ?? '',
@@ -21,6 +22,13 @@ function mapDbToResponse(row: any) {
         freeShippingFrom: row.free_shipping_from,
         taxRate: row.tax_rate,
         homepageHeroText: row.homepage_hero_text ?? '',
+
+        // Контактная информация
+        address: row.address ?? '',
+        phone: row.phone ?? '',
+        email: row.email ?? '',
+        openHours: row.open_hours ?? '',
+        mapEmbedUrl: row.map_embed_url ?? '',
     };
 }
 
@@ -59,9 +67,11 @@ export async function PATCH(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // тут приходят поля в camelCase от твоей формы
+        // Преобразуем данные из camelCase в snake_case для БД
         const payload = {
             id: SETTINGS_ID,
+
+            // Основная информация
             shop_name: body.shopName?.trim() || null,
             shop_subtitle: body.shopSubtitle?.trim() || null,
             support_email: body.supportEmail?.trim() || null,
@@ -69,7 +79,7 @@ export async function PATCH(request: NextRequest) {
             address_line: body.addressLine?.trim() || null,
             postal_code: body.postalCode?.trim() || null,
             city: body.city?.trim() || null,
-            country: body.country?.trim() || null,
+            country: body.country?.trim() || 'Deutschland',
             default_currency: body.defaultCurrency?.trim() || 'EUR',
             free_shipping_from:
                 typeof body.freeShippingFrom === 'number'
@@ -84,12 +94,25 @@ export async function PATCH(request: NextRequest) {
                         ? Number(body.taxRate)
                         : null,
             homepage_hero_text: body.homepageHeroText?.trim() || null,
+
+            // Контактная информация
+            address: body.address?.trim() || null,
+            phone: body.phone?.trim() || null,
+            email: body.email?.trim() || null,
+            open_hours: body.openHours?.trim() || null,
+            map_embed_url: body.mapEmbedUrl?.trim() || null,
+
             updated_at: new Date().toISOString(),
         };
 
+        console.log('Saving settings payload:', payload);
+
+        // Используем upsert для создания или обновления
         const { data, error } = await supabaseAdmin
             .from('shop_settings')
-            .upsert(payload, { onConflict: 'id' })
+            .upsert(payload, {
+                onConflict: 'id',
+            })
             .select()
             .single();
 
@@ -102,11 +125,11 @@ export async function PATCH(request: NextRequest) {
         }
 
         return NextResponse.json(mapDbToResponse(data));
-    } catch (e: any) {
-        console.error('Settings PATCH exception:', e);
+    } catch (err: any) {
+        console.error('Settings PATCH exception:', err);
         return NextResponse.json(
-            { error: e.message || 'Ungültige Anfrage' },
-            { status: 400 }
+            { error: 'Serverfehler' },
+            { status: 500 }
         );
     }
 }
