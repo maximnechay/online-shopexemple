@@ -14,9 +14,12 @@ import {
     Truck,
     Euro,
     Percent,
+    Clock,
+    Map,
 } from 'lucide-react';
 
 interface ShopSettings {
+    // Основная информация
     shopName: string;
     shopSubtitle: string;
     supportEmail: string;
@@ -26,9 +29,16 @@ interface ShopSettings {
     city: string;
     country: string;
     defaultCurrency: string;
-    freeShippingFrom: string; // храним как строку в форме
-    taxRate: string;          // тоже строкой, конвертим при сохранении
+    freeShippingFrom: string;
+    taxRate: string;
     homepageHeroText: string;
+
+    // Контактная информация
+    address: string;
+    phone: string;
+    email: string;
+    openHours: string;
+    mapEmbedUrl: string;
 }
 
 export default function AdminSettingsPage() {
@@ -45,6 +55,11 @@ export default function AdminSettingsPage() {
         freeShippingFrom: '',
         taxRate: '',
         homepageHeroText: '',
+        address: '',
+        phone: '',
+        email: '',
+        openHours: '',
+        mapEmbedUrl: '',
     });
 
     const [loading, setLoading] = useState(true);
@@ -61,7 +76,6 @@ export default function AdminSettingsPage() {
                 const res = await fetch('/api/admin/settings');
 
                 if (!res.ok) {
-                    // если 404 или нет ещё настроек, просто оставляем дефолты
                     if (res.status === 404) {
                         setLoading(false);
                         return;
@@ -85,15 +99,17 @@ export default function AdminSettingsPage() {
                         data.freeShippingFrom != null
                             ? String(data.freeShippingFrom)
                             : '',
-                    taxRate:
-                        data.taxRate != null ? String(data.taxRate) : '',
+                    taxRate: data.taxRate != null ? String(data.taxRate) : '',
                     homepageHeroText: data.homepageHeroText ?? '',
+                    address: data.address ?? '',
+                    phone: data.phone ?? '',
+                    email: data.email ?? '',
+                    openHours: data.openHours ?? '',
+                    mapEmbedUrl: data.mapEmbedUrl ?? '',
                 });
             } catch (err: any) {
                 console.error(err);
-                setError(
-                    err.message || 'Fehler beim Laden der Einstellungen'
-                );
+                setError(err.message || 'Fehler beim Laden der Einstellungen');
             } finally {
                 setLoading(false);
             }
@@ -133,6 +149,11 @@ export default function AdminSettingsPage() {
                     : null,
                 taxRate: form.taxRate ? Number(form.taxRate) : null,
                 homepageHeroText: form.homepageHeroText.trim(),
+                address: form.address.trim(),
+                phone: form.phone.trim(),
+                email: form.email.trim(),
+                openHours: form.openHours.trim(),
+                mapEmbedUrl: form.mapEmbedUrl.trim(),
             };
 
             const res = await fetch('/api/admin/settings', {
@@ -149,6 +170,9 @@ export default function AdminSettingsPage() {
             }
 
             setSuccess(true);
+
+            // Скрываем сообщение об успехе через 3 секунды
+            setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Unbekannter Fehler');
@@ -189,7 +213,8 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <p className="text-sm text-gray-500 mb-8">
-                    Grundlegende Informationen, Kontakt und Versandoptionen Ihres Shops.
+                    Grundlegende Informationen, Kontakt und Versandoptionen Ihres
+                    Shops.
                 </p>
 
                 <form
@@ -202,7 +227,6 @@ export default function AdminSettingsPage() {
                             Allgemeine Informationen
                         </h2>
 
-                        {/* Shop Name */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Shop Name *
@@ -220,7 +244,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* Untertitel */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Untertitel / Claim
@@ -235,16 +258,15 @@ export default function AdminSettingsPage() {
                         </div>
                     </div>
 
-                    {/* Kontakt & Adresse */}
+                    {/* Kontakt & Adresse (Admin) */}
                     <div className="space-y-4 pt-4 border-t border-gray-200">
                         <h2 className="text-sm font-semibold text-gray-800 tracking-wide uppercase">
-                            Kontakt & Adresse
+                            Kontakt & Adresse (Admin)
                         </h2>
 
-                        {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Kontakt E Mail *
+                                Kontakt E-Mail *
                             </label>
                             <div className="flex items-center gap-3">
                                 <Mail className="w-5 h-5 text-gray-500" />
@@ -260,7 +282,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* Telefon */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Telefonnummer
@@ -277,7 +298,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* Adresse */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Straße & Hausnummer
@@ -294,7 +314,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* PLZ + Stadt */}
                         <div className="grid sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -322,7 +341,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* Land */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Land
@@ -340,13 +358,117 @@ export default function AdminSettingsPage() {
                         </div>
                     </div>
 
+                    {/* Контактная информация (для клиентов) */}
+                    <div className="space-y-4 pt-4 border-t border-gray-200">
+                        <h2 className="text-sm font-semibold text-gray-800 tracking-wide uppercase">
+                            Kontaktseite (Öffentlich)
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                            Diese Informationen werden auf der Kontaktseite für Kunden
+                            angezeigt.
+                        </p>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Vollständige Adresse
+                            </label>
+                            <div className="flex items-start gap-3">
+                                <MapPin className="w-5 h-5 text-gray-500 mt-3" />
+                                <textarea
+                                    name="address"
+                                    value={form.address}
+                                    onChange={change}
+                                    rows={3}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+                                    placeholder="Musterstraße 1&#10;30159 Hannover&#10;Deutschland"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Mehrzeilige Adresse für die Kontaktseite
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Telefon (Öffentlich)
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Phone className="w-5 h-5 text-gray-500" />
+                                <input
+                                    name="phone"
+                                    value={form.phone}
+                                    onChange={change}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                    placeholder="+49 511 123456"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                E-Mail (Öffentlich)
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Mail className="w-5 h-5 text-gray-500" />
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={form.email}
+                                    onChange={change}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                    placeholder="kontakt@beautyshop.de"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Öffnungszeiten
+                            </label>
+                            <div className="flex items-start gap-3">
+                                <Clock className="w-5 h-5 text-gray-500 mt-3" />
+                                <textarea
+                                    name="openHours"
+                                    value={form.openHours}
+                                    onChange={change}
+                                    rows={4}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+                                    placeholder="Mo-Fr: 9:00 - 18:00 Uhr&#10;Sa: 10:00 - 14:00 Uhr&#10;So: Geschlossen"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Google Maps Embed URL
+                            </label>
+                            <div className="flex items-start gap-3">
+                                <Map className="w-5 h-5 text-gray-500 mt-3" />
+                                <div className="flex-1">
+                                    <input
+                                        name="mapEmbedUrl"
+                                        value={form.mapEmbedUrl}
+                                        onChange={change}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                        placeholder="https://www.google.com/maps/embed?pb=..."
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        1. Öffnen Sie Google Maps<br />
+                                        2. Suchen Sie Ihre Adresse<br />
+                                        3. Klicken Sie auf "Teilen" → "Karte einbetten"<br />
+                                        4. Kopieren Sie die URL aus dem iframe src
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Versand & Preise */}
                     <div className="space-y-4 pt-4 border-t border-gray-200">
                         <h2 className="text-sm font-semibold text-gray-800 tracking-wide uppercase">
                             Versand & Preise
                         </h2>
 
-                        {/* Währung + Versandfreigrenze */}
                         <div className="grid sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -386,7 +508,6 @@ export default function AdminSettingsPage() {
                             </div>
                         </div>
 
-                        {/* Steuer */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Mehrwertsteuer in %
@@ -404,7 +525,8 @@ export default function AdminSettingsPage() {
                                 />
                             </div>
                             <p className="mt-1 text-xs text-gray-500">
-                                Optional, wenn Sie diese Information im Checkout anzeigen möchten.
+                                Optional, wenn Sie diese Information im Checkout anzeigen
+                                möchten.
                             </p>
                         </div>
                     </div>
@@ -426,7 +548,8 @@ export default function AdminSettingsPage() {
                             placeholder="Hochwertige Kosmetik von führenden Marken. Professionell ausgewählt, sicher und schnell geliefert."
                         />
                         <p className="text-xs text-gray-500">
-                            Kann später auf der Startseite eingebunden werden, z. B. im Hero Bereich.
+                            Kann später auf der Startseite eingebunden werden, z. B. im
+                            Hero Bereich.
                         </p>
                     </div>
 
@@ -438,7 +561,7 @@ export default function AdminSettingsPage() {
 
                     {success && (
                         <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
-                            Einstellungen wurden gespeichert.
+                            ✓ Einstellungen wurden erfolgreich gespeichert
                         </div>
                     )}
 
