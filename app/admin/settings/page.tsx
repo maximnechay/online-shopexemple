@@ -30,6 +30,7 @@ interface ShopSettings {
     country: string;
     defaultCurrency: string;
     freeShippingFrom: string;
+    shippingCost: string;
     taxRate: string;
     homepageHeroText: string;
 
@@ -53,6 +54,7 @@ export default function AdminSettingsPage() {
         country: 'Deutschland',
         defaultCurrency: 'EUR',
         freeShippingFrom: '',
+        shippingCost: '',
         taxRate: '',
         homepageHeroText: '',
         address: '',
@@ -98,6 +100,10 @@ export default function AdminSettingsPage() {
                     freeShippingFrom:
                         data.freeShippingFrom != null
                             ? String(data.freeShippingFrom)
+                            : '',
+                    shippingCost:
+                        data.shippingCost != null
+                            ? String(data.shippingCost)
                             : '',
                     taxRate: data.taxRate != null ? String(data.taxRate) : '',
                     homepageHeroText: data.homepageHeroText ?? '',
@@ -146,6 +152,9 @@ export default function AdminSettingsPage() {
                 defaultCurrency: form.defaultCurrency.trim() || 'EUR',
                 freeShippingFrom: form.freeShippingFrom
                     ? Number(form.freeShippingFrom)
+                    : null,
+                shippingCost: form.shippingCost
+                    ? Number(form.shippingCost)
                     : null,
                 taxRate: form.taxRate ? Number(form.taxRate) : null,
                 homepageHeroText: form.homepageHeroText.trim(),
@@ -506,6 +515,27 @@ export default function AdminSettingsPage() {
                                     Wenn leer, wird keine Versandfreigrenze angezeigt.
                                 </p>
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Versandkosten (Standard)
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <Euro className="w-5 h-5 text-gray-500" />
+                                <input
+                                    name="shippingCost"
+                                    type="number"
+                                    step="0.01"
+                                    value={form.shippingCost}
+                                    onChange={change}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                    placeholder="z. B. 4.99"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Standard Versandkosten, wenn Bestellsumme unter der Freigrenze liegt.
+                            </p>
                         </div>
 
                         <div>
