@@ -1,6 +1,7 @@
 // app/catalog/page.tsx
 'use client';
-
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import Header from '@/components/layout/Header';
@@ -91,11 +92,10 @@ export default function CatalogPage() {
                         <div className="flex gap-3 pb-2">
                             <button
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                                    selectedCategory === 'all'
+                                className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
                                         ? 'bg-black text-white'
                                         : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                }`}
+                                    }`}
                             >
                                 Alle Produkte
                             </button>
@@ -103,11 +103,10 @@ export default function CatalogPage() {
                                 <button
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
-                                    className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                                        selectedCategory === category.id
+                                    className={`px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
                                             ? 'bg-black text-white'
                                             : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     {category.name}
                                 </button>
