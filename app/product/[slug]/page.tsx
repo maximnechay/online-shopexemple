@@ -73,9 +73,9 @@ export default function ProductPage() { // ← Убрали params из проп
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="flex-1 pt-24 pb-16">
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
                         <div className="animate-pulse">
                             <div className="h-8 bg-gray-200 rounded w-1/4 mb-8" />
@@ -97,9 +97,9 @@ export default function ProductPage() { // ← Убрали params из проп
 
     if (error || !product) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="flex-1 pt-24 pb-16">
                     <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center py-16">
                         <h1 className="text-3xl font-serif text-gray-900 mb-4">
                             Produkt nicht gefunden
@@ -122,10 +122,10 @@ export default function ProductPage() { // ← Убрали params из проп
         : 0;
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="flex-1 pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Breadcrumb */}
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
@@ -163,11 +163,10 @@ export default function ProductPage() { // ← Убрали params из проп
                                         <button
                                             key={index}
                                             onClick={() => setSelectedImage(index)}
-                                            className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
-                                                selectedImage === index
-                                                    ? 'border-gray-900'
-                                                    : 'border-gray-200 hover:border-gray-300'
-                                            }`}
+                                            className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${selectedImage === index
+                                                ? 'border-gray-900'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                                }`}
                                         >
                                             <div
                                                 className="absolute inset-0 bg-cover bg-center"
@@ -278,22 +277,20 @@ export default function ProductPage() { // ← Убрали params из проп
                                 <button
                                     disabled={!product.inStock || isAdding}
                                     onClick={handleAddToCart}
-                                    className={`flex-1 py-4 rounded-full font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${
-                                        isAdding
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-black text-white hover:bg-gray-800'
-                                    }`}
+                                    className={`flex-1 py-4 rounded-full font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${isAdding
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-black text-white hover:bg-gray-800'
+                                        }`}
                                 >
                                     <ShoppingBag className="w-5 h-5" strokeWidth={1.5} />
                                     {isAdding ? 'Hinzugefügt!' : 'In den Warenkorb'}
                                 </button>
                                 <button
                                     onClick={handleWishlistToggle}
-                                    className={`w-14 h-14 border-2 rounded-full flex items-center justify-center transition-colors ${
-                                        inWishlist
-                                            ? 'bg-black border-black text-white'
-                                            : 'border-gray-200 hover:border-black hover:bg-black hover:text-white'
-                                    }`}
+                                    className={`w-14 h-14 border-2 rounded-full flex items-center justify-center transition-colors ${inWishlist
+                                        ? 'bg-black border-black text-white'
+                                        : 'border-gray-200 hover:border-black hover:bg-black hover:text-white'
+                                        }`}
                                 >
                                     <Heart
                                         className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`}

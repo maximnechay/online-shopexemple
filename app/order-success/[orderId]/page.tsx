@@ -62,9 +62,9 @@ export default function OrderSuccessPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="flex-1 pt-24 pb-16">
                     <div className="max-w-3xl mx-auto px-6 text-center">
                         <div className="animate-spin w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full mx-auto" />
                         <p className="mt-4 text-gray-600">Lade Bestelldetails...</p>
@@ -77,9 +77,9 @@ export default function OrderSuccessPage() {
 
     if (!order) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="flex-1 pt-24 pb-16">
                     <div className="max-w-3xl mx-auto px-6 text-center">
                         <h1 className="text-3xl font-serif text-gray-900 mb-4">
                             Bestellung nicht gefunden
@@ -104,10 +104,10 @@ export default function OrderSuccessPage() {
     const totalNumber = Number(order.total_amount ?? 0);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="flex-1 pt-24 pb-16">
                 <div className="max-w-3xl mx-auto px-6">
                     {/* Спасибо за заказ */}
                     <div className="text-center mb-12">

@@ -18,7 +18,7 @@ export default function CartPage() {
 
     // порог бесплатной доставки и базовый шиппинг
     const freeShippingFrom = settings?.freeShippingFrom ?? 49;
-    const baseShipping = 4.99;
+    const baseShipping = settings?.shippingCost ?? 4.99;
 
     const shipping = total >= freeShippingFrom ? 0 : baseShipping;
     const finalTotal = total + shipping;

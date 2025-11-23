@@ -80,13 +80,33 @@ export default function CatalogPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
-                        <div className="text-center py-20">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto" />
-                            <p className="mt-4 text-gray-600">Lädt Produkte...</p>
+                        {/* Header skeleton */}
+                        <div className="mb-12">
+                            <div className="h-12 bg-gray-200 rounded w-1/4 mb-4 animate-pulse" />
+                            <div className="h-6 bg-gray-200 rounded w-1/2 animate-pulse" />
+                        </div>
+
+                        {/* Filters skeleton */}
+                        <div className="mb-8 flex gap-4">
+                            <div className="h-10 bg-gray-200 rounded w-24 animate-pulse" />
+                            <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+                            <div className="h-10 bg-gray-200 rounded w-28 animate-pulse" />
+                        </div>
+
+                        {/* Products grid skeleton */}
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                                <div key={i} className="space-y-4">
+                                    <div className="aspect-square bg-gray-200 rounded-2xl animate-pulse" />
+                                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                                    <div className="h-6 bg-gray-200 rounded w-1/2 animate-pulse" />
+                                    <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -97,9 +117,9 @@ export default function CatalogPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center py-20">
                             <p className="text-red-600">Fehler beim Laden der Produkte</p>
@@ -118,10 +138,10 @@ export default function CatalogPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="mb-12">

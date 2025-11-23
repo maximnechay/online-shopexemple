@@ -20,6 +20,7 @@ function mapDbToResponse(row: any) {
         country: row.country ?? 'Deutschland',
         defaultCurrency: row.default_currency ?? 'EUR',
         freeShippingFrom: row.free_shipping_from,
+        shippingCost: row.shipping_cost ?? 4.99,
         taxRate: row.tax_rate,
         homepageHeroText: row.homepage_hero_text ?? '',
 
@@ -87,6 +88,12 @@ export async function PATCH(request: NextRequest) {
                     : body.freeShippingFrom
                         ? Number(body.freeShippingFrom)
                         : null,
+            shipping_cost:
+                typeof body.shippingCost === 'number'
+                    ? body.shippingCost
+                    : body.shippingCost
+                        ? Number(body.shippingCost)
+                        : 4.99,
             tax_rate:
                 typeof body.taxRate === 'number'
                     ? body.taxRate

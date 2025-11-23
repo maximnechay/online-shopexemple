@@ -129,11 +129,12 @@ export default function OrdersPage() {
 
     if (authLoading || isLoading) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="flex-1 pt-24 pb-16">
                     <div className="max-w-4xl mx-auto px-6">
                         <div className="text-center py-16">
+                            <div className="animate-spin w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full mx-auto mb-4" />
                             <p className="text-gray-600">Lädt...</p>
                         </div>
                     </div>
@@ -148,10 +149,10 @@ export default function OrdersPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="flex-1 pt-24 pb-16">
                 <div className="max-w-4xl mx-auto px-6 lg:px-8">
                     <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-8">
                         Meine Bestellungen

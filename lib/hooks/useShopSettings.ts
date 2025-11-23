@@ -14,8 +14,11 @@ export interface ShopSettings {
     country: string;
     defaultCurrency: string;
     freeShippingFrom: number | null;
+    shippingCost: number | null;
     taxRate: number | null;
     homepageHeroText: string;
+
+
 
     // Контактная информация
     address: string;
@@ -76,6 +79,7 @@ export function useShopSettings() {
             country: 'Deutschland',
             defaultCurrency: 'EUR',
             freeShippingFrom: null,
+            shippingCost: 4.99,
             taxRate: null,
             homepageHeroText: '',
             address: '',

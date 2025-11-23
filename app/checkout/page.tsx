@@ -8,11 +8,7 @@ import {
     ArrowLeft,
     ShoppingBag,
     User,
-    Mail,
-    Phone,
-    MapPin,
     CreditCard,
-    Package,
     CheckCircle2,
     Truck,
     Store,
@@ -24,6 +20,7 @@ import { useCartStore } from '@/lib/store/useCartStore';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import PayPalButtonsWrapper from '@/components/checkout/PayPalButtons';
+import { useShopSettings } from '@/lib/hooks/useShopSettings';
 
 interface CheckoutFormData {
     firstName: string;
@@ -60,6 +57,9 @@ export default function CheckoutPage() {
         paymentMethod: 'card',
         notes: '',
     });
+
+    // настройки магазина (порог бесплатной доставки и т.д.)
+    const { settings } = useShopSettings();
 
     // Загружаем данные пользователя если залогинен
     useEffect(() => {
@@ -145,7 +145,26 @@ export default function CheckoutPage() {
         setError(null);
     };
 
-    // Функция создания заказа в БД
+    const total = getTotal();
+
+    // значения из настроек магазина
+    const freeShippingFrom = settings?.freeShippingFrom ?? 49; // как в CartPage
+    const baseShipping = settings?.shippingCost ?? 4.99;
+
+    // Доставка:
+    // 1. Abholung — 0
+    // 2. Если доставка и сумма >= freeShippingFrom — 0
+    // 3. Иначе baseShipping
+    const shipping =
+        formData.deliveryMethod === 'pickup'
+            ? 0
+            : total >= freeShippingFrom
+                ? 0
+                : baseShipping;
+
+    const finalTotal = total + shipping;
+
+    // Функция создания заказа в БД (используется для PayPal)
     const createOrder = async () => {
         const supabase = createClient();
 
@@ -190,7 +209,7 @@ export default function CheckoutPage() {
                 message: orderError.message,
                 details: orderError.details,
                 hint: orderError.hint,
-                code: orderError.code
+                code: orderError.code,
             });
             throw new Error(`Fehler beim Erstellen der Bestellung: ${orderError.message}`);
         }
@@ -205,9 +224,7 @@ export default function CheckoutPage() {
             quantity: item.quantity,
         }));
 
-        const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(orderItems);
+        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
         if (itemsError) {
             await supabase.from('orders').delete().eq('id', order.id);
@@ -250,7 +267,7 @@ export default function CheckoutPage() {
                 orderData.deliveryPostalCode = '';
             }
 
-            // 1) Если оплата НАЛИЧНЫМИ
+            // 1) НАЛИЧНЫЕ
             if (formData.paymentMethod === 'cash') {
                 const response = await fetch('/api/orders', {
                     method: 'POST',
@@ -264,17 +281,14 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
                 }
 
-                // ✅ ОЧИЩАЕМ КОРЗИНУ ПЕРЕД редиректом
                 clearCart();
-
-                // Небольшая задержка чтобы clearCart успел выполниться
                 await new Promise(resolve => setTimeout(resolve, 100));
 
                 window.location.href = `/order-success/${result.orderId}`;
                 return;
             }
 
-            // 2) Если оплата КАРТОЙ — идём через Stripe
+            // 2) КАРТА — Stripe
             if (formData.paymentMethod === 'card') {
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
@@ -306,23 +320,17 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Starten der Zahlung');
                 }
 
-                // ✅ ОЧИЩАЕМ КОРЗИНУ ПЕРЕД редиректом на Stripe
                 clearCart();
-
-                // Небольшая задержка чтобы clearCart успел выполниться
                 await new Promise(resolve => setTimeout(resolve, 100));
 
-                // Редирект на Stripe
                 window.location.href = result.url;
                 return;
             }
 
-            // 3) Если оплата PAYPAL
+            // 3) PAYPAL
             if (formData.paymentMethod === 'paypal') {
-                // Создаём заказ в БД
                 const orderId = await createOrder();
                 setCreatedOrderId(orderId);
-                // PayPal кнопки появятся и обработают оплату
                 return;
             }
         } catch (err: any) {
@@ -341,18 +349,6 @@ export default function CheckoutPage() {
         setIsSubmitting(false);
         setCreatedOrderId(null);
     };
-
-    const total = getTotal();
-    const FREE_SHIPPING_THRESHOLD = 50; // Бесплатная доставка от 50€
-
-    // Доставка бесплатна если:
-    // 1. Выбрана Abholung (самовывоз) ИЛИ
-    // 2. Сумма заказа >= 50€
-    const shipping = formData.deliveryMethod === 'pickup'
-        ? 0
-        : (total >= FREE_SHIPPING_THRESHOLD ? 0 : 4.99);
-
-    const finalTotal = total + shipping;
 
     if (items.length === 0) {
         return null;
@@ -489,8 +485,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-2 gap-4 mb-6">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'delivery'
-                                                ? 'border-rose-600 bg-rose-50'
-                                                : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-rose-600 bg-rose-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -508,13 +504,17 @@ export default function CheckoutPage() {
                                                 </div>
                                                 <div className="text-sm text-gray-600">2-3 Werktage</div>
                                             </div>
-                                            <div className="font-semibold text-gray-900">4,99 €</div>
+                                            <div className="font-semibold text-gray-900">
+                                                {shipping === 0 && formData.deliveryMethod === 'delivery'
+                                                    ? 'Kostenlos'
+                                                    : `${baseShipping.toFixed(2)} €`}
+                                            </div>
                                         </label>
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'pickup'
-                                                ? 'border-rose-600 bg-rose-50'
-                                                : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-rose-600 bg-rose-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -616,8 +616,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-3 gap-4">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'card'
-                                                ? 'border-rose-600 bg-rose-50'
-                                                : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-rose-600 bg-rose-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -641,8 +641,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cash'
-                                                ? 'border-rose-600 bg-rose-50'
-                                                : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-rose-600 bg-rose-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -666,8 +666,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'paypal'
-                                                ? 'border-rose-600 bg-rose-50'
-                                                : 'border-gray-300 hover:border-gray-400'
+                                                    ? 'border-rose-600 bg-rose-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -717,14 +717,14 @@ export default function CheckoutPage() {
                                     </div>
                                 )}
 
-                                {/* Submit Button */}
+                                {/* Submit Button / PayPal */}
                                 {formData.paymentMethod === 'paypal' && createdOrderId ? (
                                     <div className="space-y-4">
                                         <p className="text-sm text-gray-600 text-center">
                                             Schließen Sie die Zahlung mit PayPal ab:
                                         </p>
                                         <PayPalButtonsWrapper
-                                            supabaseOrderId={createdOrderId!}  // ✅ Только orderId!
+                                            supabaseOrderId={createdOrderId!}
                                             onSuccess={handlePayPalSuccess}
                                             onError={handlePayPalError}
                                         />
@@ -792,18 +792,23 @@ export default function CheckoutPage() {
                                 </div>
 
                                 {/* Free Shipping Progress */}
-                                {formData.deliveryMethod === 'delivery' && total < FREE_SHIPPING_THRESHOLD && (
+                                {formData.deliveryMethod === 'delivery' && total < freeShippingFrom && (
                                     <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm font-medium text-blue-900">
-                                                Noch {(FREE_SHIPPING_THRESHOLD - total).toFixed(2)}€ bis zur kostenlosen Lieferung!
+                                                Noch {(freeShippingFrom - total).toFixed(2)}€ bis zur kostenlosen Lieferung!
                                             </span>
                                             <Truck className="w-5 h-5 text-blue-600" />
                                         </div>
                                         <div className="w-full bg-blue-200 rounded-full h-2">
                                             <div
                                                 className="bg-blue-600 h-2 rounded-full transition-all"
-                                                style={{ width: `${Math.min((total / FREE_SHIPPING_THRESHOLD) * 100, 100)}%` }}
+                                                style={{
+                                                    width: `${Math.min(
+                                                        (total / freeShippingFrom) * 100,
+                                                        100
+                                                    )}%`,
+                                                }}
                                             />
                                         </div>
                                     </div>
@@ -818,13 +823,18 @@ export default function CheckoutPage() {
                                     <div className="flex justify-between text-gray-600">
                                         <span>Versandkosten</span>
                                         <span>
-                                            {shipping === 0
-                                                ? (formData.deliveryMethod === 'delivery' && total >= FREE_SHIPPING_THRESHOLD
-                                                    ? <span className="text-green-600 font-medium">Kostenlos ab {FREE_SHIPPING_THRESHOLD}€</span>
-                                                    : 'Kostenlos'
+                                            {shipping === 0 ? (
+                                                formData.deliveryMethod === 'delivery' &&
+                                                    total >= freeShippingFrom ? (
+                                                    <span className="text-green-600 font-medium">
+                                                        Kostenlos ab {freeShippingFrom}€
+                                                    </span>
+                                                ) : (
+                                                    'Kostenlos'
                                                 )
-                                                : `${shipping.toFixed(2)} €`
-                                            }
+                                            ) : (
+                                                `${shipping.toFixed(2)} €`
+                                            )}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-xl font-semibold text-gray-900 pt-3 border-t border-gray-300">
@@ -846,7 +856,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>Kostenlose Lieferung ab {FREE_SHIPPING_THRESHOLD}€</span>
+                                        <span>Kostenlose Lieferung ab {freeShippingFrom}€</span>
                                     </div>
                                 </div>
                             </div>
