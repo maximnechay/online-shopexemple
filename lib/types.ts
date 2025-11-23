@@ -1,3 +1,4 @@
+// lib/types.ts
 // Product Types
 export interface Product {
   id: string;
@@ -15,6 +16,8 @@ export interface Product {
   rating?: number;
   reviewCount?: number;
   attributes?: ProductAttribute[];
+  featured?: boolean; // Флаг "рекомендуемый товар"
+  size?: string; // ✅ ДОБАВЛЕНО: Размер товара (например "50ml", "100g")
   createdAt: string;
   updatedAt: string;
 }
@@ -24,7 +27,7 @@ export interface ProductAttribute {
   value: string;
 }
 
-export type ProductCategory = 
+export type ProductCategory =
   | 'hair-care'
   | 'face-care'
   | 'body-care'
@@ -91,19 +94,19 @@ export interface Address {
   country: string;
 }
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending'
   | 'processing'
   | 'shipped'
   | 'delivered'
   | 'cancelled';
 
-export type PaymentMethod = 
+export type PaymentMethod =
   | 'card'
   | 'cash'
   | 'online';
 
-export type DeliveryMethod = 
+export type DeliveryMethod =
   | 'pickup'
   | 'delivery'
   | 'courier';
@@ -118,7 +121,7 @@ export interface ProductFilters {
   searchQuery?: string;
 }
 
-export type SortOption = 
+export type SortOption =
   | 'price-asc'
   | 'price-desc'
   | 'name-asc'
