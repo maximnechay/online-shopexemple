@@ -1,7 +1,9 @@
 // app/page.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
     ArrowRight,
     Check,
@@ -15,8 +17,44 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { createClient } from '@/lib/supabase/client';
+import type { Product } from '@/lib/types';
+import { transformProductsFromDB } from '@/lib/supabase/helpers';
 
 export default function HomePage() {
+    const [bestsellers, setBestsellers] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadBestsellers();
+    }, []);
+
+    async function loadBestsellers() {
+        try {
+            const supabase = createClient();
+
+            // Загружаем 8 товаров, которые в наличии
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('in_stock', true)
+                .limit(8);
+
+            if (error) throw error;
+
+            // Трансформируем данные из формата БД в формат приложения
+            const products = transformProductsFromDB(data || []);
+
+            // Берем случайные 4 товара из полученных
+            const shuffled = products.sort(() => 0.5 - Math.random());
+            setBestsellers(shuffled.slice(0, 4));
+        } catch (error) {
+            console.error('Error loading bestsellers:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-white">
             <Header />
@@ -234,72 +272,76 @@ export default function HomePage() {
                         </Link>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {[
-                            {
-                                name: 'Repair Shampoo',
-                                brand: 'Kerastase',
-                                price: '24,90 €',
-                                size: '250 ml',
-                                tag: 'Top Seller'
-                            },
-                            {
-                                name: 'Hydra Face Serum',
-                                brand: 'Babor',
-                                price: '39,00 €',
-                                size: '30 ml',
-                                tag: 'Neu'
-                            },
-                            {
-                                name: 'Volume Spray',
-                                brand: 'Moroccanoil',
-                                price: '22,50 €',
-                                size: '150 ml',
-                                tag: 'Salon Liebling'
-                            },
-                            {
-                                name: 'Glow Day Cream',
-                                brand: 'L&apos;Oréal Professionnel',
-                                price: '29,90 €',
-                                size: '50 ml',
-                                tag: 'Limited'
-                            }
-                        ].map((product, index) => (
-                            <Link
-                                key={index}
-                                href="/catalog"
-                                className="group rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 flex flex-col shadow-sm hover:shadow-md transition-shadow"
-                            >
-                                <div className="aspect-[4/5] rounded-2xl bg-gray-50 mb-4 overflow-hidden relative">
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Package className="w-10 h-10 text-gray-300 group-hover:scale-105 transition-transform" />
-                                    </div>
-                                    <div className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/80 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white">
-                                        <Sparkles className="w-3 h-3" />
-                                        <span>{product.tag}</span>
-                                    </div>
+                    {loading ? (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 flex flex-col shadow-sm">
+                                    <div className="aspect-[4/5] rounded-2xl bg-gray-100 mb-4 animate-pulse" />
+                                    <div className="h-3 bg-gray-100 rounded mb-2 animate-pulse" />
+                                    <div className="h-4 bg-gray-100 rounded mb-2 animate-pulse" />
+                                    <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse" />
                                 </div>
-                                <div className="flex-1 flex flex-col gap-1">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
-                                        {product.brand}
-                                    </p>
-                                    <h3 className="text-sm font-medium text-gray-900">
-                                        {product.name}
-                                    </h3>
-                                    <p className="text-xs text-gray-500 mb-3">{product.size}</p>
-                                    <div className="mt-auto flex items-center justify-between">
-                                        <span className="text-base font-medium text-gray-900">
-                                            {product.price}
-                                        </span>
-                                        <span className="text-xs font-medium text-gray-500 group-hover:text-gray-900 flex items-center gap-1">
-                                            Details
-                                            <ArrowRight className="w-3 h-3" />
-                                        </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {bestsellers.map((product) => (
+                                <Link
+                                    key={product.id}
+                                    href={`/catalog/${product.id}`}
+                                    className="group rounded-3xl border border-gray-100 bg-white p-4 sm:p-5 flex flex-col shadow-sm hover:shadow-md transition-shadow"
+                                >
+                                    <div className="aspect-[4/5] rounded-2xl bg-gray-50 mb-4 overflow-hidden relative">
+                                        {product.images && product.images.length > 0 ? (
+                                            <Image
+                                                src={product.images[0]}
+                                                alt={product.name}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <Package className="w-10 h-10 text-gray-300" />
+                                            </div>
+                                        )}
+                                        {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                            <div className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-red-500 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white">
+                                                <Sparkles className="w-3 h-3" />
+                                                <span>Sale</span>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
+                                    <div className="flex-1 flex flex-col gap-1">
+                                        <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                                            {product.brand || 'Premium Brand'}
+                                        </p>
+                                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-3">
+                                            {product.attributes?.find(attr => attr.name === 'Größe')?.value || ''}
+                                        </p>
+                                        <div className="mt-auto flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-base font-medium text-gray-900">
+                                                    {product.price.toFixed(2)} €
+                                                </span>
+                                                {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                                    <span className="text-xs text-gray-400 line-through">
+                                                        {product.compareAtPrice.toFixed(2)} €
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-xs font-medium text-gray-500 group-hover:text-gray-900 flex items-center gap-1">
+                                                Details
+                                                <ArrowRight className="w-3 h-3" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
 
