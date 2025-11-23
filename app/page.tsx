@@ -24,10 +24,49 @@ import { transformProductsFromDB } from '@/lib/supabase/helpers';
 export default function HomePage() {
     const [bestsellers, setBestsellers] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [newsletterEmail, setNewsletterEmail] = useState('');
+    const [newsletterLoading, setNewsletterLoading] = useState(false);
+    const [newsletterSuccess, setNewsletterSuccess] = useState(false);
+    const [newsletterError, setNewsletterError] = useState('');
 
     useEffect(() => {
         loadBestsellers();
     }, []);
+
+    async function handleNewsletterSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setNewsletterError('');
+        setNewsletterSuccess(false);
+        setNewsletterLoading(true);
+
+        try {
+            const response = await fetch('/api/newsletter', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: newsletterEmail })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to subscribe');
+            }
+
+            setNewsletterSuccess(true);
+            setNewsletterEmail('');
+        } catch (error) {
+            console.error('Newsletter subscription error:', error);
+            setNewsletterError(
+                error instanceof Error
+                    ? error.message
+                    : 'Fehler beim Abonnieren. Bitte versuchen Sie es später erneut.'
+            );
+        } finally {
+            setNewsletterLoading(false);
+        }
+    }
 
     async function loadBestsellers() {
         try {
@@ -453,35 +492,76 @@ export default function HomePage() {
 
             {/* Newsletter / Info Section */}
             <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-                <div className="max-w-4xl mx-auto rounded-3xl border border-gray-100 bg-gray-50/60 p-8 sm:p-10 flex flex-col md:flex-row gap-8 items-center justify-between">
-                    <div className="flex items-start gap-4">
-                        <div className="mt-1">
-                            <Mail className="w-6 h-6 text-gray-900" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-medium text-gray-900 mb-1">
-                                Exklusive Angebote per E Mail
+                <div className="max-w-4xl mx-auto rounded-3xl border border-gray-100 bg-gray-50/60 p-8 sm:p-10">
+                    {newsletterSuccess ? (
+                        // Success state
+                        <div className="flex flex-col items-center justify-center text-center py-8">
+                            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                                <Check className="w-8 h-8 text-emerald-600" />
+                            </div>
+                            <h3 className="text-2xl font-medium text-gray-900 mb-2">
+                                Vielen Dank!
                             </h3>
-                            <p className="text-sm text-gray-600 max-w-md">
-                                Erfahren Sie als erste von neuen Marken, Aktionen und limitierten Editionen.
-                                Kein Spam, nur Beauty Inspiration.
+                            <p className="text-gray-600 max-w-md mb-6">
+                                Sie erhalten in Kürze eine Bestätigungs-E-Mail. Wir freuen uns, Sie in unserer Community begrüßen zu dürfen!
                             </p>
+                            <button
+                                onClick={() => setNewsletterSuccess(false)}
+                                className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                            >
+                                Weitere E-Mail hinzufügen →
+                            </button>
                         </div>
-                    </div>
-                    <form className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-                        <input
-                            type="email"
-                            placeholder="Ihre E Mail Adresse"
-                            className="w-full sm:w-64 px-4 py-3 text-sm border border-gray-200 rounded-full outline-none focus:border-gray-900"
-                        />
-                        <button
-                            type="submit"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
-                        >
-                            Anmelden
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
-                    </form>
+                    ) : (
+                        // Form state
+                        <div className="flex flex-col gap-6">
+                            <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                                <div className="flex items-start gap-4">
+                                    <div className="mt-1">
+                                        <Mail className="w-6 h-6 text-gray-900" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-medium text-gray-900 mb-1">
+                                            Exklusive Angebote per E Mail
+                                        </h3>
+                                        <p className="text-sm text-gray-600 max-w-md">
+                                            Erfahren Sie als erste von neuen Marken, Aktionen und limitierten Editionen.
+                                            Kein Spam, nur Beauty Inspiration.
+                                        </p>
+                                    </div>
+                                </div>
+                                <form onSubmit={handleNewsletterSubmit} className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+                                    <input
+                                        type="email"
+                                        placeholder="Ihre E Mail Adresse"
+                                        value={newsletterEmail}
+                                        onChange={(e) => setNewsletterEmail(e.target.value)}
+                                        required
+                                        disabled={newsletterLoading}
+                                        className="w-full sm:w-64 px-4 py-3 text-sm border border-gray-200 rounded-full outline-none focus:border-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={newsletterLoading}
+                                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {newsletterLoading ? 'Wird gesendet...' : 'Anmelden'}
+                                        {!newsletterLoading && <ArrowRight className="w-4 h-4" />}
+                                    </button>
+                                </form>
+                            </div>
+                            {newsletterError && (
+                                <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl">
+                                    <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span className="text-red-600 text-xs font-bold">!</span>
+                                    </div>
+                                    <p className="text-sm text-red-800">
+                                        {newsletterError}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </section>
 
