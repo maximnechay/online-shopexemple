@@ -14,6 +14,8 @@ export interface Product {
     tags: string[];
     rating?: number;
     review_count?: number;
+    featured?: boolean; // Флаг "рекомендуемый товар"
+    size?: string; // ✅ ДОБАВЛЕНО: Размер товара
     created_at: string;
     updated_at: string;
 }
