@@ -1,6 +1,6 @@
 // app/api/products/route.ts
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -22,12 +22,10 @@ export async function GET(request: NextRequest) {
             .select('*')
             .order('created_at', { ascending: false });
 
-        // Фильтр по категории
         if (category && category !== 'all') {
             query = query.eq('category', category);
         }
 
-        // Поиск по названию
         if (search) {
             query = query.ilike('name', `%${search}%`);
         }
@@ -42,10 +40,13 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Transform data from snake_case to camelCase
         const transformedProducts = transformProductsFromDB(products || []);
 
-        return NextResponse.json(transformedProducts);
+        return NextResponse.json(transformedProducts, {
+            headers: {
+                "Cache-Control": "no-store, max-age=0, must-revalidate",
+            },
+        });
     } catch (error: any) {
         console.error('Products API error:', error);
         return NextResponse.json(
