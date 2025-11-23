@@ -2,12 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-const PAYPAL_API = process.env.NODE_ENV === 'production'
+// ✅ Используем отдельную переменную для PayPal mode
+const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
+const PAYPAL_API = PAYPAL_MODE === 'live'
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
 
 async function getPayPalAccessToken() {
-    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('💰 Capturing PayPal payment:', orderID, 'for order:', supabaseOrderId);
+        console.log('💰 Capturing PayPal payment:', orderID, 'for order:', supabaseOrderId, 'Mode:', PAYPAL_MODE);
 
         const accessToken = await getPayPalAccessToken();
 
@@ -85,14 +87,12 @@ export async function POST(request: NextRequest) {
                 payment_status: 'completed',
                 paypal_transaction_id: captureData.id,
                 payment_method: 'paypal',
-                status: 'processing', // Заказ оплачен, переводим в обработку
+                status: 'processing',
             })
             .eq('id', supabaseOrderId);
 
         if (updateError) {
             console.error('❌ Error updating order with PayPal details:', updateError);
-            // Не возвращаем ошибку клиенту, т.к. платёж прошёл
-            // Просто логируем для ручной проверки
         }
 
         return NextResponse.json({
