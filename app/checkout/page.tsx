@@ -724,10 +724,9 @@ export default function CheckoutPage() {
                                             Schließen Sie die Zahlung mit PayPal ab:
                                         </p>
                                         <PayPalButtonsWrapper
-                                            amount={finalTotal}
+                                            supabaseOrderId={createdOrderId!}  // ✅ Только orderId!
                                             onSuccess={handlePayPalSuccess}
                                             onError={handlePayPalError}
-                                            supabaseOrderId={createdOrderId}
                                         />
                                     </div>
                                 ) : (
