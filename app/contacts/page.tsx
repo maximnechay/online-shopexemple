@@ -19,6 +19,7 @@ export default function ContactsPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleInputChange = (
         e: React.ChangeEvent<
@@ -32,22 +33,41 @@ export default function ContactsPage() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setError(null);
 
-        // TODO: Отправка на сервер (можно добавить API endpoint)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        setIsSubmitted(true);
-        setIsSubmitting(false);
-
-        setTimeout(() => {
-            setFormData({
-                name: '',
-                email: '',
-                subject: '',
-                message: '',
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
             });
-            setIsSubmitted(false);
-        }, 3000);
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Fehler beim Senden');
+            }
+
+            setIsSubmitted(true);
+
+            // Сброс формы через 3 секунды
+            setTimeout(() => {
+                setFormData({
+                    name: '',
+                    email: '',
+                    subject: '',
+                    message: '',
+                });
+                setIsSubmitted(false);
+            }, 5000);
+        } catch (err: any) {
+            console.error('Error submitting form:', err);
+            setError(err.message || 'Fehler beim Senden der Nachricht');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (loading) {
@@ -227,6 +247,20 @@ export default function ContactsPage() {
                                     />
                                 </div>
 
+                                {/* Error Message */}
+                                {error && (
+                                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+                                        ❌ {error}
+                                    </div>
+                                )}
+
+                                {/* Success Message */}
+                                {isSubmitted && (
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">
+                                        ✓ Nachricht erfolgreich gesendet! Wir melden uns bald bei Ihnen.
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || isSubmitted}
@@ -246,12 +280,6 @@ export default function ContactsPage() {
                                         <Send className="w-5 h-5" />
                                     )}
                                 </button>
-
-                                <p className="text-xs text-gray-500 text-center">
-                                    Hinweis: Dies ist eine Demo-Funktion. In der Produktion
-                                    würde die Nachricht an {settings?.email || 'das Backend'}{' '}
-                                    gesendet.
-                                </p>
                             </form>
                         </div>
 
