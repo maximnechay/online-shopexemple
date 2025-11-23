@@ -6,17 +6,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface PayPalButtonsWrapperProps {
-    amount: number;
+    supabaseOrderId: string; // Теперь обязательный параметр!
     onSuccess: (orderId: string, paypalTransactionId: string) => void;
     onError?: () => void;
-    supabaseOrderId?: string;
 }
 
 export default function PayPalButtonsWrapper({
-    amount,
+    supabaseOrderId,
     onSuccess,
     onError,
-    supabaseOrderId,
 }: PayPalButtonsWrapperProps) {
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -38,12 +36,15 @@ export default function PayPalButtonsWrapper({
                 }}
                 createOrder={async () => {
                     try {
+                        // 🔒 БЕЗОПАСНОСТЬ: Отправляем ID заказа из БД, а не сумму
                         const response = await fetch('/api/paypal/create-order', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ amount }),
+                            body: JSON.stringify({
+                                supabaseOrderId
+                            }),
                         });
 
                         const data = await response.json();
@@ -52,7 +53,7 @@ export default function PayPalButtonsWrapper({
                             throw new Error(data.error || 'Failed to create order');
                         }
 
-                        return data.id;
+                        return data.id; // PayPal order ID
                     } catch (err: any) {
                         setError(err.message || 'Fehler beim Erstellen der Bestellung');
                         throw err;
@@ -88,6 +89,10 @@ export default function PayPalButtonsWrapper({
                     console.error('PayPal Error:', err);
                     setError('Ein Fehler ist bei PayPal aufgetreten');
                     if (onError) onError();
+                }}
+                onCancel={() => {
+                    console.log('PayPal payment cancelled by user');
+                    setError('Zahlung wurde abgebrochen');
                 }}
             />
         </div>
