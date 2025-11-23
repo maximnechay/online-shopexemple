@@ -28,7 +28,8 @@ interface Order {
     delivery_city: string;
     delivery_postal_code: string;
     delivery_method: 'delivery' | 'pickup';
-    payment_method: 'card' | 'cash';
+    payment_method: 'card' | 'cash' | 'paypal';
+    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
     total_amount: string;
     status: string;
     notes: string | null;
@@ -71,6 +72,7 @@ export default function OrdersPage() {
             }
 
             const data = await response.json();
+            console.log('📦 Loaded orders:', data);
             setOrders(data);
         } catch (err: any) {
             console.error('Load orders error:', err);
@@ -104,9 +106,25 @@ export default function OrdersPage() {
     };
 
     const getPaymentStatusLabel = (order: Order) => {
-        if (order.payment_method === 'card') return 'Bezahlt';
-        if (order.status === 'cancelled') return 'Storniert';
-        return 'Ausstehend';
+        // ✅ ИСПРАВЛЕНО: Используем payment_status из базы данных
+        const paymentStatusMap: { [key: string]: string } = {
+            'completed': 'Bezahlt',
+            'pending': 'Ausstehend',
+            'failed': 'Fehlgeschlagen',
+            'refunded': 'Zurückerstattet',
+        };
+
+        return paymentStatusMap[order.payment_status] || 'Unbekannt';
+    };
+
+    const getPaymentMethodLabel = (method: string) => {
+        const methodMap: { [key: string]: string } = {
+            'card': 'Kreditkarte',
+            'paypal': 'PayPal',
+            'cash': 'Barzahlung',
+        };
+
+        return methodMap[method] || method;
     };
 
     if (authLoading || isLoading) {
@@ -236,9 +254,14 @@ export default function OrdersPage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-gray-500 mb-1">Zahlung</p>
-                                                        <p className="font-medium text-gray-900">
-                                                            {getPaymentStatusLabel(order)}
-                                                        </p>
+                                                        <div className="space-y-1">
+                                                            <p className="font-medium text-gray-900">
+                                                                {getPaymentStatusLabel(order)}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {getPaymentMethodLabel(order.payment_method)}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
 
