@@ -132,10 +132,39 @@ export default function OrdersPage() {
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
                 <main className="flex-1 pt-24 pb-16">
-                    <div className="max-w-4xl mx-auto px-6">
-                        <div className="text-center py-16">
-                            <div className="animate-spin w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full mx-auto mb-4" />
-                            <p className="text-gray-600">Lädt...</p>
+                    <div className="max-w-4xl mx-auto px-6 lg:px-8">
+                        {/* Title skeleton */}
+                        <div className="h-12 bg-gray-200 rounded w-64 mb-8 animate-pulse" />
+
+                        <div className="grid md:grid-cols-4 gap-8">
+                            {/* Sidebar skeleton */}
+                            <div className="md:col-span-1 space-y-2">
+                                <div className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+                                <div className="h-12 bg-rose-50 rounded-lg animate-pulse" />
+                            </div>
+
+                            {/* Orders skeleton */}
+                            <div className="md:col-span-3 space-y-4">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="border border-gray-200 rounded-2xl p-6 space-y-4 bg-white">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <div className="space-y-3 flex-1">
+                                                <div className="h-6 bg-gray-200 rounded w-48 animate-pulse" />
+                                                <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="h-6 bg-gray-200 rounded w-24 animate-pulse" />
+                                                <div className="h-5 bg-gray-200 rounded w-20 animate-pulse" />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-4 bg-gray-200 rounded w-16 animate-pulse" />
+                                            <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+                                        </div>
+                                        <div className="h-10 bg-rose-100 rounded-lg w-full animate-pulse" />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </main>

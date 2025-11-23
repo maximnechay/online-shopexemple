@@ -72,13 +72,43 @@ export default function ContactsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="pt-24 pb-20">
+                <main className="flex-1 pt-24 pb-20">
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        {/* Title skeleton */}
                         <div className="text-center mb-16">
-                            <div className="h-12 w-48 bg-gray-100 rounded mx-auto mb-4 animate-pulse" />
-                            <div className="h-6 w-96 bg-gray-100 rounded mx-auto animate-pulse" />
+                            <div className="h-12 w-48 bg-gray-200 rounded mx-auto mb-4 animate-pulse" />
+                            <div className="h-6 w-96 bg-gray-200 rounded mx-auto animate-pulse" />
+                        </div>
+
+                        {/* Info cards skeleton */}
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="bg-gray-50 border border-gray-200 rounded-3xl p-6">
+                                    <div className="w-8 h-8 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse" />
+                                    <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto mb-2 animate-pulse" />
+                                    <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Form and Map skeleton */}
+                        <div className="grid lg:grid-cols-2 gap-12">
+                            {/* Form skeleton */}
+                            <div className="space-y-6">
+                                <div className="h-8 bg-gray-200 rounded w-1/3 mb-6 animate-pulse" />
+                                <div className="space-y-4">
+                                    <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-32 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                                </div>
+                            </div>
+
+                            {/* Map skeleton */}
+                            <div className="aspect-square lg:aspect-auto bg-gray-200 rounded-3xl animate-pulse" />
                         </div>
                     </div>
                 </main>
@@ -88,10 +118,10 @@ export default function ContactsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="pt-24 pb-20">
+            <main className="flex-1 pt-24 pb-20">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Hero */}
                     <div className="text-center mb-16">
