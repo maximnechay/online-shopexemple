@@ -42,6 +42,7 @@ export default function ProfilePage() {
         try {
             const supabase = createClient();
 
+            // ✅ ИСПРАВЛЕНО: Используем правильный клиент с кешем
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -137,6 +138,10 @@ export default function ProfilePage() {
             });
 
             setSaveSuccess(true);
+
+            // ✅ ДОБАВЛЕНО: Перезагружаем профиль после сохранения
+            await loadProfile();
+
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err: any) {
             console.error('Update profile error:', err);
