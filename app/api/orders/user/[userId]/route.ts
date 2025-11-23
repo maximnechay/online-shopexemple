@@ -1,36 +1,87 @@
 // app/api/orders/user/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
+/**
+ * 🔒 БЕЗОПАСНЫЙ endpoint для получения заказов пользователя
+ * Проверяет, что текущий пользователь имеет право просматривать эти заказы
+ */
 export async function GET(
-    _req: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ userId: string }> }
 ) {
-    const { userId } = await params;
+    try {
+        const { userId } = await params;
 
-    console.log('🔍 Fetching orders for user:', userId);
+        // 🔒 КРИТИЧНО: Получаем текущую сессию пользователя
+        const supabase = await createServerSupabaseClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    const { data, error } = await supabaseAdmin
-        .rpc('get_user_orders_with_items', { p_user_id: userId });
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized - please log in' },
+                { status: 401 }
+            );
+        }
 
-    if (error) {
-        console.error('❌ Load orders error:', error);
+        // 🔒 КРИТИЧНО: Проверяем, что пользователь запрашивает СВОИ заказы
+        if (user.id !== userId) {
+            console.warn('🚨 Security: User', user.id, 'attempted to access orders of', userId);
+            return NextResponse.json(
+                { error: 'Forbidden - you can only access your own orders' },
+                { status: 403 }
+            );
+        }
+
+        console.log('📦 Fetching orders for user:', userId);
+
+        // Теперь безопасно получаем заказы
+        const { data: orders, error: ordersError } = await supabaseAdmin
+            .from('orders')
+            .select(`
+                *,
+                order_items (
+                    product_id,
+                    product_name,
+                    product_price,
+                    quantity
+                )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (ordersError) {
+            console.error('❌ Error fetching orders:', ordersError);
+            return NextResponse.json(
+                { error: 'Failed to fetch orders' },
+                { status: 500 }
+            );
+        }
+
+        // Трансформируем данные из snake_case в camelCase
+        const transformedOrders = orders?.map((order: any) => ({
+            ...order,
+            items: order.order_items?.map((item: any) => ({
+                productId: item.product_id,
+                productName: item.product_name,
+                productPrice: Number(item.product_price),
+                quantity: item.quantity,
+            })) || [],
+        })) || [];
+
+        console.log('✅ Found', transformedOrders.length, 'orders');
+
+        return NextResponse.json(transformedOrders, {
+            headers: {
+                'Cache-Control': 'no-store, must-revalidate',
+            },
+        });
+    } catch (error: any) {
+        console.error('❌ Error in GET /api/orders/user/[userId]:', error);
         return NextResponse.json(
-            { error: 'Failed to load orders' },
+            { error: 'Internal server error' },
             { status: 500 }
         );
     }
-
-    console.log('✅ Orders loaded:', data?.length || 0);
-
-    return NextResponse.json(data || [], {
-        headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-        },
-    });
 }
