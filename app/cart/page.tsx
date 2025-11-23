@@ -7,11 +7,20 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { formatPrice } from '@/lib/utils';
+import { useShopSettings } from '@/lib/hooks/useShopSettings';
 
 export default function CartPage() {
     const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
     const total = getTotal();
-    const shipping = total > 49 ? 0 : 4.99;
+
+    // настройки магазина
+    const { settings } = useShopSettings();
+
+    // порог бесплатной доставки и базовый шиппинг
+    const freeShippingFrom = settings?.freeShippingFrom ?? 49;
+    const baseShipping = 4.99;
+
+    const shipping = total >= freeShippingFrom ? 0 : baseShipping;
     const finalTotal = total + shipping;
 
     if (items.length === 0) {
@@ -195,18 +204,20 @@ export default function CartPage() {
                                     </div>
 
                                     {/* Free shipping progress */}
-                                    {total < 49 && (
+                                    {total < freeShippingFrom && (
                                         <div className="pt-2">
                                             <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                                                 <span>Noch bis kostenloser Versand:</span>
                                                 <span className="font-medium">
-                                                    {formatPrice(49 - total)}
+                                                    {formatPrice(freeShippingFrom - total)}
                                                 </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
                                                     className="bg-gray-900 h-2 rounded-full transition-all duration-300"
-                                                    style={{ width: `${(total / 49) * 100}%` }}
+                                                    style={{
+                                                        width: `${Math.min((total / freeShippingFrom) * 100, 100)}%`
+                                                    }}
                                                 />
                                             </div>
                                         </div>
@@ -217,7 +228,10 @@ export default function CartPage() {
                                             <span>Gesamt</span>
                                             <span>{formatPrice(finalTotal)}</span>
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-1">Inkl. MwSt.</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Inkl. MwSt
+                                            {settings?.taxRate ? ` (${settings.taxRate}% )` : ''}.
+                                        </p>
                                     </div>
                                 </div>
 
