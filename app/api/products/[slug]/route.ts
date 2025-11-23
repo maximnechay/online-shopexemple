@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
 
 export async function GET(
     request: Request,
@@ -15,23 +18,23 @@ export async function GET(
             .from('products')
             .select(
                 `
-        id,
-        name,
-        slug,
-        description,
-        price,
-        compare_at_price,
-        images,
-        category,
-        brand,
-        in_stock,
-        stock_quantity,
-        tags,
-        rating,
-        review_count,
-        created_at,
-        updated_at
-      `
+                id,
+                name,
+                slug,
+                description,
+                price,
+                compare_at_price,
+                images,
+                category,
+                brand,
+                in_stock,
+                stock_quantity,
+                tags,
+                rating,
+                review_count,
+                created_at,
+                updated_at
+            `
             )
             .eq('slug', slug)
             .single();
@@ -44,7 +47,6 @@ export async function GET(
             );
         }
 
-        // Чисто чтобы увидеть, что реально прилетает из БД
         console.log('API PRODUCT', {
             slug,
             price: product.price,
@@ -75,7 +77,9 @@ export async function GET(
 
         return NextResponse.json(result, {
             headers: {
-                'Cache-Control': 'no-store, max-age=0',
+                'Cache-Control': 'no-store, max-age=0, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
         });
     } catch (e) {
