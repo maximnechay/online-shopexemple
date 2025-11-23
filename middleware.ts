@@ -30,21 +30,59 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // Проверяем авторизацию
-    const { data: { user } } = await supabase.auth.getUser();
+    const pathname = request.nextUrl.pathname;
 
-    // Если пользователь не авторизован и пытается получить доступ к защищенным роутам
-    if (!user && request.nextUrl.pathname.startsWith('/profile')) {
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    const isAuthPage =
+        pathname.startsWith('/auth/login') ||
+        pathname.startsWith('/auth/register');
+
+    const isProfileRoute = pathname.startsWith('/profile');
+
+    const isAdminRoute =
+        pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+
+    // 1) Админ-зона
+    if (isAdminRoute) {
+        // нет юзера — на логин
+        if (!user) {
+            const redirectUrl = new URL('/auth/login', request.url);
+            redirectUrl.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(redirectUrl);
+        }
+
+        // есть юзер — проверяем роль
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (error) {
+            console.error('Error loading profile in middleware:', error);
+            return new NextResponse('Access denied', { status: 403 });
+        }
+
+        if (!profile || profile.role !== 'admin') {
+            return new NextResponse('Access denied', { status: 403 });
+        }
+
+        // admin пропускаем дальше
+        return response;
+    }
+
+    // 2) Защита /profile
+    if (!user && isProfileRoute) {
         const redirectUrl = new URL('/auth/login', request.url);
-        redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
+        redirectUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(redirectUrl);
     }
 
-    // Если пользователь авторизован и пытается получить доступ к страницам авторизации
-    if (user && (
-        request.nextUrl.pathname.startsWith('/auth/login') ||
-        request.nextUrl.pathname.startsWith('/auth/register')
-    )) {
+    // 3) Если пользователь уже залогинен и идёт на /auth/*
+    if (user && isAuthPage) {
         return NextResponse.redirect(new URL('/profile', request.url));
     }
 
@@ -56,5 +94,7 @@ export const config = {
         '/profile/:path*',
         '/auth/login',
         '/auth/register',
+        '/admin/:path*',
+        '/api/admin/:path*',
     ],
 };
