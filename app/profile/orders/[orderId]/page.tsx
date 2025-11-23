@@ -14,6 +14,9 @@ import {
     CreditCard,
     MapPin,
     ShoppingBag,
+    CheckCircle,
+    Clock,
+    XCircle,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -37,7 +40,8 @@ interface Order {
     delivery_city: string;
     delivery_postal_code: string;
     delivery_method: 'delivery' | 'pickup';
-    payment_method: 'card' | 'cash';
+    payment_method: 'card' | 'cash' | 'paypal';
+    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
     total_amount: string;
     status: string;
     notes: string | null;
@@ -64,12 +68,19 @@ export default function OrderDetailsPage() {
     useEffect(() => {
         const loadOrder = async () => {
             try {
-                const res = await fetch(`/api/orders/${orderId}`);
+                // ✅ ИСПРАВЛЕНО: Добавлен no-cache
+                const res = await fetch(`/api/orders/${orderId}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    },
+                });
 
                 if (!res.ok) {
                     throw new Error('Order not found');
                 }
                 const data: Order = await res.json();
+                console.log('📦 Loaded order details:', data);
                 setOrder(data);
             } catch (err) {
                 console.error('Error loading order:', err);
@@ -104,6 +115,55 @@ export default function OrderDetailsPage() {
             cancelled: 'bg-red-100 text-red-800',
         };
         return map[status] || 'bg-gray-100 text-gray-800';
+    };
+
+    const getPaymentStatusInfo = (paymentStatus: string) => {
+        const statusMap: {
+            [key: string]: {
+                label: string;
+                icon: typeof CheckCircle;
+                color: string;
+            };
+        } = {
+            completed: {
+                label: 'Bezahlt',
+                icon: CheckCircle,
+                color: 'text-green-600',
+            },
+            pending: {
+                label: 'Ausstehend',
+                icon: Clock,
+                color: 'text-yellow-600',
+            },
+            failed: {
+                label: 'Fehlgeschlagen',
+                icon: XCircle,
+                color: 'text-red-600',
+            },
+            refunded: {
+                label: 'Zurückerstattet',
+                icon: ArrowLeft,
+                color: 'text-blue-600',
+            },
+        };
+
+        return (
+            statusMap[paymentStatus] || {
+                label: 'Unbekannt',
+                icon: Clock,
+                color: 'text-gray-600',
+            }
+        );
+    };
+
+    const getPaymentMethodLabel = (method: string) => {
+        const methodMap: { [key: string]: string } = {
+            card: 'Kreditkarte',
+            paypal: 'PayPal',
+            cash: 'Barzahlung',
+        };
+
+        return methodMap[method] || method;
     };
 
     if (loading || isLoading) {
@@ -152,6 +212,8 @@ export default function OrderDetailsPage() {
 
     const totalNumber = Number(order.total_amount ?? 0);
     const items = order.items || [];
+    const paymentStatusInfo = getPaymentStatusInfo(order.payment_status);
+    const PaymentIcon = paymentStatusInfo.icon;
 
     return (
         <div className="min-h-screen bg-white">
@@ -200,10 +262,15 @@ export default function OrderDetailsPage() {
                             </p>
                         </div>
                         <div className="bg-gray-50 rounded-2xl p-4">
-                            <p className="text-xs text-gray-500 mb-1">Zahlungsmethode</p>
-                            <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                <CreditCard className="w-4 h-4" />
-                                {order.payment_method === 'card' ? 'Kreditkarte' : 'Barzahlung'}
+                            <p className="text-xs text-gray-500 mb-1">Zahlungsstatus</p>
+                            <div className="flex items-center gap-2">
+                                <PaymentIcon className={`w-4 h-4 ${paymentStatusInfo.color}`} />
+                                <p className={`text-sm font-medium ${paymentStatusInfo.color}`}>
+                                    {paymentStatusInfo.label}
+                                </p>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                                {getPaymentMethodLabel(order.payment_method)}
                             </p>
                         </div>
                         <div className="bg-gray-50 rounded-2xl p-4">
@@ -277,9 +344,9 @@ export default function OrderDetailsPage() {
                             </p>
                         ) : (
                             <div className="divide-y divide-gray-200">
-                                {items.map((item) => (
+                                {items.map((item, index) => (
                                     <div
-                                        key={item.productId}
+                                        key={`${item.productId}-${index}`}
                                         className="py-3 flex items-center justify-between gap-4"
                                     >
                                         <div className="flex-1">
@@ -307,6 +374,14 @@ export default function OrderDetailsPage() {
                             </span>
                         </div>
                     </div>
+
+                    {/* Notes if any */}
+                    {order.notes && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 mb-8">
+                            <h3 className="text-sm font-medium text-gray-900 mb-2">Notizen</h3>
+                            <p className="text-sm text-gray-700">{order.notes}</p>
+                        </div>
+                    )}
 
                     <div className="flex flex-wrap gap-3">
                         <Link
