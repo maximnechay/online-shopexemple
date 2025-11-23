@@ -1,6 +1,8 @@
 // app/api/products/route.ts
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -44,7 +46,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(transformedProducts, {
             headers: {
-                "Cache-Control": "no-store, max-age=0, must-revalidate",
+                'Cache-Control': 'no-store, max-age=0, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
             },
         });
     } catch (error: any) {
