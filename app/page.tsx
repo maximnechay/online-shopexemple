@@ -33,23 +33,41 @@ export default function HomePage() {
         try {
             const supabase = createClient();
 
-            // Загружаем 8 товаров, которые в наличии
+            console.log('🔍 Loading bestsellers from database...');
+
+            // Загружаем товары, которые в наличии
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
                 .eq('in_stock', true)
-                .limit(8);
+                .order('created_at', { ascending: false })
+                .limit(12); // Загружаем больше, чтобы было из чего выбрать
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Error loading products:', error);
+                throw error;
+            }
+
+            console.log('✅ Loaded products from DB:', data?.length || 0);
+
+            if (!data || data.length === 0) {
+                console.warn('⚠️ No products found in database');
+                setBestsellers([]);
+                return;
+            }
 
             // Трансформируем данные из формата БД в формат приложения
-            const products = transformProductsFromDB(data || []);
+            const products = transformProductsFromDB(data);
 
             // Берем случайные 4 товара из полученных
-            const shuffled = products.sort(() => 0.5 - Math.random());
-            setBestsellers(shuffled.slice(0, 4));
+            const shuffled = [...products].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, 4);
+
+            console.log('✅ Selected bestsellers:', selected.length);
+            setBestsellers(selected);
         } catch (error) {
-            console.error('Error loading bestsellers:', error);
+            console.error('❌ Error loading bestsellers:', error);
+            setBestsellers([]);
         } finally {
             setLoading(false);
         }
@@ -282,6 +300,24 @@ export default function HomePage() {
                                     <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse" />
                                 </div>
                             ))}
+                        </div>
+                    ) : bestsellers.length === 0 ? (
+                        // Пустое состояние если нет товаров
+                        <div className="text-center py-16">
+                            <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                Noch keine Produkte verfügbar
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Unsere Kollektion wird bald verfügbar sein.
+                            </p>
+                            <Link
+                                href="/catalog"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                            >
+                                Zum Katalog
+                                <ArrowRight className="w-4 h-4" />
+                            </Link>
                         </div>
                     ) : (
                         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
