@@ -155,7 +155,7 @@ export function generateOrderStatusHTML(data: OrderEmailData): string {
 
     <!-- CTA Button -->
     <div style="text-align: center; margin: 35px 0;">
-      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/orders/${data.orderId}" 
+      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/profile/orders/${data.orderId}" 
          style="display: inline-block; background: linear-gradient(135deg, #d4a574 0%, #c9984a 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);">
         Details anzeigen
       </a>

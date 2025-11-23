@@ -34,6 +34,19 @@ export default function OrderSuccessPage() {
                     console.error('Error loading order:', orderData);
                 } else {
                     setOrder(orderData);
+
+                    // Пытаемся отправить email для заказа
+                    try {
+                        console.log('📧 Attempting to send order emails...');
+                        const emailRes = await fetch(`/api/orders/${orderId}/send-email`, {
+                            method: 'POST',
+                        });
+                        const emailResult = await emailRes.json();
+                        console.log('📧 Email send result:', emailResult);
+                    } catch (emailErr) {
+                        console.error('⚠️ Email send failed (non-critical):', emailErr);
+                        // Не прерываем загрузку страницы если email не отправился
+                    }
                 }
             } catch (err) {
                 console.error('Error:', err);

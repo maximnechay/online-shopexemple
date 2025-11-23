@@ -1,6 +1,7 @@
 // app/api/webhooks/stripe/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { sendOrderEmails } from '@/lib/email/helpers';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
@@ -115,6 +116,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             console.error('❌ Error updating order:', error);
         } else {
             console.log('✅ Order updated successfully:', orderId);
+
+            // Отправляем email подтверждения клиенту и уведомление админу
+            try {
+                await sendOrderEmails(orderId);
+                console.log('📧 Order emails sent successfully');
+            } catch (emailError) {
+                console.error('❌ Error sending order emails:', emailError);
+                // Не прерываем выполнение, если email не отправился
+            }
         }
     } catch (error) {
         console.error('❌ handleCheckoutSessionCompleted error:', error);

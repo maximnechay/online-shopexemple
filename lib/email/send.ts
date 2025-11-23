@@ -41,8 +41,13 @@ export interface OrderEmailData {
  */
 export async function sendOrderConfirmationEmail(data: OrderEmailData) {
     try {
+        console.log('🔧 Preparing customer email for:', data.customerEmail);
+        console.log('🔑 Using FROM_EMAIL:', FROM_EMAIL);
+        console.log('🔑 RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+
         const html = generateOrderConfirmationHTML(data);
 
+        console.log('📧 Sending email via Resend...');
         const result = await resend.emails.send({
             from: FROM_EMAIL,
             to: data.customerEmail,
@@ -50,10 +55,10 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
             html,
         });
 
-        console.log('Order confirmation email sent:', result);
+        console.log('✅ Order confirmation email sent:', result);
         return { success: true, data: result };
     } catch (error) {
-        console.error('Error sending order confirmation email:', error);
+        console.error('❌ Error sending order confirmation email:', error);
         return { success: false, error };
     }
 }
@@ -85,8 +90,10 @@ export async function sendOrderStatusEmail(data: OrderEmailData) {
  */
 export async function sendAdminOrderNotification(data: OrderEmailData) {
     try {
+        console.log('🔧 Preparing admin notification for:', ADMIN_EMAIL);
         const html = generateAdminOrderHTML(data);
 
+        console.log('📧 Sending admin notification via Resend...');
         const result = await resend.emails.send({
             from: FROM_EMAIL,
             to: ADMIN_EMAIL,
@@ -94,10 +101,10 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
             html,
         });
 
-        console.log('Admin notification email sent:', result);
+        console.log('✅ Admin notification email sent:', result);
         return { success: true, data: result };
     } catch (error) {
-        console.error('Error sending admin notification email:', error);
+        console.error('❌ Error sending admin notification email:', error);
         return { success: false, error };
     }
 }
