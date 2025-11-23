@@ -30,18 +30,18 @@ export default function HomePage() {
                             {/* Small badge */}
                             <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs uppercase tracking-[0.16em] text-gray-600">
                                 <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                Neu im Shop - ausgewählte Profi Marken
+                                Новые поступления - топовые бренды
                             </div>
 
                             <div className="space-y-6">
                                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light text-gray-900 leading-[1.1] tracking-tight">
-                                    Premium Beauty
-                                    <span className="block font-normal mt-2">für jeden Tag</span>
+                                    Премиум кроссовки
+                                    <span className="block font-normal mt-2">для каждого стиля</span>
                                 </h1>
 
                                 <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
-                                    Hochwertige Kosmetik von führenden Marken.
-                                    Professionell ausgewählt, sicher und schnell geliefert.
+                                    Оригинальные кроссовки от ведущих мировых брендов.
+                                    Профессионально подобранные, с гарантией качества и быстрой доставкой.
                                 </p>
                             </div>
 
@@ -65,23 +65,23 @@ export default function HomePage() {
                             {/* Stats */}
                             <div className="flex flex-wrap items-center gap-10 pt-8 border-t border-gray-200">
                                 <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">500+</div>
-                                    <div className="text-sm text-gray-600">Produkte</div>
+                                    <div className="text-4xl font-light text-gray-900 mb-1">1000+</div>
+                                    <div className="text-sm text-gray-600">Моделей</div>
                                 </div>
                                 <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">50+</div>
-                                    <div className="text-sm text-gray-600">Marken</div>
+                                    <div className="text-4xl font-light text-gray-900 mb-1">20+</div>
+                                    <div className="text-sm text-gray-600">Брендов</div>
                                 </div>
                                 <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">5k+</div>
-                                    <div className="text-sm text-gray-600">Kunden</div>
+                                    <div className="text-4xl font-light text-gray-900 mb-1">15k+</div>
+                                    <div className="text-sm text-gray-600">Покупателей</div>
                                 </div>
                             </div>
 
                             {/* Trust line */}
                             <div className="flex items-center gap-3 text-sm text-gray-500 pt-2">
                                 <Shield className="w-4 h-4" />
-                                <span>Nur geprüfte Original Ware direkt von autorisierten Distributoren</span>
+                                <span>100% оригинальная продукция от авторизованных дистрибьюторов</span>
                             </div>
                         </div>
 
@@ -92,7 +92,7 @@ export default function HomePage() {
                                     className="absolute inset-0 bg-cover bg-center"
                                     style={{
                                         backgroundImage:
-                                            "url('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&h=1600&fit=crop')"
+                                            "url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&h=1600&fit=crop')"
                                     }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -101,13 +101,13 @@ export default function HomePage() {
                                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                                         <div className="text-white space-y-1">
                                             <p className="text-xs uppercase tracking-[0.18em] text-white/70">
-                                                Ihre Routine
+                                                Ваш стиль
                                             </p>
-                                            <p className="text-2xl font-light">Salonqualität für zuhause</p>
+                                            <p className="text-2xl font-light">Премиум качество каждый день</p>
                                         </div>
                                         <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs text-gray-900 backdrop-blur">
                                             <Truck className="w-4 h-4" />
-                                            <span>Versand ab 49 € kostenlos</span>
+                                            <span>Бесплатная доставка от 5000 ₽</span>
                                         </div>
                                     </div>
                                 </div>
@@ -125,7 +125,7 @@ export default function HomePage() {
                                             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            basierend auf über 1 200 Bewertungen
+                                            на основе более 1 200 отзывов
                                         </div>
                                     </div>
                                 </div>
@@ -139,14 +139,14 @@ export default function HomePage() {
             <section className="py-10 px-4 sm:px-6 lg:px-8 border-y border-gray-100 bg-white">
                 <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                        Beliebte Marken
+                        Популярные бренды
                     </p>
                     <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm sm:text-base text-gray-500">
-                        <span className="tracking-wide">Kerastase</span>
-                        <span className="tracking-wide">L&apos;Oréal Professionnel</span>
-                        <span className="tracking-wide">Olaplex</span>
-                        <span className="tracking-wide">Moroccanoil</span>
-                        <span className="tracking-wide">Babor</span>
+                        <span className="tracking-wide">Nike</span>
+                        <span className="tracking-wide">Adidas</span>
+                        <span className="tracking-wide">New Balance</span>
+                        <span className="tracking-wide">Puma</span>
+                        <span className="tracking-wide">Asics</span>
                     </div>
                 </div>
             </section>
@@ -156,38 +156,38 @@ export default function HomePage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-16">
                         <h2 className="text-4xl lg:text-5xl font-light text-gray-900 mb-4">
-                            Kategorien
+                            Категории
                         </h2>
                         <p className="text-lg text-gray-600 max-w-2xl">
-                            Entdecken Sie unsere sorgfältig kuratierten Produktkategorien
+                            Откройте для себя нашу тщательно подобранную коллекцию кроссовок
                         </p>
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {[
                             {
-                                name: 'Haarpflege',
-                                desc: 'Shampoos & Conditioner',
+                                name: 'Беговые',
+                                desc: 'Для бега и тренировок',
                                 image:
-                                    'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=600&h=800&fit=crop'
+                                    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=800&fit=crop'
                             },
                             {
-                                name: 'Gesichtspflege',
-                                desc: 'Cremes & Seren',
+                                name: 'Баскетбольные',
+                                desc: 'Для баскетбола',
                                 image:
-                                    'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&h=800&fit=crop'
+                                    'https://images.unsplash.com/photo-1579338559194-a162d19bf842?w=600&h=800&fit=crop'
                             },
                             {
-                                name: 'Körperpflege',
-                                desc: 'Body Lotions & Öle',
+                                name: 'Повседневные',
+                                desc: 'На каждый день',
                                 image:
-                                    'https://images.unsplash.com/photo-1571875257727-256c39da42af?w=600&h=800&fit=crop'
+                                    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&h=800&fit=crop'
                             },
                             {
-                                name: 'Make-up',
-                                desc: 'Foundations & Lippenstifte',
+                                name: 'Тренировочные',
+                                desc: 'Для кроссфита и зала',
                                 image:
-                                    'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=600&h=800&fit=crop'
+                                    'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=600&h=800&fit=crop'
                             }
                         ].map((category, index) => (
                             <Link
@@ -219,17 +219,17 @@ export default function HomePage() {
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
                         <div>
                             <h2 className="text-3xl sm:text-4xl font-light text-gray-900 mb-3">
-                                Bestseller
+                                Бестселлеры
                             </h2>
                             <p className="text-lg text-gray-600 max-w-xl">
-                                Unsere meistverkauften Produkte, ausgewählt von Kundinnen und Profis.
+                                Наши самые популярные модели, выбранные покупателями и экспертами.
                             </p>
                         </div>
                         <Link
                             href="/catalog"
                             className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 border-b border-gray-900/30 hover:border-gray-900"
                         >
-                            Alle Produkte ansehen
+                            Все модели
                             <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>
@@ -237,32 +237,32 @@ export default function HomePage() {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {[
                             {
-                                name: 'Repair Shampoo',
-                                brand: 'Kerastase',
-                                price: '24,90 €',
-                                size: '250 ml',
-                                tag: 'Top Seller'
+                                name: 'Air Zoom Pegasus',
+                                brand: 'Nike',
+                                price: '12 990 ₽',
+                                size: 'EU 36-46',
+                                tag: 'Хит продаж'
                             },
                             {
-                                name: 'Hydra Face Serum',
-                                brand: 'Babor',
-                                price: '39,00 €',
-                                size: '30 ml',
-                                tag: 'Neu'
+                                name: 'Ultraboost Light',
+                                brand: 'Adidas',
+                                price: '18 990 ₽',
+                                size: 'EU 36-46',
+                                tag: 'Новинка'
                             },
                             {
-                                name: 'Volume Spray',
-                                brand: 'Moroccanoil',
-                                price: '22,50 €',
-                                size: '150 ml',
-                                tag: 'Salon Liebling'
+                                name: 'Air Force 1',
+                                brand: 'Nike',
+                                price: '10 990 ₽',
+                                size: 'EU 36-46',
+                                tag: 'Классика'
                             },
                             {
-                                name: 'Glow Day Cream',
-                                brand: 'L&apos;Oréal Professionnel',
-                                price: '29,90 €',
-                                size: '50 ml',
-                                tag: 'Limited'
+                                name: 'GEL-Kayano 30',
+                                brand: 'Asics',
+                                price: '17 990 ₽',
+                                size: 'EU 36-46',
+                                tag: 'Премиум'
                             }
                         ].map((product, index) => (
                             <Link
@@ -310,23 +310,23 @@ export default function HomePage() {
                         {[
                             {
                                 icon: Truck,
-                                title: 'Schnelle Lieferung',
-                                desc: '2-3 Werktage deutschlandweit'
+                                title: 'Быстрая доставка',
+                                desc: '2-3 дня по всей России'
                             },
                             {
                                 icon: Shield,
-                                title: '100% Original',
-                                desc: 'Autorisierte Händler'
+                                title: '100% оригинал',
+                                desc: 'Авторизованные дилеры'
                             },
                             {
                                 icon: Check,
-                                title: 'Sichere Zahlung',
-                                desc: 'SSL verschlüsselt'
+                                title: 'Безопасная оплата',
+                                desc: 'SSL шифрование'
                             },
                             {
                                 icon: Award,
-                                title: 'Treueprogramm',
-                                desc: 'Bis zu 15% Rabatt'
+                                title: 'Программа лояльности',
+                                desc: 'До 15% скидки'
                             }
                         ].map((feature, index) => {
                             const Icon = feature.icon;
@@ -350,24 +350,24 @@ export default function HomePage() {
             <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
                 <div className="max-w-4xl mx-auto text-center">
                     <h2 className="text-4xl lg:text-5xl font-light text-white mb-6">
-                        Bereit zu starten?
+                        Готовы начать?
                     </h2>
                     <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                        Entdecken Sie unsere Kollektion und finden Sie die perfekten Produkte für Ihre Beauty-Routine
+                        Откройте для себя нашу коллекцию и найдите идеальные кроссовки для вашего стиля
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link
                             href="/catalog"
                             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-900 font-medium hover:bg-gray-100 transition-colors"
                         >
-                            Zum Katalog
+                            К каталогу
                             <ArrowRight className="w-5 h-5" />
                         </Link>
                         <Link
                             href="/about"
                             className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-gray-700 text-white font-medium hover:border-gray-500 transition-colors"
                         >
-                            Über uns
+                            О нас
                         </Link>
                     </div>
                 </div>
@@ -382,25 +382,25 @@ export default function HomePage() {
                         </div>
                         <div>
                             <h3 className="text-xl font-medium text-gray-900 mb-1">
-                                Exklusive Angebote per E Mail
+                                Эксклюзивные предложения на email
                             </h3>
                             <p className="text-sm text-gray-600 max-w-md">
-                                Erfahren Sie als erste von neuen Marken, Aktionen und limitierten Editionen.
-                                Kein Spam, nur Beauty Inspiration.
+                                Узнавайте первыми о новых брендах, акциях и лимитированных коллекциях.
+                                Никакого спама, только вдохновение.
                             </p>
                         </div>
                     </div>
                     <form className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
                         <input
                             type="email"
-                            placeholder="Ihre E Mail Adresse"
+                            placeholder="Ваш email адрес"
                             className="w-full sm:w-64 px-4 py-3 text-sm border border-gray-200 rounded-full outline-none focus:border-gray-900"
                         />
                         <button
                             type="submit"
                             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                         >
-                            Anmelden
+                            Подписаться
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     </form>

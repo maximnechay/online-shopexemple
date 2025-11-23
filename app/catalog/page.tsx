@@ -79,10 +79,10 @@ export default function CatalogPage() {
                     {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-4">
-                            Produktkatalog
+                            Каталог кроссовок
                         </h1>
                         <p className="text-lg text-gray-600">
-                            Entdecken Sie unsere exklusive Auswahl an Premium-Kosmetik
+                            Откройте для себя нашу эксклюзивную коллекцию премиум кроссовок
                         </p>
                     </div>
 
@@ -92,18 +92,18 @@ export default function CatalogPage() {
                             <button
                                 onClick={() => setSelectedCategory('all')}
                                 className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                                    ? 'bg-rose-600 text-white'
+                                    ? 'bg-gray-900 text-white'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
-                                Alle Produkte
+                                Все кроссовки
                             </button>
                             {categories.map((category) => (
                                 <button
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
                                     className={`px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors ${selectedCategory === category.id
-                                        ? 'bg-rose-600 text-white'
+                                        ? 'bg-gray-900 text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
@@ -121,29 +121,29 @@ export default function CatalogPage() {
                                     type="checkbox"
                                     checked={inStockOnly}
                                     onChange={(e) => setInStockOnly(e.target.checked)}
-                                    className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                                    className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                                 />
-                                <span className="text-sm text-gray-700">Nur verfügbare</span>
+                                <span className="text-sm text-gray-700">Только в наличии</span>
                             </label>
 
                             <span className="text-sm text-gray-600">
-                                {sortedProducts.length} {sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}
+                                {sortedProducts.length} {sortedProducts.length === 1 ? 'товар' : 'товаров'}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 hidden sm:block">Sortieren:</span>
+                            <span className="text-sm text-gray-600 hidden sm:block">Сортировка:</span>
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                             >
-                                <option value="newest">Neueste</option>
-                                <option value="popular">Beliebteste</option>
-                                <option value="price-asc">Preis: Niedrig → Hoch</option>
-                                <option value="price-desc">Preis: Hoch → Niedrig</option>
-                                <option value="name-asc">Name: A → Z</option>
-                                <option value="name-desc">Name: Z → A</option>
+                                <option value="newest">Новинки</option>
+                                <option value="popular">Популярные</option>
+                                <option value="price-asc">Цена: по возрастанию</option>
+                                <option value="price-desc">Цена: по убыванию</option>
+                                <option value="name-asc">Название: А → Я</option>
+                                <option value="name-desc">Название: Я → А</option>
                             </select>
                         </div>
                     </div>
@@ -162,19 +162,19 @@ export default function CatalogPage() {
                     ) : error ? (
                         <div className="text-center py-16">
                             <p className="text-gray-600 mb-4">
-                                Fehler beim Laden der Produkte.
+                                Ошибка при загрузке товаров.
                             </p>
                             <button
                                 onClick={fetchProducts}
-                                className="px-6 py-3 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors"
+                                className="px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
                             >
-                                Erneut versuchen
+                                Попробовать снова
                             </button>
                         </div>
                     ) : sortedProducts.length === 0 ? (
                         <div className="text-center py-16">
                             <p className="text-lg text-gray-600">
-                                Keine Produkte in dieser Kategorie gefunden.
+                                В этой категории пока нет товаров.
                             </p>
                         </div>
                     ) : (

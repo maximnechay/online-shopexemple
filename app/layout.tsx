@@ -18,8 +18,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Beauty Salon Shop',
-  description: 'Premium beauty products and services',
+  title: 'Sneakers Shop - Премиум кроссовки',
+  description: 'Оригинальные кроссовки от ведущих мировых брендов. Nike, Adidas, New Balance, Puma и другие.',
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="ru" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
         <AuthProvider>
           <PayPalProvider>

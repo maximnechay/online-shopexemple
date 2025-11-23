@@ -24,13 +24,13 @@ export interface ProductAttribute {
   value: string;
 }
 
-export type ProductCategory = 
-  | 'hair-care'
-  | 'face-care'
-  | 'body-care'
-  | 'makeup'
-  | 'tools'
-  | 'nails'
+export type ProductCategory =
+  | 'running'
+  | 'basketball'
+  | 'lifestyle'
+  | 'training'
+  | 'football'
+  | 'skateboarding'
   | 'accessories';
 
 export interface CategoryInfo {
