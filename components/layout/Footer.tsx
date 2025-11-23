@@ -4,7 +4,7 @@ export default function Footer() {
     return (
         <footer className="bg-gray-900 text-white py-16 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="grid md:grid-cols-4 gap-12 mb-12">
+                <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
                     <div className="md:col-span-1">
                         <h2 className="text-2xl font-light mb-4 tracking-tight">Élégance</h2>
                         <p className="text-sm text-gray-400 leading-relaxed">
@@ -50,13 +50,33 @@ export default function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/about" className="hover:text-white transition-colors">
-                                    Rückgabe
+                                <Link href="/widerruf" className="hover:text-white transition-colors">
+                                    Widerrufsbelehrung
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/contacts" className="hover:text-white transition-colors">
                                     Kontakt
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-medium mb-4 tracking-wide">Rechtliches</h4>
+                        <ul className="space-y-3 text-sm text-gray-400">
+                            <li>
+                                <Link href="/impressum" className="hover:text-white transition-colors">
+                                    Impressum
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/datenschutz" className="hover:text-white transition-colors">
+                                    Datenschutz
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/agb" className="hover:text-white transition-colors">
+                                    AGB
                                 </Link>
                             </li>
                         </ul>
