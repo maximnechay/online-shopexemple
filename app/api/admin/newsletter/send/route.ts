@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.EMAIL_FROM || 'Beauty Salon <noreply@xinvestai.com>';
+// Инициализируем Resend только в runtime, а не во время билда
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = process.env.EMAIL_FROM || 'Beauty Salon <noreply@xinvestai.com>';
 
 interface Recipient {
     email: string;
@@ -45,11 +46,14 @@ export async function POST(request: NextRequest) {
         console.log(`   Betreff: "${subject}"`);
         console.log(`   Empfänger: ${recipients.length}`);
 
+        // Получаем Resend клиент
+        const resend = getResend();
+
         // Отправляем email каждому получателю
         const results = await Promise.allSettled(
             recipients.map(async (recipient) => {
                 return await resend.emails.send({
-                    from: FROM_EMAIL,
+                    from: EMAIL_FROM,
                     to: recipient.email,
                     subject: subject,
                     html: generateNewsletterHTML(subject, message, recipient.email),
