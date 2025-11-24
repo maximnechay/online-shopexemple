@@ -6,17 +6,35 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface PayPalButtonsWrapperProps {
-    supabaseOrderId: string; // Теперь обязательный параметр!
-    onSuccess: (orderId: string, paypalTransactionId: string) => void;
+    items: any[];
+    customer: {
+        name: string;
+        email: string;
+        phone: string;
+    };
+    deliveryMethod: 'delivery' | 'pickup';
+    address?: {
+        street: string;
+        houseNumber: string;
+        city: string;
+        postalCode: string;
+    };
+    userId?: string;
+    onSuccess: (supabaseOrderId: string, paypalTransactionId: string) => void;
     onError?: () => void;
 }
 
 export default function PayPalButtonsWrapper({
-    supabaseOrderId,
+    items,
+    customer,
+    deliveryMethod,
+    address,
+    userId,
     onSuccess,
     onError,
 }: PayPalButtonsWrapperProps) {
     const [error, setError] = useState<string | null>(null);
+    const [orderId, setOrderId] = useState<string | null>(null);
     const router = useRouter();
 
     return (
@@ -36,14 +54,18 @@ export default function PayPalButtonsWrapper({
                 }}
                 createOrder={async () => {
                     try {
-                        // 🔒 БЕЗОПАСНОСТЬ: Отправляем ID заказа из БД, а не сумму
+                        // Создаём PayPal order БЕЗ создания в БД
                         const response = await fetch('/api/paypal/create-order', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                supabaseOrderId
+                                items,
+                                customer,
+                                deliveryMethod,
+                                address,
+                                userId,
                             }),
                         });
 
@@ -51,6 +73,11 @@ export default function PayPalButtonsWrapper({
 
                         if (!response.ok) {
                             throw new Error(data.error || 'Failed to create order');
+                        }
+
+                        // Сохраняем ID заказа для использования в onApprove
+                        if (data.orderId) {
+                            setOrderId(data.orderId);
                         }
 
                         return data.id; // PayPal order ID
@@ -61,6 +88,7 @@ export default function PayPalButtonsWrapper({
                 }}
                 onApprove={async (data) => {
                     try {
+                        // Захватываем платёж и СОЗДАЁМ заказ в БД
                         const response = await fetch('/api/paypal/capture-order', {
                             method: 'POST',
                             headers: {
@@ -68,7 +96,6 @@ export default function PayPalButtonsWrapper({
                             },
                             body: JSON.stringify({
                                 orderID: data.orderID,
-                                supabaseOrderId,
                             }),
                         });
 
@@ -78,8 +105,13 @@ export default function PayPalButtonsWrapper({
                             throw new Error(captureData.error || 'Failed to capture payment');
                         }
 
-                        // Call success callback
-                        onSuccess(data.orderID, captureData.id);
+                        // Вызываем onSuccess с ID заказа
+                        if (onSuccess && captureData.supabaseOrderId) {
+                            onSuccess(captureData.supabaseOrderId, captureData.id);
+                        }
+
+                        // Перенаправляем на страницу успеха с order_id
+                        router.push(`/order-success?order_id=${captureData.supabaseOrderId}`);
                     } catch (err: any) {
                         setError(err.message || 'Fehler bei der Zahlungsabwicklung');
                         if (onError) onError();
@@ -92,7 +124,8 @@ export default function PayPalButtonsWrapper({
                 }}
                 onCancel={() => {
                     console.log('PayPal payment cancelled by user');
-                    setError('Zahlung wurde abgebrochen');
+                    // НЕ показываем ошибку при отмене - это нормально
+                    router.push('/checkout?canceled=1');
                 }}
             />
         </div>
