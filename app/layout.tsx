@@ -6,6 +6,7 @@ import { AuthProvider } from '@/lib/contexts/AuthContext';
 import PayPalProvider from '@/components/providers/PayPalProvider';
 import CookieBanner from '@/components/cookie/CookieBanner';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import * as Sentry from '@sentry/nextjs';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -19,10 +20,16 @@ const inter = Inter({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Beauty Salon Shop',
-  description: 'Premium beauty products and services',
-};
+// ✅ Изменено на функцию для Sentry
+export function generateMetadata(): Metadata {
+  return {
+    title: 'Beauty Salon Shop',
+    description: 'Premium beauty products and services',
+    other: {
+      ...Sentry.getTraceData()
+    }
+  };
+}
 
 export default function RootLayout({
   children,
