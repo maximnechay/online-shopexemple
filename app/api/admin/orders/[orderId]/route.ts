@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendOrderEmails } from '@/lib/email/helpers';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 /**
  * GET /api/admin/orders/[orderId]
@@ -11,6 +12,18 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { orderId: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { orderId } = params;
 
@@ -56,6 +69,18 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: { orderId: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { orderId } = params;
         const body = await request.json();
@@ -127,6 +152,18 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: { orderId: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { orderId } = params;
 

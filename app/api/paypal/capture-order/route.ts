@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendOrderEmails } from '@/lib/email/helpers';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // ✅ Используем отдельную переменную для PayPal mode
 const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
@@ -29,6 +30,18 @@ async function getPayPalAccessToken() {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting - 10 requests per minute for payment capture
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.payment);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Zu viele Anfragen. Bitte warten Sie einen Moment.' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { orderID } = await request.json();
 

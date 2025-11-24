@@ -1,6 +1,7 @@
 // app/api/admin/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // Отключаем кеширование
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,18 @@ export const revalidate = 0;
  * Получить все заказы для админ-панели
  */
 export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { data: orders, error } = await supabaseAdmin
             .from('orders')
