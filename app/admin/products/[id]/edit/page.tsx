@@ -14,6 +14,7 @@ import {
     ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useCategories } from '@/lib/hooks/useCategories';
 
 interface FormState {
     name: string;
@@ -30,6 +31,7 @@ export default function EditProductPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
+    const { categories } = useCategories();
 
     const [form, setForm] = useState<FormState>({
         name: '',
@@ -289,14 +291,20 @@ export default function EditProductPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Kategorie *
                         </label>
-                        <input
+                        <select
                             name="category"
                             value={form.category}
-                            onChange={change}
+                            onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
                             required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                            placeholder="serum, creme, shampoo..."
-                        />
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
+                        >
+                            <option value="">-- Kategorie wählen --</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Images */}

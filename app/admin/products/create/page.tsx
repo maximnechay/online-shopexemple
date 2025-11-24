@@ -8,8 +8,11 @@ import {
 
     ArrowLeft
 } from 'lucide-react';
+import { useCategories } from '@/lib/hooks/useCategories';
+
 export default function CreateProduct() {
     const router = useRouter();
+    const { categories } = useCategories();
 
     const [form, setForm] = useState({
         name: '',
@@ -208,14 +211,20 @@ export default function CreateProduct() {
                         <label className="block text-gray-700 font-medium mb-2">
                             Kategorie *
                         </label>
-                        <input
+                        <select
                             name="category"
                             value={form.category}
-                            onChange={change}
+                            onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
                             required
-                            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black"
-                            placeholder="face-care / serum / creme ..."
-                        />
+                            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black bg-white"
+                        >
+                            <option value="">-- Kategorie wählen --</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Images */}

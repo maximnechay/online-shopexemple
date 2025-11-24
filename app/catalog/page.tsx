@@ -9,13 +9,14 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/shop/ProductCard';
 import { Product, ProductCategory, SortOption } from '@/lib/types';
-import { categories } from '@/lib/data/products';
+import { useCategories } from '@/lib/hooks/useCategories';
 
 export default function CatalogPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const { categories } = useCategories();
     const [sortBy, setSortBy] = useState<SortOption>('newest');
     const [inStockOnly, setInStockOnly] = useState(false);
 
@@ -119,7 +120,7 @@ export default function CatalogPage() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-40 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center py-20">
                             <p className="text-red-600">Fehler beim Laden der Produkte</p>
@@ -141,7 +142,7 @@ export default function CatalogPage() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="flex-1 pt-40 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="mb-12">
