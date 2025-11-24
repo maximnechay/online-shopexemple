@@ -7,6 +7,8 @@ import {
     Settings,
     ShoppingBasket,
     ShoppingCart,
+    MessageSquare,
+    Mail,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -24,7 +26,7 @@ export default function AdminPage() {
                 </p>
 
                 {/* Cards */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 
                     {/* Bestellungen */}
                     <Link
@@ -41,6 +43,42 @@ export default function AdminPage() {
 
                         <p className="text-gray-600 text-sm leading-relaxed">
                             Alle Kundenbestellungen verwalten und Status aktualisieren.
+                        </p>
+                    </Link>
+
+                    {/* Email-Rассылка */}
+                    <Link
+                        href="/admin/newsletter"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Mail className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Email-Rассылка
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Senden Sie Marketing-E-Mails an Newsletter-Abonnenten.
+                        </p>
+                    </Link>
+
+                    {/* SMS Rассылка */}
+                    <Link
+                        href="/admin/sms"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <MessageSquare className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            SMS Rассылка
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Senden Sie SMS an Newsletter-Abonnenten und Kunden.
                         </p>
                     </Link>
 

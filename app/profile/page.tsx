@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Mail, Phone, MapPin, Save, Package } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Save, Package, Bell } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -25,6 +25,7 @@ export default function ProfilePage() {
         postalCode: '',
         city: '',
     });
+    const [newsletterEnabled, setNewsletterEnabled] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -84,6 +85,9 @@ export default function ProfilePage() {
                     postalCode: data.postal_code || '',
                     city: data.city || '',
                 });
+
+                // Загружаем статус подписки
+                setNewsletterEnabled(data.newsletter_enabled || false);
             }
         } catch (err) {
             console.error('Error loading profile:', err);
@@ -122,6 +126,7 @@ export default function ProfilePage() {
                     address: address || null,
                     city: formData.city || null,
                     postal_code: formData.postalCode || null,
+                    newsletter_enabled: newsletterEnabled,
                 })
                 .eq('id', user!.id);
 
@@ -348,6 +353,31 @@ export default function ProfilePage() {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Newsletter Subscription */}
+                                    <div className="border-t border-gray-200 pt-6">
+                                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                                            <Bell className="w-5 h-5" />
+                                            Newsletter-Einstellungen
+                                        </h3>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={newsletterEnabled}
+                                                onChange={(e) => setNewsletterEnabled(e.target.checked)}
+                                                className="mt-1 w-5 h-5 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                                            />
+                                            <div>
+                                                <span className="block text-sm font-medium text-gray-900">
+                                                    Ich möchte Newsletter erhalten
+                                                </span>
+                                                <span className="block text-xs text-gray-500 mt-1">
+                                                    Erhalten Sie exklusive Angebote, neue Produkte und Beauty-Tipps per E-Mail.
+                                                    Sie können sich jederzeit abmelden.
+                                                </span>
+                                            </div>
+                                        </label>
                                     </div>
 
                                     {/* Submit Button */}
