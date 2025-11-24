@@ -16,6 +16,7 @@ import {
     Percent,
     Clock,
     Map,
+    CreditCard,
 } from 'lucide-react';
 
 interface ShopSettings {
@@ -225,6 +226,20 @@ export default function AdminSettingsPage() {
                     Grundlegende Informationen, Kontakt und Versandoptionen Ihres
                     Shops.
                 </p>
+
+                {/* Quick Links */}
+                <div className="mb-8 bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-4 uppercase tracking-wide">
+                        Weitere Einstellungen
+                    </h3>
+                    <Link
+                        href="/admin/settings/payments"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 hover:bg-gray-50 transition-colors"
+                    >
+                        <CreditCard className="w-5 h-5" />
+                        <span className="font-medium">Zahlungseinstellungen</span>
+                    </Link>
+                </div>
 
                 <form
                     onSubmit={submit}
