@@ -2,8 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+export const dynamic = 'force-dynamic';
+
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
 
 /**
@@ -193,8 +195,9 @@ export async function POST(request: NextRequest) {
 
         // Отправляем письмо админу
         console.log('📤 Sending email to admin:', ADMIN_EMAIL);
+        const resend = getResend();
         const adminEmail = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             to: ADMIN_EMAIL,
             subject: `Kontaktanfrage: ${subjectText} - ${name}`,
             html: adminEmailHTML,
@@ -206,7 +209,7 @@ export async function POST(request: NextRequest) {
         // Отправляем подтверждение клиенту
         console.log('📤 Sending confirmation to customer:', email);
         const customerEmail = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             to: email,
             subject: `Wir haben Ihre Nachricht erhalten - Beauty Salon`,
             html: customerEmailHTML,
