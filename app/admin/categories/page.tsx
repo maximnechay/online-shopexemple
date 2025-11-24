@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface Category {
@@ -147,6 +147,15 @@ export default function CategoriesPage() {
     return (
         <div className="min-h-screen bg-white py-16 px-6">
             <div className="max-w-6xl mx-auto">
+                {/* Back Button */}
+                <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Zurück zum Admin Dashboard
+                </Link>
+
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-4xl font-light text-gray-900 mb-2">Kategorien verwalten</h1>
