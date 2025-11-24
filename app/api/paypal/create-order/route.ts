@@ -59,41 +59,22 @@ async function getPayPalAccessToken() {
 
 export async function POST(request: NextRequest) {
     try {
-        const { supabaseOrderId } = await request.json();
+        const { items, customer, deliveryMethod, address, userId } = await request.json();
 
-        if (!supabaseOrderId) {
+        if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
-                { error: 'Supabase Order ID is required' },
+                { error: 'Keine Artikel im Warenkorb' },
                 { status: 400 }
             );
         }
 
-        console.log('🔍 Creating PayPal order for Supabase order:', supabaseOrderId);
+        console.log('🔍 Creating PayPal order with items:', items);
 
-        // 🔒 БЕЗОПАСНОСТЬ: Получаем сумму из БД, а не от клиента
-        const { data: order, error: orderError } = await supabaseAdmin
-            .from('orders')
-            .select('total_amount, status, payment_status')
-            .eq('id', supabaseOrderId)
-            .single();
-
-        if (orderError || !order) {
-            console.error('❌ Order not found:', orderError);
-            return NextResponse.json(
-                { error: 'Order not found' },
-                { status: 404 }
-            );
-        }
-
-        // Проверяем, что заказ ещё не оплачен
-        if (order.payment_status === 'completed') {
-            return NextResponse.json(
-                { error: 'Order already paid' },
-                { status: 400 }
-            );
-        }
-
-        const amount = Number(order.total_amount);
+        // Считаем сумму
+        const amount = items.reduce(
+            (sum: number, item: any) => sum + item.productPrice * item.quantity,
+            0
+        );
 
         if (!amount || amount <= 0) {
             return NextResponse.json(
@@ -102,11 +83,73 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('💰 Order amount from DB:', amount);
+        console.log('💰 Order amount:', amount);
+
+        // Готовим адрес для метаданных
+        let delivery_address: string;
+        let delivery_city: string;
+        let delivery_postal_code: string;
+
+        if (deliveryMethod === 'delivery') {
+            delivery_address = `${address?.street ?? ''} ${address?.houseNumber ?? ''}`.trim();
+            delivery_city = address?.city ?? '';
+            delivery_postal_code = address?.postalCode ?? '';
+        } else {
+            delivery_address = 'Abholung im Salon';
+            delivery_city = 'Hannover';
+            delivery_postal_code = '0';
+        }
 
         const accessToken = await getPayPalAccessToken();
 
-        // Создаём PayPal заказ
+        // Создаём временный заказ в БД для хранения данных
+        // PayPal custom_id имеет лимит 127 символов, поэтому используем DB
+        const { data: tempOrder, error: orderError } = await supabaseAdmin
+            .from('orders')
+            .insert({
+                user_id: userId || null,
+                customer_name: customer.name,
+                customer_email: customer.email,
+                customer_phone: customer.phone,
+                delivery_method: deliveryMethod,
+                payment_method: 'paypal',
+                delivery_address: delivery_address,
+                delivery_city: delivery_city,
+                delivery_postal_code: delivery_postal_code,
+                total_amount: amount,
+                status: 'pending',
+                payment_status: 'pending',
+            })
+            .select()
+            .single();
+
+        if (orderError || !tempOrder) {
+            console.error('❌ Failed to create temporary order:', orderError);
+            throw new Error('Failed to create order');
+        }
+
+        console.log('✅ Temporary order created:', tempOrder.id);
+
+        // Создаём order_items
+        const orderItems = items.map((item: any) => ({
+            order_id: tempOrder.id,
+            product_id: item.productId,
+            product_name: item.productName,
+            product_price: item.productPrice,
+            quantity: item.quantity,
+        }));
+
+        const { error: itemsError } = await supabaseAdmin
+            .from('order_items')
+            .insert(orderItems);
+
+        if (itemsError) {
+            console.error('❌ Failed to create order items:', itemsError);
+            // Удаляем заказ если не удалось создать items
+            await supabaseAdmin.from('orders').delete().eq('id', tempOrder.id);
+            throw new Error('Failed to create order items');
+        }
+
         console.log('📦 Creating PayPal order...');
         const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
             method: 'POST',
@@ -122,9 +165,9 @@ export async function POST(request: NextRequest) {
                             currency_code: 'EUR',
                             value: amount.toFixed(2),
                         },
-                        // Сохраняем ID заказа из Supabase для webhook
-                        custom_id: supabaseOrderId,
-                        invoice_id: supabaseOrderId,
+                        // Сохраняем ID нашего заказа (max 127 chars)
+                        custom_id: tempOrder.id,
+                        description: 'Beauty Salon - Online Shop',
                     },
                 ],
                 application_context: {
@@ -133,6 +176,8 @@ export async function POST(request: NextRequest) {
                     landing_page: 'NO_PREFERENCE',
                     shipping_preference: 'NO_SHIPPING',
                     user_action: 'PAY_NOW',
+                    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?order_id=${tempOrder.id}`,
+                    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1&order_id=${tempOrder.id}`,
                 },
             }),
         });
@@ -153,17 +198,9 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ PayPal order created:', paypalOrder.id);
 
-        // Обновляем статус в Supabase
-        await supabaseAdmin
-            .from('orders')
-            .update({
-                payment_status: 'pending',
-            })
-            .eq('id', supabaseOrderId);
-
         return NextResponse.json({
             id: paypalOrder.id,
-            supabaseOrderId
+            orderId: tempOrder.id, // Наш ID заказа в БД
         });
     } catch (error: any) {
         console.error('❌ Error creating PayPal order:', {

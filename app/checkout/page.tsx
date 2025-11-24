@@ -42,7 +42,7 @@ export default function CheckoutPage() {
     const { user, loading: authLoading } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+    const [showPayPal, setShowPayPal] = useState(false);
 
     const [formData, setFormData] = useState<CheckoutFormData>({
         firstName: '',
@@ -164,76 +164,6 @@ export default function CheckoutPage() {
 
     const finalTotal = total + shipping;
 
-    // Функция создания заказа в БД (используется для PayPal)
-    const createOrder = async () => {
-        const supabase = createClient();
-
-        const orderData: any = {
-            user_id: user?.id || null,
-            customer_name: `${formData.firstName} ${formData.lastName}`.trim(),
-            customer_email: formData.email,
-            customer_phone: formData.phone,
-            delivery_method: formData.deliveryMethod,
-            payment_method: formData.paymentMethod,
-            total_amount: finalTotal,
-            status: 'pending',
-            notes: formData.notes || null,
-        };
-
-        // Добавляем payment_status только для PayPal (если поле существует)
-        if (formData.paymentMethod === 'paypal') {
-            orderData.payment_status = 'pending';
-        }
-
-        if (formData.deliveryMethod === 'delivery') {
-            orderData.delivery_address = `${formData.street} ${formData.houseNumber}`.trim();
-            orderData.delivery_city = formData.city;
-            orderData.delivery_postal_code = formData.postalCode;
-        } else {
-            orderData.delivery_address = 'Selbstabholung';
-            orderData.delivery_city = 'Salon';
-            orderData.delivery_postal_code = null;
-        }
-
-        console.log('🔍 Creating order with data:', orderData);
-
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert(orderData)
-            .select()
-            .single();
-
-        if (orderError) {
-            console.error('❌ Order creation error:', orderError);
-            console.error('Error details:', {
-                message: orderError.message,
-                details: orderError.details,
-                hint: orderError.hint,
-                code: orderError.code,
-            });
-            throw new Error(`Fehler beim Erstellen der Bestellung: ${orderError.message}`);
-        }
-
-        console.log('✅ Order created:', order);
-
-        const orderItems = items.map(item => ({
-            order_id: order.id,
-            product_id: item.product.id,
-            product_name: item.product.name,
-            product_price: item.product.price,
-            quantity: item.quantity,
-        }));
-
-        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
-        if (itemsError) {
-            await supabase.from('orders').delete().eq('id', order.id);
-            throw new Error('Fehler beim Erstellen der Bestellpositionen');
-        }
-
-        return order.id;
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -281,9 +211,7 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
                 }
 
-                clearCart();
-                await new Promise(resolve => setTimeout(resolve, 100));
-
+                // Корзина очистится на странице order-success
                 window.location.href = `/order-success/${result.orderId}`;
                 return;
             }
@@ -320,17 +248,15 @@ export default function CheckoutPage() {
                     throw new Error(result.error || 'Fehler beim Starten der Zahlung');
                 }
 
-                clearCart();
-                await new Promise(resolve => setTimeout(resolve, 100));
-
+                // Корзина очистится на странице order-success после успешной оплаты
                 window.location.href = result.url;
                 return;
             }
 
-            // 3) PAYPAL
+            // 3) PAYPAL - показываем кнопки PayPal
             if (formData.paymentMethod === 'paypal') {
-                const orderId = await createOrder();
-                setCreatedOrderId(orderId);
+                setShowPayPal(true);
+                setIsSubmitting(false);
                 return;
             }
         } catch (err: any) {
@@ -340,14 +266,14 @@ export default function CheckoutPage() {
         }
     };
 
-    const handlePayPalSuccess = (paypalOrderId: string, transactionId: string) => {
-        clearCart();
-        router.push(`/order-success/${createdOrderId}`);
+    const handlePayPalSuccess = (supabaseOrderId: string, paypalTransactionId: string) => {
+        // Корзина очистится на странице order-success
+        // Перенаправление уже происходит в компоненте PayPalButtons
     };
 
     const handlePayPalError = () => {
         setIsSubmitting(false);
-        setCreatedOrderId(null);
+        setShowPayPal(false);
     };
 
     if (items.length === 0) {
@@ -485,8 +411,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-2 gap-4 mb-6">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'delivery'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -513,8 +439,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.deliveryMethod === 'pickup'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -616,8 +542,8 @@ export default function CheckoutPage() {
                                     <div className="grid md:grid-cols-3 gap-4">
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'card'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -641,8 +567,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cash'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -666,8 +592,8 @@ export default function CheckoutPage() {
 
                                         <label
                                             className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'paypal'
-                                                    ? 'border-rose-600 bg-rose-50'
-                                                    : 'border-gray-300 hover:border-gray-400'
+                                                ? 'border-rose-600 bg-rose-50'
+                                                : 'border-gray-300 hover:border-gray-400'
                                                 }`}
                                         >
                                             <input
@@ -718,13 +644,31 @@ export default function CheckoutPage() {
                                 )}
 
                                 {/* Submit Button / PayPal */}
-                                {formData.paymentMethod === 'paypal' && createdOrderId ? (
+                                {formData.paymentMethod === 'paypal' && showPayPal ? (
                                     <div className="space-y-4">
                                         <p className="text-sm text-gray-600 text-center">
                                             Schließen Sie die Zahlung mit PayPal ab:
                                         </p>
                                         <PayPalButtonsWrapper
-                                            supabaseOrderId={createdOrderId!}
+                                            items={items.map(item => ({
+                                                productId: item.product.id,
+                                                productName: item.product.name,
+                                                productPrice: item.product.price,
+                                                quantity: item.quantity,
+                                            }))}
+                                            customer={{
+                                                name: `${formData.firstName} ${formData.lastName}`.trim(),
+                                                email: formData.email,
+                                                phone: formData.phone,
+                                            }}
+                                            deliveryMethod={formData.deliveryMethod}
+                                            address={formData.deliveryMethod === 'delivery' ? {
+                                                street: formData.street,
+                                                houseNumber: formData.houseNumber,
+                                                city: formData.city,
+                                                postalCode: formData.postalCode,
+                                            } : undefined}
+                                            userId={user?.id}
                                             onSuccess={handlePayPalSuccess}
                                             onError={handlePayPalError}
                                         />

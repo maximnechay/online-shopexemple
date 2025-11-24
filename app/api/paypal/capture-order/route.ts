@@ -30,7 +30,7 @@ async function getPayPalAccessToken() {
 
 export async function POST(request: NextRequest) {
     try {
-        const { orderID, supabaseOrderId } = await request.json();
+        const { orderID } = await request.json();
 
         if (!orderID) {
             return NextResponse.json(
@@ -39,14 +39,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!supabaseOrderId) {
-            return NextResponse.json(
-                { error: 'Supabase Order ID is required' },
-                { status: 400 }
-            );
-        }
-
-        console.log('💰 Capturing PayPal payment:', orderID, 'for order:', supabaseOrderId, 'Mode:', PAYPAL_MODE);
+        console.log('💰 Capturing PayPal payment:', orderID, 'Mode:', PAYPAL_MODE);
 
         const accessToken = await getPayPalAccessToken();
 
@@ -63,16 +56,6 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             console.error('❌ PayPal capture error:', captureData);
-
-            // Обновляем заказ как failed
-            await supabaseAdmin
-                .from('orders')
-                .update({
-                    payment_status: 'failed',
-                    status: 'cancelled',
-                })
-                .eq('id', supabaseOrderId);
-
             return NextResponse.json(
                 { error: 'Failed to capture PayPal payment', details: captureData },
                 { status: response.status }
@@ -81,34 +64,54 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ PayPal payment captured:', captureData.id);
 
-        // Update Supabase order with PayPal transaction ID and status
-        const { error: updateError } = await supabaseAdmin
+        // Получаем ID нашего заказа из custom_id
+        const supabaseOrderId = captureData.purchase_units[0].payments.captures[0].custom_id ||
+            captureData.purchase_units[0].custom_id;
+
+        if (!supabaseOrderId) {
+            console.error('❌ No order ID found in PayPal capture');
+            return NextResponse.json(
+                { error: 'Order ID not found' },
+                { status: 400 }
+            );
+        }
+
+        console.log('🔍 Updating order:', supabaseOrderId);
+
+        // Обновляем существующий заказ статусом оплаты
+        const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .update({
                 payment_status: 'completed',
-                paypal_transaction_id: captureData.id,
-                payment_method: 'paypal',
                 status: 'processing',
+                paypal_transaction_id: captureData.id,
             })
-            .eq('id', supabaseOrderId);
+            .eq('id', supabaseOrderId)
+            .select('*')
+            .single();
 
-        if (updateError) {
-            console.error('❌ Error updating order with PayPal details:', updateError);
-        } else {
-            // Отправляем email подтверждения клиенту и уведомление админу
-            try {
-                await sendOrderEmails(supabaseOrderId);
-                console.log('📧 Order emails sent successfully');
-            } catch (emailError) {
-                console.error('❌ Error sending order emails:', emailError);
-                // Не прерываем выполнение, если email не отправился
-            }
+        if (orderError || !order) {
+            console.error('❌ Error updating order:', orderError);
+            return NextResponse.json(
+                { error: 'Failed to update order' },
+                { status: 500 }
+            );
+        }
+
+        console.log('✅ Order updated after PayPal payment:', order.id);
+
+        // Отправляем email подтверждения
+        try {
+            await sendOrderEmails(order.id);
+            console.log('📧 Order emails sent successfully');
+        } catch (emailError) {
+            console.error('❌ Error sending order emails:', emailError);
         }
 
         return NextResponse.json({
             id: captureData.id,
             status: captureData.status,
-            supabaseOrderId,
+            supabaseOrderId: order.id,
         });
     } catch (error: any) {
         console.error('❌ Error capturing PayPal payment:', error);

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
                 break;
 
             case 'checkout.session.expired':
-                await handleCheckoutSessionExpired(event.data.object as Stripe.Checkout.Session);
+                console.log('ℹ️ Checkout session expired - no action needed (order not created yet)');
                 break;
 
             case 'payment_intent.succeeded':
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
                 break;
 
             case 'payment_intent.payment_failed':
-                await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+                console.log('ℹ️ Payment failed - no action needed (order not created yet)');
                 break;
 
             case 'charge.refunded':
@@ -89,106 +89,85 @@ export async function POST(request: NextRequest) {
  */
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     try {
-        const orderId = session.metadata?.orderId;
+        console.log('💰 Processing successful payment, session:', session.id);
 
-        if (!orderId) {
-            console.error('❌ No orderId in Stripe session metadata');
+        // Проверяем, может заказ уже создан (защита от повторной обработки)
+        const { data: existingOrder } = await supabaseAdmin
+            .from('orders')
+            .select('id')
+            .eq('stripe_session_id', session.id)
+            .single();
+
+        if (existingOrder) {
+            console.log('ℹ️ Order already exists for this session:', existingOrder.id);
             return;
         }
 
-        console.log('💰 Processing successful payment for order:', orderId);
+        // Получаем данные из metadata
+        const metadata = session.metadata!;
+        const items = JSON.parse(metadata.items);
 
-        // Получаем PaymentIntent для деталей платежа
-        const paymentIntentId = session.payment_intent as string;
-
-        const { error } = await supabaseAdmin
+        // 1) Создаём заказ в базе данных
+        const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .update({
-                payment_status: 'completed',
-                stripe_payment_intent_id: paymentIntentId,
-                stripe_session_id: session.id,
+            .insert({
+                user_id: metadata.userId || null,
+                customer_name: metadata.customerName,
+                customer_email: metadata.customerEmail,
+                customer_phone: metadata.customerPhone,
+                total_amount: parseFloat(metadata.totalAmount),
+                delivery_method: metadata.deliveryMethod,
                 payment_method: 'card',
-                status: 'processing', // Заказ оплачен, переводим в обработку
+                payment_status: 'completed',
+                status: 'processing',
+                delivery_address: metadata.deliveryAddress,
+                delivery_city: metadata.deliveryCity,
+                delivery_postal_code: metadata.deliveryPostalCode,
+                stripe_payment_intent_id: session.payment_intent as string,
+                stripe_session_id: session.id,
             })
-            .eq('id', orderId);
+            .select('*')
+            .single();
 
-        if (error) {
-            console.error('❌ Error updating order:', error);
-        } else {
-            console.log('✅ Order updated successfully:', orderId);
+        if (orderError) {
+            console.error('❌ Error creating order:', orderError);
+            return;
+        }
 
-            // Отправляем email подтверждения клиенту и уведомление админу
-            try {
-                await sendOrderEmails(orderId);
-                console.log('📧 Order emails sent successfully');
-            } catch (emailError) {
-                console.error('❌ Error sending order emails:', emailError);
-                // Не прерываем выполнение, если email не отправился
-            }
+        console.log('✅ Order created after payment:', order.id);
+
+        // 2) Создаём order_items
+        const orderItems = items.map((item: any) => ({
+            order_id: order.id,
+            product_id: item.productId,
+            product_name: item.productName,
+            product_price: item.productPrice,
+            quantity: item.quantity,
+        }));
+
+        const { error: itemsError } = await supabaseAdmin
+            .from('order_items')
+            .insert(orderItems);
+
+        if (itemsError) {
+            console.error('❌ Error creating order items:', itemsError);
+            // Удаляем заказ если items не создались
+            await supabaseAdmin.from('orders').delete().eq('id', order.id);
+            return;
+        }
+
+        console.log('✅ Order items created');
+
+        // 3) Отправляем email подтверждения
+        try {
+            await sendOrderEmails(order.id);
+            console.log('📧 Order emails sent successfully');
+        } catch (emailError) {
+            console.error('❌ Error sending order emails:', emailError);
+            // Не прерываем выполнение, если email не отправился
         }
     } catch (error) {
         console.error('❌ handleCheckoutSessionCompleted error:', error);
-    }
-}
-
-/**
- * Обработка истечения срока действия checkout сессии
- */
-async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
-    try {
-        const orderId = session.metadata?.orderId;
-
-        if (!orderId) return;
-
-        console.log('⏰ Checkout session expired for order:', orderId);
-
-        await supabaseAdmin
-            .from('orders')
-            .update({
-                payment_status: 'failed',
-                status: 'cancelled',
-                notes: 'Checkout session expired',
-            })
-            .eq('id', orderId)
-            .eq('payment_status', 'pending'); // Обновляем только если ещё pending
-
-        console.log('✅ Order marked as expired:', orderId);
-    } catch (error) {
-        console.error('❌ handleCheckoutSessionExpired error:', error);
-    }
-}
-
-/**
- * Обработка неудачного платежа
- */
-async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-    try {
-        // Находим заказ по payment_intent_id
-        const { data: orders } = await supabaseAdmin
-            .from('orders')
-            .select('id')
-            .eq('stripe_payment_intent_id', paymentIntent.id)
-            .limit(1);
-
-        if (!orders || orders.length === 0) {
-            console.log('ℹ️ No order found for failed payment:', paymentIntent.id);
-            return;
-        }
-
-        const orderId = orders[0].id;
-
-        await supabaseAdmin
-            .from('orders')
-            .update({
-                payment_status: 'failed',
-                status: 'cancelled',
-                notes: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
-            })
-            .eq('id', orderId);
-
-        console.log('✅ Order marked as failed:', orderId);
-    } catch (error) {
-        console.error('❌ handlePaymentFailed error:', error);
     }
 }
 
