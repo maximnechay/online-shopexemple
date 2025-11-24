@@ -4,11 +4,11 @@ import { generateOrderConfirmationHTML } from './templates/orderConfirmation';
 import { generateOrderStatusHTML } from './templates/statusUpdate';
 import { generateAdminOrderHTML } from './templates/adminNotification';
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialize Resend client
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 // Email sender configuration
-const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
 
 export interface OrderEmailData {
@@ -42,14 +42,15 @@ export interface OrderEmailData {
 export async function sendOrderConfirmationEmail(data: OrderEmailData) {
     try {
         console.log('🔧 Preparing customer email for:', data.customerEmail);
-        console.log('🔑 Using FROM_EMAIL:', FROM_EMAIL);
+        console.log('🔑 Using EMAIL_FROM:', EMAIL_FROM);
         console.log('🔑 RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
 
         const html = generateOrderConfirmationHTML(data);
 
         console.log('📧 Sending email via Resend...');
+        const resend = getResend();
         const result = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             to: data.customerEmail,
             subject: `Bestellbestätigung #${data.orderNumber} - Beauty Salon`,
             html,
@@ -70,8 +71,9 @@ export async function sendOrderStatusEmail(data: OrderEmailData) {
     try {
         const html = generateOrderStatusHTML(data);
 
+        const resend = getResend();
         const result = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             to: data.customerEmail,
             subject: `Bestellstatus aktualisiert #${data.orderNumber} - Beauty Salon`,
             html,
@@ -94,8 +96,9 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
         const html = generateAdminOrderHTML(data);
 
         console.log('📧 Sending admin notification via Resend...');
+        const resend = getResend();
         const result = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             to: ADMIN_EMAIL,
             subject: `Neue Bestellung #${data.orderNumber}`,
             html,
