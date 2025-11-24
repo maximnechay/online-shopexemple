@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { validateRequest, createCategorySchema } from '@/lib/security/validation';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 // GET - получить все категории
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
 
@@ -31,11 +46,32 @@ export async function GET() {
 
 // POST - создать новую категорию
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const body = await request.json();
 
-        const { id, name, slug, description, image } = body;
+        // Validation
+        const validation = validateRequest(createCategorySchema, body);
+        if (!validation.success) {
+            return NextResponse.json(
+                { error: 'Validation failed', details: validation.errors },
+                { status: 400 }
+            );
+        }
+
+        const { id, name, slug, description, image } = validation.data;
 
         if (!id || !name) {
             return NextResponse.json(
@@ -79,6 +115,16 @@ export async function POST(request: NextRequest) {
                 { status: 500 }
             );
         }
+
+        // Audit log
+        await createAuditLog({
+            action: 'category.create',
+            resourceType: 'category',
+            resourceId: data.id,
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+            userAgent: request.headers.get('user-agent') || 'unknown',
+            metadata: { name, slug },
+        });
 
         return NextResponse.json(data);
     } catch (error: any) {

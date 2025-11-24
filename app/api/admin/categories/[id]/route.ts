@@ -1,16 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { validateRequest, updateCategorySchema } from '@/lib/security/validation';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 // PUT - обновить категорию
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const body = await request.json();
-        const { name, slug, description, image } = body;
         const { id } = await params;
+
+        // Validation
+        const validation = validateRequest(updateCategorySchema, body);
+        if (!validation.success) {
+            return NextResponse.json(
+                { error: 'Validation failed', details: validation.errors },
+                { status: 400 }
+            );
+        }
+
+        const { name, slug, description, image } = validation.data;
 
         const { data, error } = await supabase
             .from('categories')
@@ -32,6 +57,16 @@ export async function PUT(
             );
         }
 
+        // Audit log
+        await createAuditLog({
+            action: 'category.update',
+            resourceType: 'category',
+            resourceId: id,
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+            userAgent: request.headers.get('user-agent') || 'unknown',
+            metadata: { name, slug },
+        });
+
         return NextResponse.json(data);
     } catch (error: any) {
         console.error('Error updating category:', error);
@@ -47,6 +82,18 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const { id } = await params;
@@ -77,6 +124,15 @@ export async function DELETE(
                 { status: 500 }
             );
         }
+
+        // Audit log
+        await createAuditLog({
+            action: 'category.delete',
+            resourceType: 'category',
+            resourceId: id,
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+            userAgent: request.headers.get('user-agent') || 'unknown',
+        });
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

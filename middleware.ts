@@ -1,6 +1,7 @@
 // middleware.ts
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { addSecurityHeaders } from '@/lib/security/headers';
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -8,6 +9,9 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
         },
     });
+
+    // Add security headers to all responses
+    response = addSecurityHeaders(response);
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

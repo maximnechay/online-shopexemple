@@ -1,6 +1,8 @@
 // app/api/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 export async function GET(request: NextRequest) {
     try {
@@ -66,6 +68,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.createOrder);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
 
@@ -156,6 +170,21 @@ export async function POST(request: NextRequest) {
                 { status: 500 }
             );
         }
+
+        // Audit log
+        await createAuditLog({
+            action: 'order.create',
+            userEmail: customerEmail,
+            resourceType: 'order',
+            resourceId: order.id,
+            ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+            userAgent: request.headers.get('user-agent') || 'unknown',
+            metadata: {
+                totalAmount,
+                paymentMethod,
+                itemsCount: items.length,
+            },
+        });
 
         return NextResponse.json({
             success: true,

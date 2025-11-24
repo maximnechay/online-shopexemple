@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendOrderEmails } from '@/lib/email/helpers';
+import { isPaymentProcessed, markPaymentAsProcessed } from '@/lib/security/payment-deduplication';
+import { createAuditLog } from '@/lib/security/audit-log';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
@@ -17,6 +20,15 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
  * Документация: https://stripe.com/docs/webhooks
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting для защиты от атак
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.webhook);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            { status: 429 }
+        );
+    }
+
     try {
         const body = await request.text();
         const signature = request.headers.get('stripe-signature');
@@ -91,6 +103,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     try {
         console.log('💰 Processing successful payment, session:', session.id);
 
+        // Защита от дублирования платежа
+        if (await isPaymentProcessed(session.id, 'stripe')) {
+            console.log('⚠️ Payment already processed, skipping:', session.id);
+            return;
+        }
+
         // Проверяем, может заказ уже создан (защита от повторной обработки)
         const { data: existingOrder } = await supabaseAdmin
             .from('orders')
@@ -157,6 +175,27 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         }
 
         console.log('✅ Order items created');
+
+        // Отмечаем платёж как обработанный
+        await markPaymentAsProcessed(
+            session.id,
+            'stripe',
+            order.id,
+            session.amount_total ? session.amount_total / 100 : 0
+        );
+
+        // Audit log
+        await createAuditLog({
+            action: 'order.create',
+            userEmail: session.customer_details?.email || 'unknown',
+            resourceType: 'order',
+            resourceId: order.id,
+            metadata: {
+                source: 'stripe_webhook',
+                sessionId: session.id,
+                amount: session.amount_total,
+            },
+        });
 
         // 3) Отправляем email подтверждения
         try {
