@@ -111,7 +111,7 @@ export default function NewsletterPage() {
                     </Link>
 
                     <h1 className="text-4xl lg:text-5xl font-light text-gray-900 tracking-tight mb-4">
-                        Email-Rассылка
+                        Marketing-E-Mails
                     </h1>
                     <p className="text-gray-600 text-lg max-w-2xl">
                         Senden Sie Marketing-E-Mails an Ihre Newsletter-Abonnenten und Kunden.

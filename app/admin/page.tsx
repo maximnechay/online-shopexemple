@@ -46,7 +46,7 @@ export default function AdminPage() {
                         </p>
                     </Link>
 
-                    {/* Email-Rассылка */}
+                    {/* Marketing-E-Mails */}
                     <Link
                         href="/admin/newsletter"
                         className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
@@ -56,7 +56,7 @@ export default function AdminPage() {
                         </div>
 
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            Email-Rассылка
+                            Marketing-E-Mails
                         </h2>
 
                         <p className="text-gray-600 text-sm leading-relaxed">
@@ -64,7 +64,7 @@ export default function AdminPage() {
                         </p>
                     </Link>
 
-                    {/* SMS Rассылка */}
+                    {/* SMS-Nachrichten */}
                     <Link
                         href="/admin/sms"
                         className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
@@ -74,7 +74,7 @@ export default function AdminPage() {
                         </div>
 
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            SMS Rассылка
+                            SMS-Nachrichten
                         </h2>
 
                         <p className="text-gray-600 text-sm leading-relaxed">
