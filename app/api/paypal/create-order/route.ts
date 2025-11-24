@@ -1,6 +1,7 @@
 // app/api/paypal/create-order/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // ✅ Используем отдельную переменную для PayPal mode
 const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
@@ -58,6 +59,18 @@ async function getPayPalAccessToken() {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting - 10 requests per minute for payment creation
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.payment);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Zu viele Anfragen. Bitte warten Sie einen Moment.' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { items, customer, deliveryMethod, address, userId } = await request.json();
 

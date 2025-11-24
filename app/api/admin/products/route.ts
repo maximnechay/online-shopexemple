@@ -1,6 +1,7 @@
 // app/api/admin/products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 function makeSlug(name: string) {
     return name
@@ -11,7 +12,19 @@ function makeSlug(name: string) {
         .slice(0, 60);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     const { data, error } = await supabaseAdmin
         .from('products')
         .select('*')
@@ -26,6 +39,18 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
 

@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import crypto from 'crypto';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { isPaymentProcessed, markPaymentAsProcessed } from '@/lib/security/payment-deduplication';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 const PAYPAL_API = process.env.NODE_ENV === 'production'
     ? 'https://api-m.paypal.com'
@@ -60,6 +63,18 @@ async function verifyPayPalWebhook(
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.webhook);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
         const webhookId = process.env.PAYPAL_WEBHOOK_ID;
@@ -128,6 +143,19 @@ async function handlePaymentCaptured(resource: any) {
             return;
         }
 
+        // Payment deduplication check
+        const alreadyProcessed = await isPaymentProcessed(resource.id);
+        if (alreadyProcessed) {
+            console.log('⚠️ Payment already processed:', resource.id);
+            await createAuditLog({
+                action: 'payment.duplicate_attempt',
+                resource_type: 'payment',
+                resource_id: resource.id,
+                details: { orderId: supabaseOrderId, provider: 'paypal' },
+            });
+            return;
+        }
+
         const { error } = await supabaseAdmin
             .from('orders')
             .update({
@@ -141,6 +169,21 @@ async function handlePaymentCaptured(resource: any) {
             console.error('❌ Error updating order:', error);
         } else {
             console.log('✅ Order updated:', supabaseOrderId);
+
+            // Mark payment as processed
+            await markPaymentAsProcessed(resource.id, 'paypal', supabaseOrderId);
+
+            // Audit log
+            await createAuditLog({
+                action: 'payment.completed',
+                resource_type: 'payment',
+                resource_id: resource.id,
+                details: {
+                    orderId: supabaseOrderId,
+                    provider: 'paypal',
+                    amount: resource.amount?.value,
+                },
+            });
         }
     } catch (error) {
         console.error('❌ handlePaymentCaptured error:', error);

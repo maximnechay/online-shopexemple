@@ -2,15 +2,28 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
     apiVersion: '2023-10-16',
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    // Rate limiting - 10 requests per minute for payment creation
+    const rateLimitResult = rateLimit(req, RATE_LIMITS.payment);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Zu viele Anfragen. Bitte warten Sie einen Moment.' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { items, customer, deliveryMethod, address, userId } = await req.json();
 

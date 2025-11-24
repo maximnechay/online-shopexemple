@@ -7,6 +7,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { transformProductsFromDB } from '@/lib/supabase/helpers';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,18 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.products);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const category = searchParams.get('category');

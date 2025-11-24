@@ -2,12 +2,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
+    // Rate limiting - 5 requests per hour
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.newsletter);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { email } = await request.json();
 
