@@ -6,6 +6,7 @@ import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { Product } from '@/lib/types';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { addToCart as trackAddToCart } from '@/lib/analytics'; // ⭐ GA4
 import { useState } from 'react';
 
 interface ProductCardProps {
@@ -38,6 +39,16 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         setIsAdding(true);
         addToCart(product as any, 1);
+
+        // ⭐ Добавьте console.log для проверки:
+        console.log('🛒 Adding to cart:', product);
+        if (typeof window.gtag !== 'undefined') {
+            console.log('✅ Tracking add_to_cart');
+            trackAddToCart(product, 1);
+        } else {
+            console.log('❌ gtag not available');
+        }
+
         setTimeout(() => setIsAdding(false), 1000);
     };
 
@@ -84,22 +95,20 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <div className="absolute top-3 right-3 flex flex-col gap-2">
                     <button
                         onClick={handleWishlistToggle}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${
-                            inWishlist
-                                ? 'bg-black text-white'
-                                : 'bg-white/90 hover:bg-black hover:text-white text-gray-900'
-                        }`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${inWishlist
+                            ? 'bg-black text-white'
+                            : 'bg-white/90 hover:bg-black hover:text-white text-gray-900'
+                            }`}
                     >
                         <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} strokeWidth={1.5} />
                     </button>
                     {product.inStock && (
                         <button
                             onClick={handleAddToCart}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${
-                                isAdding
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-white/90 hover:bg-black hover:text-white text-gray-900'
-                            }`}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 ${isAdding
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white/90 hover:bg-black hover:text-white text-gray-900'
+                                }`}
                         >
                             <ShoppingBag className="w-5 h-5" strokeWidth={1.5} />
                         </button>

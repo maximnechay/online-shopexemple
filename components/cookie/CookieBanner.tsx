@@ -38,6 +38,12 @@ export default function CookieBanner() {
     setConsent(consentData);
     setShowBanner(false);
     setShowModal(false);
+
+    // ⭐ ДОБАВЬТЕ ЭТИ 2 СТРОКИ:
+    window.dispatchEvent(new Event('cookie-consent-changed'));
+    if (consentData.analytics) {
+      window.location.reload();
+    }
   };
 
   const acceptAll = () => {
