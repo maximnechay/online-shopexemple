@@ -2,6 +2,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
+export async function GET(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const sessionId = searchParams.get('session_id');
+        const orderId = searchParams.get('order_id');
+
+        if (!sessionId && !orderId) {
+            return NextResponse.json(
+                { error: 'Session ID or Order ID erforderlich' },
+                { status: 400 }
+            );
+        }
+
+        let order;
+        let error;
+
+        if (sessionId) {
+            // Ищем заказ по Stripe session ID
+            const result = await supabaseAdmin
+                .from('orders')
+                .select('*')
+                .eq('stripe_session_id', sessionId)
+                .single();
+
+            order = result.data;
+            error = result.error;
+        } else if (orderId) {
+            // Ищем заказ по ID (для PayPal)
+            const result = await supabaseAdmin
+                .from('orders')
+                .select('*')
+                .eq('id', orderId)
+                .single();
+
+            order = result.data;
+            error = result.error;
+        }
+
+        if (error || !order) {
+            return NextResponse.json(
+                { error: 'Bestellung nicht gefunden' },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({ order });
+    } catch (error: any) {
+        console.error('Get order error:', error);
+        return NextResponse.json(
+            { error: 'Interner Serverfehler' },
+            { status: 500 }
+        );
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
