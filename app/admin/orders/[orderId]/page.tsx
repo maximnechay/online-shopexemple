@@ -102,6 +102,10 @@ export default function AdminOrderDetailPage() {
             if (res.ok) {
                 const updated = await res.json();
                 setOrder(updated);
+
+                // Перезагрузить данные заказа, чтобы убедиться, что все синхронизировано
+                await loadOrder();
+
                 alert('Bestellung erfolgreich aktualisiert!');
 
                 // Если статус изменился на processing и оплата completed - отправляем email
