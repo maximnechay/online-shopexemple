@@ -212,7 +212,7 @@ export default function CheckoutPage() {
                 }
 
                 // Корзина очистится на странице order-success
-                window.location.href = `/order-success/${result.orderId}`;
+                window.location.href = `/order-success?order_id=${result.orderId}`;
                 return;
             }
 

@@ -5,6 +5,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import PayPalProvider from '@/components/providers/PayPalProvider';
 import CookieBanner from '@/components/cookie/CookieBanner';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -31,6 +32,13 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
+        {/* Google Analytics - загружается только если указан Measurement ID */}
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics
+            measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+          />
+        )}
+
         <AuthProvider>
           <PayPalProvider>
             {children}

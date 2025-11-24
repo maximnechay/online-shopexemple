@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
             console.log('🔍 Searching for order by stripe_session_id:', sessionId);
             const result = await supabaseAdmin
                 .from('orders')
-                .select('*')
+                .select('*, items:order_items(*)')
                 .eq('stripe_session_id', sessionId)
                 .single();
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             console.log('🔍 Searching for order by id:', orderId);
             const result = await supabaseAdmin
                 .from('orders')
-                .select('*')
+                .select('*, items:order_items(*)')
                 .eq('id', orderId)
                 .single();
 

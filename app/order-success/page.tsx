@@ -8,6 +8,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { purchase } from '@/lib/analytics'; // ⭐ GA4 Purchase Event
+
 interface Order {
     id: string;
     customer_name: string;
@@ -16,6 +18,13 @@ interface Order {
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'cash';
     created_at: string;
+    items?: Array<{
+        id: string;
+        product_id: string;
+        product_name: string;
+        product_price: number;
+        quantity: number;
+    }>;
 }
 
 function OrderSuccessContent() {
@@ -57,6 +66,33 @@ function OrderSuccessContent() {
                         const data = await res.json();
                         if (data.order) {
                             setOrder(data.order);
+                            // ⭐⭐⭐ GOOGLE ANALYTICS PURCHASE EVENT ⭐⭐⭐
+                            if (data.order.items && data.order.items.length > 0) {
+                                // Проверяем consent перед отправкой
+                                if (typeof window.gtag !== 'undefined') {
+                                    console.log('🎯 GA4: Tracking purchase event', {
+                                        orderId: data.order.id,
+                                        value: data.order.total_amount,
+                                        items: data.order.items.length
+                                    });
+
+                                    purchase(
+                                        data.order.id,
+                                        data.order.items.map((item: any) => ({
+                                            item_id: item.product_id || item.id,
+                                            item_name: item.product_name,
+                                            price: Number(item.product_price),
+                                            quantity: Number(item.quantity),
+                                        })),
+                                        Number(data.order.total_amount),
+                                        0,
+                                        0
+                                    );
+                                } else {
+                                    console.log('ℹ️ GA4: Analytics disabled by user consent');
+                                }
+                            }
+
                             // Очищаем корзину только после подтверждения успешной оплаты
                             clearCart();
                             setLoading(false);
@@ -84,7 +120,7 @@ function OrderSuccessContent() {
         };
 
         findOrder();
-    }, [sessionId, orderId]);
+    }, [sessionId, orderId, clearCart]);
 
     if (loading) {
         return (
