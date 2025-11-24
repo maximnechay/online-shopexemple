@@ -64,6 +64,8 @@
 - ✅ Статистика продаж
 - ✅ Настройки магазина (название, контакты, доставка)
 - ✅ Просмотр всех заказов и клиентов
+- ✅ **Email-рассылка** - Маркетинговые письма подписчикам
+- ✅ **SMS-рассылка** - SMS-уведомления для подписчиков
 
 ### Технические возможности
 
@@ -236,7 +238,9 @@ beauty-salon-shop/
 │   ├── admin/                   # Админ панель
 │   │   ├── products/            # Управление товарами
 │   │   ├── orders/              # Управление заказами
-│   │   └── settings/            # Настройки магазина
+│   │   ├── settings/            # Настройки магазина
+│   │   ├── newsletter/          # Email-рассылка
+│   │   └── sms/                 # SMS-рассылка
 │   ├── auth/                    # Аутентификация
 │   │   ├── login/               # Страница логина
 │   │   └── register/            # Страница регистрации
@@ -248,6 +252,11 @@ beauty-salon-shop/
 │   │   ├── stripe/              # Stripe integration
 │   │   ├── webhooks/            # Payment webhooks
 │   │   └── admin/               # Admin API
+│   │       ├── orders/          # Orders management
+│   │       ├── products/        # Products management
+│   │       ├── settings/        # Shop settings
+│   │       ├── newsletter/      # Email-рассылка
+│   │       └── sms/             # SMS-рассылка
 │   ├── globals.css              # Глобальные стили
 │   ├── layout.tsx               # Root layout
 │   └── error.tsx                # Error boundary
@@ -278,6 +287,9 @@ beauty-salon-shop/
 │   ├── API.md                   # API документация
 │   ├── DEPLOYMENT.md            # Инструкции по деплою
 │   ├── SECURITY.md              # Руководство по безопасности
+│   ├── EMAIL_NEWSLETTER.md      # Email-рассылка (полная документация)
+│   ├── QUICK_EMAIL_GUIDE.md     # Email-рассылка (быстрый старт)
+│   ├── SMS_SETUP.md             # SMS-рассылка (настройка)
 │   └── TROUBLESHOOTING.md       # Решение проблем
 ├── public/                      # Статические файлы
 │   └── images/                  # Изображения
@@ -460,9 +472,16 @@ Checklist для тестирования:
 
 ## 🗺️ Roadmap
 
+### ✅ Реализованные возможности
+
+- [x] Email уведомления (Resend)
+- [x] Email-рассылка для маркетинга
+- [x] SMS-рассылка для подписчиков
+- [x] Система подписки на newsletter
+- [x] Admin dashboard с управлением заказами
+
 ### Планируемые возможности
 
-- [ ] Email уведомления (SendGrid/Resend)
 - [ ] Система отзывов и рейтингов
 - [ ] Программа лояльности
 - [ ] Купоны и промокоды
@@ -470,7 +489,7 @@ Checklist для тестирования:
 - [ ] Интеграция с Google Analytics
 - [ ] Мультиязычность (i18n)
 - [ ] PWA поддержка
-- [ ] Admin dashboard с аналитикой
+- [ ] Расширенная аналитика продаж
 - [ ] Интеграция с курьерскими службами
 
 ---
