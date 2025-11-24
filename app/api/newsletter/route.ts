@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = 'force-dynamic';
+
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
     try {
@@ -78,10 +80,12 @@ export async function POST(request: NextRequest) {
             console.log('✅ New subscriber saved to database:', email);
         }
 
-        const fromEmail = process.env.FROM_EMAIL || 'Beauty Salon <noreply@xinvestai.com>';
+        const fromEmail = process.env.EMAIL_FROM || 'Beauty Salon <noreply@xinvestai.com>';
         const adminEmail = process.env.ADMIN_EMAIL || 'nechay1996@gmail.com';
 
         console.log('📧 Sending newsletter subscription emails...');
+
+        const resend = getResend();
 
         // Send notification to admin
         const adminEmailPromise = resend.emails.send({
