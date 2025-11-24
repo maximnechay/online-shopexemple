@@ -131,7 +131,7 @@ export default function OrdersPage() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="flex-1 pt-24 pb-16">
+                <main className="flex-1 pt-32 md:pt-24 pb-16">
                     <div className="max-w-4xl mx-auto px-6 lg:px-8">
                         {/* Title skeleton */}
                         <div className="h-12 bg-gray-200 rounded w-64 mb-8 animate-pulse" />
@@ -181,7 +181,7 @@ export default function OrdersPage() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="flex-1 pt-24 pb-16">
+            <main className="flex-1 pt-40 md:pt-24 pb-16">
                 <div className="max-w-4xl mx-auto px-6 lg:px-8">
                     <h1 className="text-4xl lg:text-5xl font-serif text-gray-900 mb-8">
                         Meine Bestellungen

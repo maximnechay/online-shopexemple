@@ -124,7 +124,7 @@ export default function PaymentPage({ searchParams }: PaymentPageProps) {
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-40 md:pt-24 pb-16">
                 <div className="max-w-3xl mx-auto px-6 lg:px-8">
                     {/* Back Button */}
                     <Link
@@ -170,8 +170,8 @@ export default function PaymentPage({ searchParams }: PaymentPageProps) {
                                     type="button"
                                     onClick={() => setPaymentMethod('card')}
                                     className={`p-4 border-2 rounded-xl text-center transition-all ${paymentMethod === 'card'
-                                            ? 'border-rose-600 bg-rose-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                        ? 'border-rose-600 bg-rose-50'
+                                        : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     <CreditCard className="w-6 h-6 mx-auto mb-2 text-gray-600" />
@@ -182,8 +182,8 @@ export default function PaymentPage({ searchParams }: PaymentPageProps) {
                                     type="button"
                                     onClick={() => setPaymentMethod('paypal')}
                                     className={`p-4 border-2 rounded-xl text-center transition-all ${paymentMethod === 'paypal'
-                                            ? 'border-rose-600 bg-rose-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                        ? 'border-rose-600 bg-rose-50'
+                                        : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     <div className="w-6 h-6 bg-blue-600 rounded mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold">
@@ -196,8 +196,8 @@ export default function PaymentPage({ searchParams }: PaymentPageProps) {
                                     type="button"
                                     onClick={() => setPaymentMethod('invoice')}
                                     className={`p-4 border-2 rounded-xl text-center transition-all ${paymentMethod === 'invoice'
-                                            ? 'border-rose-600 bg-rose-50'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                        ? 'border-rose-600 bg-rose-50'
+                                        : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     <div className="w-6 h-6 bg-gray-600 rounded mx-auto mb-2" />

@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import PayPalButtonsWrapper from '@/components/checkout/PayPalButtons';
 import { useShopSettings } from '@/lib/hooks/useShopSettings';
+import { beginCheckout } from '@/lib/analytics';
 
 interface CheckoutFormData {
     firstName: string;
@@ -137,6 +138,7 @@ export default function CheckoutPage() {
         }
     }, [items.length, isSubmitting, router]);
 
+
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
@@ -163,7 +165,33 @@ export default function CheckoutPage() {
                 : baseShipping;
 
     const finalTotal = total + shipping;
+    useEffect(() => {
+        console.log('🛒 Checkout mounted:', {
+            itemsLength: items.length,
+            gtagExists: typeof window.gtag,
+            finalTotal
+        });
 
+        if (items.length > 0 && typeof window.gtag !== 'undefined') {
+            console.log('✅ Calling beginCheckout');
+            beginCheckout(
+                items.map(item => ({
+                    id: item.product.id,
+                    name: item.product.name,
+                    category: item.product.category || 'beauty',
+                    price: item.product.price,
+                    quantity: item.quantity,
+                })),
+                finalTotal
+            );
+        } else {
+            console.log('❌ Not calling beginCheckout:', {
+                items: items.length,
+                gtag: typeof window.gtag
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Только при монтировании
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -284,7 +312,7 @@ export default function CheckoutPage() {
         <div className="min-h-screen bg-white">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-40 md:pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Back Button */}
                     <Link

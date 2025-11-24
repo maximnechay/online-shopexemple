@@ -74,7 +74,7 @@ export default function ContactsPage() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="flex-1 pt-24 pb-20">
+                <main className="flex-1 pt-40 md:pt-24 pb-20">
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
                         {/* Title skeleton */}
                         <div className="text-center mb-16">
@@ -121,7 +121,7 @@ export default function ContactsPage() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="flex-1 pt-24 pb-20">
+            <main className="flex-1 pt-40 md:pt-24 pb-20">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Hero */}
                     <div className="text-center mb-16">

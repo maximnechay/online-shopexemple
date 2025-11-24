@@ -6,11 +6,11 @@ export default function ImpressumPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-gray-50 pt-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <h1 className="text-4xl font-light mb-8">Impressum</h1>
+      <main className="min-h-screen bg-gray-50 pt-40 md:pt-24 overflow-x-hidden">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-4xl font-light mb-8 break-words">Impressum</h1>
 
-          <div className="bg-white rounded-lg shadow-sm p-8 space-y-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-8 space-y-6 overflow-hidden">
             <section>
               <h2 className="text-2xl font-medium mb-4">Angaben gemäß § 5 TMG</h2>
               <p className="text-gray-700">

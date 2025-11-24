@@ -117,7 +117,7 @@ export default function HomePage() {
             <Header />
 
             {/* Hero Section - Professional Minimalist */}
-            <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+            <section className="pt-40 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         {/* Left Content */}

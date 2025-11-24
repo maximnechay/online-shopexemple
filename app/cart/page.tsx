@@ -28,7 +28,7 @@ export default function CartPage() {
             <div className="min-h-screen bg-white">
                 <Header />
 
-                <main className="pt-24 pb-16">
+                <main className="pt-40 md:pt-24 pb-16">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="max-w-2xl mx-auto text-center py-16">
                             <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -60,7 +60,7 @@ export default function CartPage() {
         <div className="min-h-screen bg-white">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-32 md:pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-8">

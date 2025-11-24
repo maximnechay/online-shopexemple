@@ -160,7 +160,7 @@ export default function ProfilePage() {
         return (
             <div className="min-h-screen bg-white">
                 <Header />
-                <main className="pt-24 pb-16">
+                <main className="pt-40 md:pt-24 pb-16">
                     <div className="max-w-4xl mx-auto px-6">
                         <div className="text-center py-16">
                             <p className="text-gray-600">Lädt...</p>

@@ -30,7 +30,7 @@ export default function WishlistPage() {
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            <main className="pt-24 pb-16">
+            <main className="pt-38 md:pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-8">
@@ -126,8 +126,8 @@ export default function WishlistPage() {
                                                     <button
                                                         onClick={() => handleAddToCart(product)}
                                                         className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${addedItems.has(product.id)
-                                                                ? 'bg-green-600 text-white'
-                                                                : 'bg-rose-600 text-white hover:bg-rose-700'
+                                                            ? 'bg-green-600 text-white'
+                                                            : 'bg-rose-600 text-white hover:bg-rose-700'
                                                             }`}
                                                     >
                                                         <ShoppingBag className="w-4 h-4" />
