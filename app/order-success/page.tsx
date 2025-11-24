@@ -70,6 +70,10 @@ function OrderSuccessContent() {
                 }
 
                 // Если после 10 секунд заказ не найден
+                console.error('❌ Order not found after 20 attempts:', {
+                    sessionId,
+                    orderId,
+                });
                 setError('Bestellung wird verarbeitet. Bitte überprüfen Sie Ihre E-Mail.');
                 setLoading(false);
             } catch (err) {

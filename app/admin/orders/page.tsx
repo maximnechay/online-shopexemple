@@ -71,7 +71,13 @@ export default function AdminOrdersPage() {
     const loadOrders = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/admin/orders');
+            // Добавляем timestamp для предотвращения кеширования
+            const res = await fetch(`/api/admin/orders?t=${Date.now()}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setOrders(data.orders || []);

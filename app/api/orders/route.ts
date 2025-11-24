@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
         const sessionId = searchParams.get('session_id');
         const orderId = searchParams.get('order_id');
 
+        console.log('🔍 GET /api/orders - sessionId:', sessionId, 'orderId:', orderId);
+
         if (!sessionId && !orderId) {
             return NextResponse.json(
                 { error: 'Session ID or Order ID erforderlich' },
@@ -20,6 +22,7 @@ export async function GET(request: NextRequest) {
 
         if (sessionId) {
             // Ищем заказ по Stripe session ID
+            console.log('🔍 Searching for order by stripe_session_id:', sessionId);
             const result = await supabaseAdmin
                 .from('orders')
                 .select('*')
@@ -28,8 +31,10 @@ export async function GET(request: NextRequest) {
 
             order = result.data;
             error = result.error;
+            console.log('📊 Query result:', { found: !!order, error: error?.message });
         } else if (orderId) {
             // Ищем заказ по ID (для PayPal)
+            console.log('🔍 Searching for order by id:', orderId);
             const result = await supabaseAdmin
                 .from('orders')
                 .select('*')
@@ -38,15 +43,18 @@ export async function GET(request: NextRequest) {
 
             order = result.data;
             error = result.error;
+            console.log('📊 Query result:', { found: !!order, error: error?.message });
         }
 
         if (error || !order) {
+            console.error('❌ Order not found');
             return NextResponse.json(
                 { error: 'Bestellung nicht gefunden' },
                 { status: 404 }
             );
         }
 
+        console.log('✅ Order found:', order.id);
         return NextResponse.json({ order });
     } catch (error: any) {
         console.error('Get order error:', error);

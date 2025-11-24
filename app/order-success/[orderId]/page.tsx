@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { CheckCircle, Package, Mail, Home, ShoppingBag } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { useCartStore } from '@/lib/store/useCartStore';
 
 interface Order {
     id: string;
@@ -21,6 +22,7 @@ interface Order {
 export default function OrderSuccessPage() {
     const params = useParams();
     const orderId = params.orderId as string;
+    const { clearCart } = useCartStore();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -34,6 +36,9 @@ export default function OrderSuccessPage() {
                     console.error('Error loading order:', orderData);
                 } else {
                     setOrder(orderData);
+
+                    // Очищаем корзину после успешной загрузки заказа
+                    clearCart();
 
                     // Пытаемся отправить email для заказа
                     try {
