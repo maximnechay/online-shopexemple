@@ -9,12 +9,23 @@ import {
     ShoppingCart,
     MessageSquare,
     Mail,
+    ArrowLeft,
+    Users,
 } from 'lucide-react';
 
 export default function AdminPage() {
     return (
         <div className="min-h-screen bg-white py-20 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
+
+                {/* Back to Site Button */}
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Zurück zur Website
+                </Link>
 
                 {/* Title */}
                 <h1 className="text-4xl lg:text-5xl font-light text-gray-900 tracking-tight mb-6">
@@ -43,6 +54,24 @@ export default function AdminPage() {
 
                         <p className="text-gray-600 text-sm leading-relaxed">
                             Alle Kundenbestellungen verwalten und Status aktualisieren.
+                        </p>
+                    </Link>
+
+                    {/* Benutzer */}
+                    <Link
+                        href="/admin/users"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Users className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Benutzer
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Registrierte Kunden und ihre Newsletter-Abonnements verwalten.
                         </p>
                     </Link>
 
