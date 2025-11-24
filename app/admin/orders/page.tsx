@@ -87,6 +87,17 @@ export default function AdminOrdersPage() {
 
     useEffect(() => {
         loadOrders();
+
+        // Обновлять заказы при возвращении на страницу
+        const handleFocus = () => {
+            loadOrders();
+        };
+
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
     }, []);
 
     const filteredOrders = orders.filter(order => {
