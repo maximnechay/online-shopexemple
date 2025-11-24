@@ -35,7 +35,34 @@ export async function getOrderEmailData(orderId: string): Promise<OrderEmailData
         }));
 
         const subtotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-        const shipping = order.delivery_method === 'delivery' ? 4.99 : 0; // €4.99 за доставку
+
+        // Получаем настройки доставки из БД
+        const { data: settings } = await supabaseAdmin
+            .from('shop_settings')
+            .select('shipping_cost, free_shipping_from')
+            .eq('id', 'default')
+            .single();
+
+        console.log('🔍 Raw settings from DB:', settings);
+
+        const baseShippingCost = parseFloat(settings?.shipping_cost) || 10;
+        const freeShippingFrom = parseFloat(settings?.free_shipping_from) || 49;
+
+        console.log('📦 Shipping settings:', {
+            baseShippingCost,
+            freeShippingFrom,
+            subtotal,
+            deliveryMethod: order.delivery_method
+        });
+
+        // Рассчитываем стоимость доставки
+        let shipping = 0;
+        if (order.delivery_method === 'delivery') {
+            shipping = subtotal >= freeShippingFrom ? 0 : baseShippingCost;
+        }
+
+        console.log('💰 Final shipping cost:', shipping);
+
         const taxRate = 0.19; // 19% MwSt
         const tax = subtotal * taxRate;
         const total = parseFloat(order.total_amount);

@@ -11,6 +11,7 @@ import {
     Mail,
     ArrowLeft,
     Users,
+    Layers,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -126,6 +127,24 @@ export default function AdminPage() {
 
                         <p className="text-gray-600 text-sm leading-relaxed">
                             Bestehende Produkte bearbeiten, Inventar pflegen und Preise aktualisieren.
+                        </p>
+                    </Link>
+
+                    {/* Kategorien */}
+                    <Link
+                        href="/admin/categories"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Layers className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Kategorien verwalten
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Produktkategorien hinzufügen, bearbeiten oder löschen.
                         </p>
                     </Link>
 

@@ -1,0 +1,336 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import Link from 'next/link';
+
+interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    image?: string;
+}
+
+export default function CategoriesPage() {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<Category>({
+        id: '',
+        name: '',
+        slug: '',
+        description: '',
+        image: ''
+    });
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [newCategory, setNewCategory] = useState({
+        id: '',
+        name: '',
+        slug: '',
+        description: '',
+        image: ''
+    });
+
+    useEffect(() => {
+        loadCategories();
+    }, []);
+
+    const loadCategories = async () => {
+        try {
+            const res = await fetch('/api/admin/categories');
+            const data = await res.json();
+
+            if (res.ok) {
+                setCategories(data);
+            } else {
+                console.error('Error loading categories:', data);
+                alert(data.error || 'Fehler beim Laden der Kategorien');
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            alert('Netzwerkfehler beim Laden der Kategorien');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = (category: Category) => {
+        setEditingId(category.id);
+        setEditForm(category);
+    };
+
+    const handleSave = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/categories/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm)
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                await loadCategories();
+                setEditingId(null);
+            } else {
+                console.error('Server error:', data);
+                alert(data.error || 'Fehler beim Aktualisieren der Kategorie');
+            }
+        } catch (error) {
+            console.error('Error updating category:', error);
+            alert('Netzwerkfehler beim Aktualisieren der Kategorie');
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Möchten Sie diese Kategorie wirklich löschen?')) return;
+
+        try {
+            const res = await fetch(`/api/admin/categories/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                await loadCategories();
+            } else {
+                console.error('Server error:', data);
+                alert(data.error || 'Fehler beim Löschen der Kategorie');
+            }
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            alert('Netzwerkfehler beim Löschen der Kategorie');
+        }
+    };
+
+    const handleAdd = async () => {
+        if (!newCategory.id || !newCategory.name) {
+            alert('ID und Name sind erforderlich');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/admin/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCategory)
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                await loadCategories();
+                setShowAddForm(false);
+                setNewCategory({ id: '', name: '', slug: '', description: '', image: '' });
+            } else {
+                console.error('Server error:', data);
+                alert(data.error || 'Fehler beim Erstellen der Kategorie');
+            }
+        } catch (error) {
+            console.error('Error creating category:', error);
+            alert('Netzwerkfehler beim Erstellen der Kategorie');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white py-16 px-6">
+                <div className="max-w-6xl mx-auto">
+                    <p>Laden...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-white py-16 px-6">
+            <div className="max-w-6xl mx-auto">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-4xl font-light text-gray-900 mb-2">Kategorien verwalten</h1>
+                        <p className="text-gray-600">Produktkategorien hinzufügen, bearbeiten oder löschen</p>
+                    </div>
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Neue Kategorie
+                    </button>
+                </div>
+
+                {/* Add Form */}
+                {showAddForm && (
+                    <div className="mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                        <h3 className="text-lg font-medium mb-4">Neue Kategorie erstellen</h3>
+                        <div className="grid gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Kategorie-ID * (z.B. "perfume", "skincare")
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newCategory.id}
+                                    onChange={(e) => setNewCategory({ ...newCategory, id: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="z.B. perfume"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                                <input
+                                    type="text"
+                                    value={newCategory.name}
+                                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="z.B. Parfüm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
+                                <input
+                                    type="text"
+                                    value={newCategory.slug}
+                                    onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="z.B. parfum"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Beschreibung</label>
+                                <input
+                                    type="text"
+                                    value={newCategory.description}
+                                    onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="z.B. Düfte und Eau de Toilette"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Bild URL</label>
+                                <input
+                                    type="text"
+                                    value={newCategory.image}
+                                    onChange={(e) => setNewCategory({ ...newCategory, image: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="https://..."
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleAdd}
+                                    className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+                                >
+                                    Erstellen
+                                </button>
+                                <button
+                                    onClick={() => setShowAddForm(false)}
+                                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Categories List */}
+                <div className="space-y-4">
+                    {categories.map((category) => (
+                        <div key={category.id} className="bg-white border border-gray-200 rounded-2xl p-6">
+                            {editingId === category.id ? (
+                                <div className="grid gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.name}
+                                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.slug}
+                                            onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Beschreibung</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.description}
+                                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Bild URL</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.image}
+                                            onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => handleSave(category.id)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+                                        >
+                                            <Save className="w-4 h-4" />
+                                            Speichern
+                                        </button>
+                                        <button
+                                            onClick={() => setEditingId(null)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Abbrechen
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h3 className="text-lg font-medium text-gray-900">{category.name}</h3>
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                                {category.id}
+                                            </span>
+                                        </div>
+                                        {category.description && (
+                                            <p className="text-sm text-gray-600 mb-2">{category.description}</p>
+                                        )}
+                                        {category.image && (
+                                            <img src={category.image} alt={category.name} className="w-32 h-20 object-cover rounded-lg mt-2" />
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleEdit(category)}
+                                            className="p-2 text-gray-600 hover:text-black transition"
+                                        >
+                                            <Edit2 className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(category.id)}
+                                            className="p-2 text-red-600 hover:text-red-700 transition"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
