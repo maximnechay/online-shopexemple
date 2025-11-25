@@ -16,6 +16,7 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
     // Rate limiting
+
     const rateLimitResult = rateLimit(request, RATE_LIMITS.products);
     if (!rateLimitResult.success) {
         return NextResponse.json(
@@ -71,4 +72,5 @@ export async function GET(request: NextRequest) {
             { status: 500 }
         );
     }
+
 }
