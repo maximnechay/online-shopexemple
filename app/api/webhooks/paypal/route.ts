@@ -144,14 +144,14 @@ async function handlePaymentCaptured(resource: any) {
         }
 
         // Payment deduplication check
-        const alreadyProcessed = await isPaymentProcessed(resource.id);
+        const alreadyProcessed = await isPaymentProcessed(resource.id, 'paypal');
         if (alreadyProcessed) {
             console.log('⚠️ Payment already processed:', resource.id);
             await createAuditLog({
                 action: 'payment.duplicate_attempt',
-                resource_type: 'payment',
-                resource_id: resource.id,
-                details: { orderId: supabaseOrderId, provider: 'paypal' },
+                resourceType: 'payment',
+                resourceId: resource.id,
+                metadata: { orderId: supabaseOrderId, provider: 'paypal' },
             });
             return;
         }
@@ -171,14 +171,15 @@ async function handlePaymentCaptured(resource: any) {
             console.log('✅ Order updated:', supabaseOrderId);
 
             // Mark payment as processed
-            await markPaymentAsProcessed(resource.id, 'paypal', supabaseOrderId);
+            const amount = parseFloat(resource.amount?.value || '0');
+            await markPaymentAsProcessed(resource.id, 'paypal', supabaseOrderId, amount);
 
             // Audit log
             await createAuditLog({
                 action: 'payment.completed',
-                resource_type: 'payment',
-                resource_id: resource.id,
-                details: {
+                resourceType: 'payment',
+                resourceId: resource.id,
+                metadata: {
                     orderId: supabaseOrderId,
                     provider: 'paypal',
                     amount: resource.amount?.value,
