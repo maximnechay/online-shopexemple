@@ -85,19 +85,26 @@ export async function POST(request: NextRequest) {
 
         const {
             userId,
-            customerName,
-            customerEmail,
-            customerPhone,
-            deliveryAddress,
-            deliveryCity,
-            deliveryPostalCode,
+            firstName,
+            lastName,
+            email,
+            phone,
+            street,
+            houseNumber,
+            postalCode,
+            city,
             deliveryMethod,
             paymentMethod,
             notes,
             items,
+            subtotal,
+            shipping,
+            total,
         } = body;
 
-        if (!customerName || !customerEmail || !customerPhone) {
+        console.log('📝 Creating order with data:', { firstName, lastName, email, phone, itemsCount: items?.length });
+
+        if (!firstName || !lastName || !email || !phone) {
             return NextResponse.json(
                 { error: 'Fehlende Kundendaten' },
                 { status: 400 }
@@ -118,26 +125,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const totalAmount = items.reduce(
-            (sum: number, item: any) => sum + item.productPrice * item.quantity,
-            0
-        );
+        // Generate unique order number
+        const orderNumber = `ORD-${Date.now()}`;
 
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .insert({
+                order_number: orderNumber,
                 user_id: userId || null,
-                customer_name: customerName,
-                customer_email: customerEmail,
-                customer_phone: customerPhone,
-                delivery_address: deliveryAddress || 'Самовывоз',
-                delivery_city: deliveryCity || 'Salon',
-                delivery_postal_code: deliveryPostalCode || null,
+                email: email,
+                phone: phone,
+                first_name: firstName,
+                last_name: lastName,
+                street: street || '',
+                house_number: houseNumber || '',
+                postal_code: postalCode || '',
+                city: city || '',
                 delivery_method: deliveryMethod,
                 payment_method: paymentMethod,
-                total_amount: totalAmount,
+                subtotal: subtotal || 0,
+                shipping: shipping || 0,
+                total: total || 0,
                 notes: notes || null,
                 status: 'pending',
+                payment_status: 'pending',
             })
             .select()
             .single();
@@ -152,10 +163,11 @@ export async function POST(request: NextRequest) {
 
         const orderItems = items.map((item: any) => ({
             order_id: order.id,
-            product_id: item.productId,
-            product_name: item.productName,
-            product_price: item.productPrice,
+            product_id: item.id,
+            product_name: item.name,
+            product_price: item.price,
             quantity: item.quantity,
+            total: item.price * item.quantity,
         }));
 
         const { error: itemsError } = await supabaseAdmin
@@ -174,13 +186,14 @@ export async function POST(request: NextRequest) {
         // Audit log
         await createAuditLog({
             action: 'order.create',
-            userEmail: customerEmail,
+            userEmail: email,
             resourceType: 'order',
             resourceId: order.id,
             ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
             userAgent: request.headers.get('user-agent') || 'unknown',
             metadata: {
-                totalAmount,
+                orderNumber,
+                total: total || 0,
                 paymentMethod,
                 itemsCount: items.length,
             },

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
             (profiles || []).map(async (profile: any) => {
                 const { data: orders, error: ordersError } = await supabase
                     .from('orders')
-                    .select('id, total_amount')
+                    .select('id, total')
                     .eq('user_id', profile.id);
 
                 if (ordersError) {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
                 const orderCount = orders?.length || 0;
                 const totalSpent = orders?.reduce(
-                    (sum: number, order: any) => sum + Number(order.total_amount || 0),
+                    (sum: number, order: any) => sum + Number(order.total || 0),
                     0
                 ) || 0;
 

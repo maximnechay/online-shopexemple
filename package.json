@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^8.9.2",
@@ -14,6 +15,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.84.0",
     "clsx": "^2.1.0",
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.263.1",
     "next": "^14.2.0",
     "react": "^18.3.0",

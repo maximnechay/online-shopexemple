@@ -20,17 +20,22 @@ interface OrderItem {
 
 interface Order {
     id: string;
+    order_number: string;
     user_id: string | null;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    delivery_address: string;
-    delivery_city: string;
-    delivery_postal_code: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    street: string;
+    house_number: string;
+    city: string;
+    postal_code: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'cash' | 'paypal';
-    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
-    total_amount: string;
+    payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
+    subtotal: string;
+    shipping: string;
+    total: string;
     status: string;
     notes: string | null;
     created_at: string;
@@ -238,7 +243,7 @@ export default function OrdersPage() {
                                 <div className="space-y-4">
                                     {orders.map((order) => {
                                         const itemsCount = getItemsCount(order);
-                                        const totalNumber = Number(order.total_amount ?? 0);
+                                        const totalNumber = Number(order.total ?? 0);
 
                                         return (
                                             <div

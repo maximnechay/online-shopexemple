@@ -19,14 +19,21 @@ import {
 
 interface Order {
     id: string;
-    order_number?: string;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    total_amount: string;
+    order_number: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    street: string;
+    house_number: string;
+    city: string;
+    postal_code: string;
+    subtotal: string;
+    shipping: string;
+    total: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'paypal' | 'cash';
-    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+    payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
     created_at: string;
     updated_at: string;
@@ -51,6 +58,7 @@ const statusLabels = {
 const paymentStatusColors = {
     pending: 'bg-gray-100 text-gray-800',
     completed: 'bg-green-100 text-green-800',
+    paid: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
     refunded: 'bg-orange-100 text-orange-800',
 };
@@ -58,6 +66,7 @@ const paymentStatusColors = {
 const paymentStatusLabels = {
     pending: 'Ausstehend',
     completed: 'Bezahlt',
+    paid: 'Bezahlt',
     failed: 'Fehlgeschlagen',
     refunded: 'Erstattet',
 };
@@ -109,8 +118,8 @@ export default function AdminOrdersPage() {
     const filteredOrders = orders.filter(order => {
         const matchesFilter = filter === 'all' || order.status === filter;
         const matchesSearch =
-            order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            `${order.first_name} ${order.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (order.order_number || order.id.substring(0, 8)).toLowerCase().includes(searchTerm.toLowerCase());
 
         return matchesFilter && matchesSearch;
@@ -278,10 +287,10 @@ export default function AdminOrdersPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm font-medium text-gray-900">
-                                                    {order.customer_name}
+                                                    {order.first_name} {order.last_name}
                                                 </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {order.customer_email}
+                                                <div className="text-sm text-gray-500">
+                                                    {order.email}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -299,7 +308,7 @@ export default function AdminOrdersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-semibold text-gray-900">
-                                                    {Number(order.total_amount).toFixed(2)} €
+                                                    {Number(order.total).toFixed(2)} €
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

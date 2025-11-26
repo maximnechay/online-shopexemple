@@ -32,17 +32,22 @@ interface OrderItem {
 
 interface Order {
     id: string;
+    order_number: string;
     user_id: string | null;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    delivery_address: string;
-    delivery_city: string;
-    delivery_postal_code: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    street: string;
+    house_number: string;
+    city: string;
+    postal_code: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'cash' | 'paypal';
-    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
-    total_amount: string;
+    payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
+    subtotal: string;
+    shipping: string;
+    total: string;
     status: string;
     notes: string | null;
     created_at: string;
@@ -213,7 +218,7 @@ export default function OrderDetailsPage() {
         );
     }
 
-    const totalNumber = Number(order.total_amount ?? 0);
+    const totalNumber = Number(order.total ?? 0);
     const items = order.items || [];
     const paymentStatusInfo = getPaymentStatusInfo(order.payment_status);
     const PaymentIcon = paymentStatusInfo.icon;
@@ -294,12 +299,12 @@ export default function OrderDetailsPage() {
                                     Kundendaten
                                 </h2>
                             </div>
-                            <p className="text-sm text-gray-900 mb-1">{order.customer_name}</p>
+                            <p className="text-sm text-gray-900 mb-1">{order.first_name} {order.last_name}</p>
                             <p className="text-sm text-gray-600 mb-1">
-                                {order.customer_email}
+                                {order.email}
                             </p>
                             <p className="text-sm text-gray-600">
-                                {order.customer_phone}
+                                {order.phone}
                             </p>
                         </div>
 
@@ -322,10 +327,10 @@ export default function OrderDetailsPage() {
                             ) : (
                                 <>
                                     <p className="text-sm text-gray-900 mb-1">
-                                        {order.delivery_address}
+                                        {order.street} {order.house_number}
                                     </p>
                                     <p className="text-sm text-gray-600">
-                                        {order.delivery_postal_code} {order.delivery_city}
+                                        {order.postal_code} {order.city}
                                     </p>
                                 </>
                             )}

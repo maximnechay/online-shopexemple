@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation';
 interface PayPalButtonsWrapperProps {
     items: any[];
     customer: {
-        name: string;
+        firstName: string;
+        lastName: string;
         email: string;
         phone: string;
     };
@@ -18,7 +19,7 @@ interface PayPalButtonsWrapperProps {
         houseNumber: string;
         city: string;
         postalCode: string;
-    };
+    } | null;
     userId?: string;
     onSuccess: (supabaseOrderId: string, paypalTransactionId: string) => void;
     onError?: () => void;

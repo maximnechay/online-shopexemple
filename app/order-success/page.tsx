@@ -12,11 +12,16 @@ import { purchase } from '@/lib/analytics'; // ⭐ GA4 Purchase Event
 
 interface Order {
     id: string;
-    customer_name: string;
-    customer_email: string;
-    total_amount: string;
+    order_number: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    total: string;
+    subtotal: string;
+    shipping: string;
     delivery_method: 'delivery' | 'pickup';
-    payment_method: 'card' | 'cash';
+    payment_method: 'card' | 'cash' | 'paypal';
     created_at: string;
     items?: Array<{
         id: string;
@@ -72,7 +77,7 @@ function OrderSuccessContent() {
                                 if (typeof window.gtag !== 'undefined') {
                                     console.log('🎯 GA4: Tracking purchase event', {
                                         orderId: data.order.id,
-                                        value: data.order.total_amount,
+                                        value: data.order.total,
                                         items: data.order.items.length
                                     });
 
@@ -84,8 +89,8 @@ function OrderSuccessContent() {
                                             price: Number(item.product_price),
                                             quantity: Number(item.quantity),
                                         })),
-                                        Number(data.order.total_amount),
-                                        0,
+                                        Number(data.order.total),
+                                        Number(data.order.shipping || 0),
                                         0
                                     );
                                 } else {
@@ -204,15 +209,15 @@ function OrderSuccessContent() {
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between py-2 border-b border-stone-100">
                             <span className="text-stone-600">Bestellnummer:</span>
-                            <span className="font-medium text-stone-900">#{order.id.slice(0, 8)}</span>
+                            <span className="font-medium text-stone-900">#{order.order_number || order.id.slice(0, 8)}</span>
                         </div>
                         <div className="flex justify-between py-2 border-b border-stone-100">
                             <span className="text-stone-600">Name:</span>
-                            <span className="font-medium text-stone-900">{order.customer_name}</span>
+                            <span className="font-medium text-stone-900">{order.first_name} {order.last_name}</span>
                         </div>
                         <div className="flex justify-between py-2 border-b border-stone-100">
                             <span className="text-stone-600">E-Mail:</span>
-                            <span className="font-medium text-stone-900">{order.customer_email}</span>
+                            <span className="font-medium text-stone-900">{order.email}</span>
                         </div>
                         <div className="flex justify-between py-2 border-b border-stone-100">
                             <span className="text-stone-600">Lieferung:</span>
@@ -223,7 +228,7 @@ function OrderSuccessContent() {
                         <div className="flex justify-between py-2">
                             <span className="text-stone-600">Gesamtbetrag:</span>
                             <span className="font-bold text-stone-900 text-lg">
-                                €{parseFloat(order.total_amount).toFixed(2)}
+                                €{parseFloat(order.total || '0').toFixed(2)}
                             </span>
                         </div>
                     </div>
@@ -238,7 +243,7 @@ function OrderSuccessContent() {
                     <ul className="space-y-2 text-sm text-stone-600">
                         <li className="flex items-start gap-2">
                             <span className="text-green-600 mt-0.5">✓</span>
-                            <span>Sie erhalten eine Bestätigungs-E-Mail an <strong>{order.customer_email}</strong></span>
+                            <span>Sie erhalten eine Bestätigungs-E-Mail an <strong>{order.email}</strong></span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-stone-400 mt-0.5">•</span>

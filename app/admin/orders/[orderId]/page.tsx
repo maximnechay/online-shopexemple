@@ -28,18 +28,22 @@ interface OrderItem {
 
 interface Order {
     id: string;
-    order_number?: string;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    delivery_address: string;
-    delivery_city: string;
-    delivery_postal_code: string;
+    order_number: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    street: string;
+    house_number: string;
+    city: string;
+    postal_code: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'paypal' | 'cash';
-    payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+    payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-    total_amount: string;
+    subtotal: string;
+    shipping: string;
+    total: string;
     notes: string | null;
     created_at: string;
     updated_at: string;
@@ -322,7 +326,7 @@ export default function AdminOrderDetailPage() {
                                 </div>
                                 <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
                                     <span className="text-gray-900">Gesamt</span>
-                                    <span className="text-rose-600">{Number(order.total_amount).toFixed(2)} €</span>
+                                    <span className="text-rose-600">{Number(order.total).toFixed(2)} €</span>
                                 </div>
                             </div>
                         </div>
@@ -356,7 +360,7 @@ export default function AdminOrderDetailPage() {
                                     <User className="w-5 h-5 text-gray-400 mt-0.5" />
                                     <div>
                                         <div className="text-sm text-gray-600">Name</div>
-                                        <div className="font-medium text-gray-900">{order.customer_name}</div>
+                                        <div className="font-medium text-gray-900">{order.first_name} {order.last_name}</div>
                                     </div>
                                 </div>
 
@@ -365,10 +369,10 @@ export default function AdminOrderDetailPage() {
                                     <div>
                                         <div className="text-sm text-gray-600">E-Mail</div>
                                         <a
-                                            href={`mailto:${order.customer_email}`}
+                                            href={`mailto:${order.email}`}
                                             className="font-medium text-rose-600 hover:text-rose-700"
                                         >
-                                            {order.customer_email}
+                                            {order.email}
                                         </a>
                                     </div>
                                 </div>
@@ -378,10 +382,10 @@ export default function AdminOrderDetailPage() {
                                     <div>
                                         <div className="text-sm text-gray-600">Telefon</div>
                                         <a
-                                            href={`tel:${order.customer_phone}`}
+                                            href={`tel:${order.phone}`}
                                             className="font-medium text-gray-900"
                                         >
-                                            {order.customer_phone}
+                                            {order.phone}
                                         </a>
                                     </div>
                                 </div>
@@ -411,8 +415,8 @@ export default function AdminOrderDetailPage() {
                                         <div>
                                             <div className="text-sm text-gray-600">Adresse</div>
                                             <div className="font-medium text-gray-900">
-                                                {order.delivery_address}<br />
-                                                {order.delivery_postal_code} {order.delivery_city}
+                                                {order.street} {order.house_number}<br />
+                                                {order.postal_code} {order.city}
                                             </div>
                                         </div>
                                     </div>

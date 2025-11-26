@@ -201,29 +201,27 @@ export default function CheckoutPage() {
             // Подготавливаем данные заказа
             const orderData: any = {
                 userId: user?.id || null,
-                customerName: `${formData.firstName} ${formData.lastName}`.trim(),
-                customerEmail: formData.email,
-                customerPhone: formData.phone,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
+                street: formData.street || '',
+                houseNumber: formData.houseNumber || '',
+                postalCode: formData.postalCode || '',
+                city: formData.city || '',
                 deliveryMethod: formData.deliveryMethod,
                 paymentMethod: formData.paymentMethod,
                 notes: formData.notes || null,
+                subtotal: getTotal(),
+                shipping: formData.deliveryMethod === 'delivery' ? (settings?.shippingCost || 4.99) : 0,
+                total: formData.deliveryMethod === 'delivery' ? getTotal() + (settings?.shippingCost || 4.99) : getTotal(),
                 items: items.map(item => ({
-                    productId: item.product.id,
-                    productName: item.product.name,
-                    productPrice: item.product.price,
+                    id: item.product.id,
+                    name: item.product.name,
+                    price: item.product.price,
                     quantity: item.quantity,
                 })),
             };
-
-            if (formData.deliveryMethod === 'delivery') {
-                orderData.deliveryAddress = `${formData.street} ${formData.houseNumber}`;
-                orderData.deliveryCity = formData.city;
-                orderData.deliveryPostalCode = formData.postalCode;
-            } else {
-                orderData.deliveryAddress = 'Selbstabholung';
-                orderData.deliveryCity = 'Salon';
-                orderData.deliveryPostalCode = '';
-            }
 
             // 1) НАЛИЧНЫЕ
             if (formData.paymentMethod === 'cash') {
@@ -254,9 +252,10 @@ export default function CheckoutPage() {
                         items: orderData.items,
                         deliveryMethod: orderData.deliveryMethod,
                         customer: {
-                            name: orderData.customerName,
-                            email: orderData.customerEmail,
-                            phone: orderData.customerPhone,
+                            firstName: formData.firstName,
+                            lastName: formData.lastName,
+                            email: formData.email,
+                            phone: formData.phone,
                         },
                         address:
                             orderData.deliveryMethod === 'delivery'
@@ -267,6 +266,9 @@ export default function CheckoutPage() {
                                     city: formData.city,
                                 }
                                 : null,
+                        subtotal: orderData.subtotal,
+                        shipping: orderData.shipping,
+                        total: orderData.total,
                     }),
                 });
 
@@ -377,6 +379,8 @@ export default function CheckoutPage() {
                                                 value={formData.firstName}
                                                 onChange={handleInputChange}
                                                 required
+                                                placeholder="Max"
+                                                maxLength={100}
                                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                             />
                                         </div>
@@ -391,6 +395,8 @@ export default function CheckoutPage() {
                                                 value={formData.lastName}
                                                 onChange={handleInputChange}
                                                 required
+                                                placeholder="Mustermann"
+                                                maxLength={100}
                                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                             />
                                         </div>
@@ -405,6 +411,7 @@ export default function CheckoutPage() {
                                                 value={formData.email}
                                                 onChange={handleInputChange}
                                                 required
+                                                placeholder="ihre@email.de"
                                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                             />
                                         </div>
@@ -419,8 +426,16 @@ export default function CheckoutPage() {
                                                 value={formData.phone}
                                                 onChange={handleInputChange}
                                                 required
+                                                placeholder="+49 123 456789"
+                                                pattern="[+\d\s()\-]+"
+                                                minLength={5}
+                                                maxLength={20}
+                                                title="Nur Ziffern, Leerzeichen, +, -, () erlaubt"
                                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                             />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Format: +49 123 456789 oder 0123456789
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -504,6 +519,8 @@ export default function CheckoutPage() {
                                                         value={formData.street}
                                                         onChange={handleInputChange}
                                                         required={formData.deliveryMethod === 'delivery'}
+                                                        placeholder="Hauptstraße"
+                                                        maxLength={100}
                                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                                     />
                                                 </div>
@@ -518,6 +535,8 @@ export default function CheckoutPage() {
                                                         value={formData.houseNumber}
                                                         onChange={handleInputChange}
                                                         required={formData.deliveryMethod === 'delivery'}
+                                                        placeholder="123A"
+                                                        maxLength={10}
                                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                                     />
                                                 </div>
@@ -534,8 +553,16 @@ export default function CheckoutPage() {
                                                         value={formData.postalCode}
                                                         onChange={handleInputChange}
                                                         required={formData.deliveryMethod === 'delivery'}
+                                                        placeholder="12345"
+                                                        pattern="\d{5}"
+                                                        minLength={5}
+                                                        maxLength={5}
+                                                        title="Bitte geben Sie eine 5-stellige Postleitzahl ein (nur Ziffern)"
                                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                                     />
+                                                    <p className="mt-1 text-xs text-gray-500">
+                                                        5-stellig (z.B. 30159)
+                                                    </p>
                                                 </div>
 
                                                 <div className="md:col-span-2">
@@ -548,6 +575,8 @@ export default function CheckoutPage() {
                                                         value={formData.city}
                                                         onChange={handleInputChange}
                                                         required={formData.deliveryMethod === 'delivery'}
+                                                        placeholder="Hannover"
+                                                        maxLength={100}
                                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                                                     />
                                                 </div>
@@ -659,6 +688,7 @@ export default function CheckoutPage() {
                                         value={formData.notes}
                                         onChange={handleInputChange}
                                         rows={4}
+                                        maxLength={500}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
                                         placeholder="Besondere Wünsche oder Anmerkungen..."
                                     />
@@ -679,13 +709,14 @@ export default function CheckoutPage() {
                                         </p>
                                         <PayPalButtonsWrapper
                                             items={items.map(item => ({
-                                                productId: item.product.id,
-                                                productName: item.product.name,
-                                                productPrice: item.product.price,
+                                                id: item.product.id,
+                                                name: item.product.name,
+                                                price: item.product.price,
                                                 quantity: item.quantity,
                                             }))}
                                             customer={{
-                                                name: `${formData.firstName} ${formData.lastName}`.trim(),
+                                                firstName: formData.firstName,
+                                                lastName: formData.lastName,
                                                 email: formData.email,
                                                 phone: formData.phone,
                                             }}
@@ -695,7 +726,7 @@ export default function CheckoutPage() {
                                                 houseNumber: formData.houseNumber,
                                                 city: formData.city,
                                                 postalCode: formData.postalCode,
-                                            } : undefined}
+                                            } : null}
                                             userId={user?.id}
                                             onSuccess={handlePayPalSuccess}
                                             onError={handlePayPalError}

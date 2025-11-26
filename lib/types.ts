@@ -71,6 +71,47 @@ export interface Order {
   createdAt: string;
 }
 
+// Database Order Type (from Supabase)
+export interface DatabaseOrder {
+  id: string;
+  order_number: string;
+  user_id: string | null;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  street: string;
+  house_number: string;
+  city: string;
+  postal_code: string;
+  subtotal: string | number;
+  shipping: string | number;
+  total: string | number;
+  delivery_method: 'delivery' | 'pickup';
+  payment_method: 'card' | 'cash' | 'paypal';
+  payment_status: 'pending' | 'paid' | 'completed' | 'failed' | 'refunded';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  notes: string | null;
+  paypal_order_id: string | null;
+  paypal_transaction_id: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_session_id: string | null;
+  created_at: string;
+  updated_at: string;
+  items?: DatabaseOrderItem[];
+}
+
+export interface DatabaseOrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  total: number;
+  created_at: string;
+}
+
 export interface OrderItem {
   productId: string;
   productName: string;

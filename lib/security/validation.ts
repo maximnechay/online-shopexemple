@@ -101,3 +101,51 @@ export function validateRequest<T>(schema: z.ZodSchema<T>, data: unknown): { suc
         };
     }
 }
+
+// Product query validation (для GET /api/products)
+export const productQuerySchema = z.object({
+    category: z.string().max(100).optional().nullable(),
+    search: z.string().min(1).max(200).optional().nullable()
+});
+
+// Checkout validation
+export const checkoutSchema = z.object({
+    items: z.array(z.object({
+        id: z.string().uuid('Ungültige Produkt-ID'),
+        name: z.string().min(1).max(200),
+        price: z.number().positive('Preis muss positiv sein'),
+        quantity: z.number().int().positive('Menge muss positiv sein').max(100, 'Maximale Menge: 100'),
+    })).min(1, 'Mindestens ein Artikel erforderlich').max(50, 'Zu viele Artikel'),
+
+    customer: z.object({
+        firstName: z.string().min(1, 'Vorname ist erforderlich').max(100),
+        lastName: z.string().min(1, 'Nachname ist erforderlich').max(100),
+        email: z.string().email('Ungültige E-Mail-Adresse'),
+        phone: z.string().min(5).max(20).regex(/^[+\d\s()\-]+$/, 'Ungültige Telefonnummer'),
+    }),
+
+    deliveryMethod: z.enum(['delivery', 'pickup']),
+
+    address: z.object({
+        street: z.string().min(1).max(200),
+        houseNumber: z.string().min(1).max(20),
+        city: z.string().min(1).max(100),
+        postalCode: z.string().min(5).max(10).regex(/^\d+$/, 'Postleitzahl muss nur Zahlen enthalten'),
+        country: z.string().min(2).max(2).default('DE'), // ISO code
+    }).nullable().optional(),
+
+    userId: z.string().uuid().optional().nullable(),
+
+    subtotal: z.number().positive().optional(),
+    shipping: z.number().min(0).optional(),
+    total: z.number().positive().optional(),
+});
+
+// Stripe webhook event validation
+export const stripeWebhookEventSchema = z.object({
+    id: z.string(),
+    type: z.string(),
+    data: z.object({
+        object: z.any(),
+    }),
+});

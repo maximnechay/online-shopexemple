@@ -27,6 +27,7 @@ export interface RateLimitConfig {
 
 export const RATE_LIMITS = {
     // Public endpoints
+    public: { maxRequests: 100, windowMs: 60000 }, // 100 req/min
     products: { maxRequests: 100, windowMs: 60000 }, // 100 req/min
     productDetail: { maxRequests: 200, windowMs: 60000 }, // 200 req/min
 

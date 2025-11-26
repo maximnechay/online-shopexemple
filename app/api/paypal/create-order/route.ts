@@ -2,12 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { validateRequest, checkoutSchema } from '@/lib/security/validation';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 // ✅ Используем отдельную переменную для PayPal mode
 const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
 const PAYPAL_API = PAYPAL_MODE === 'live'
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
+
+const PAYPAL_TIMEOUT = 15000; // 15 seconds
 
 async function getPayPalAccessToken() {
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
@@ -33,29 +37,38 @@ async function getPayPalAccessToken() {
 
     console.log('🔑 Requesting PayPal access token from:', `${PAYPAL_API}/v1/oauth2/token`);
 
-    const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'grant_type=client_credentials',
-    });
+    // ✅ Timeout protection
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s for token
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ PayPal token request failed:', {
-            mode: PAYPAL_MODE,
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText
+    try {
+        const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'grant_type=client_credentials',
+            signal: controller.signal,
         });
-        throw new Error(`Failed to get PayPal access token: ${response.status} ${response.statusText}`);
-    }
 
-    const data = await response.json();
-    console.log('✅ PayPal access token obtained successfully');
-    return data.access_token;
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ PayPal token request failed:', {
+                mode: PAYPAL_MODE,
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText
+            });
+            throw new Error(`Failed to get PayPal access token: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ PayPal access token obtained successfully');
+        return data.access_token;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function POST(request: NextRequest) {
@@ -71,48 +84,139 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    try {
-        const { items, customer, deliveryMethod, address, userId } = await request.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PAYPAL_TIMEOUT);
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
+    try {
+        const body = await request.json();
+
+        // ✅ ДОБАВЬ ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ
+        console.log('📦 Received PayPal request body:', JSON.stringify(body, null, 2));
+        console.log('📊 Body structure:', {
+            hasItems: !!body.items,
+            itemsCount: body.items?.length,
+            hasCustomer: !!body.customer,
+            customerKeys: body.customer ? Object.keys(body.customer) : [],
+            hasAddress: !!body.address,
+            addressKeys: body.address ? Object.keys(body.address) : [],
+            deliveryMethod: body.deliveryMethod,
+            userId: body.userId,
+        });
+
+        // ✅ INPUT VALIDATION - используем ту же схему что и для Stripe
+        const validation = validateRequest(checkoutSchema, body);
+        if (!validation.success) {
+            console.error('❌ PayPal checkout validation failed:');
+            console.error('Validation errors:', JSON.stringify(validation.errors, null, 2));
+            console.error('Failed body:', JSON.stringify(body, null, 2));
+
             return NextResponse.json(
-                { error: 'Keine Artikel im Warenkorb' },
+                {
+                    error: 'Ungültige Eingabedaten',
+                    details: validation.errors  // Клиент тоже увидит детали
+                },
                 { status: 400 }
             );
         }
 
-        console.log('🔍 Creating PayPal order with items:', items);
+        const { items, customer, deliveryMethod, address, userId } = validation.data;
 
-        // Считаем сумму
+        console.log('🔍 Creating PayPal order with items:', items.length);
+
+        // ✅ BUSINESS LOGIC VALIDATION
+        // Проверяем что все товары существуют и доступны
+        const productIds = items.map(item => item.id);
+        const { data: products, error: productsError } = await supabaseAdmin
+            .from('products')
+            .select('id, price, stock_quantity, in_stock')
+            .in('id', productIds);
+
+        if (productsError || !products) {
+            console.error('❌ Failed to fetch products:', productsError);
+            return NextResponse.json(
+                { error: 'Fehler beim Abrufen der Produkte' },
+                { status: 500 }
+            );
+        }
+
+        // Проверяем наличие и цены товаров
+        for (const item of items) {
+            const product = products.find(p => p.id === item.id);
+
+            if (!product) {
+                return NextResponse.json(
+                    { error: `Produkt ${item.name} nicht gefunden` },
+                    { status: 400 }
+                );
+            }
+
+            if (!product.in_stock) {
+                return NextResponse.json(
+                    { error: `Produkt ${item.name} ist nicht verfügbar` },
+                    { status: 400 }
+                );
+            }
+
+            if (product.stock_quantity < item.quantity) {
+                return NextResponse.json(
+                    {
+                        error: `Nicht genügend Lagerbestand für ${item.name}. Verfügbar: ${product.stock_quantity}`
+                    },
+                    { status: 400 }
+                );
+            }
+
+            // Проверяем что цена из корзины совпадает с текущей ценой
+            const priceDifference = Math.abs(Number(product.price) - item.price);
+            if (priceDifference > 0.01) { // Допускаем погрешность 1 цент
+                return NextResponse.json(
+                    {
+                        error: `Цена товара ${item.name} изменилась. Пожалуйста, обновите корзину.`
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // ✅ CALCULATE TOTAL
         const amount = items.reduce(
-            (sum: number, item: any) => sum + item.productPrice * item.quantity,
+            (sum, item) => sum + item.price * item.quantity,
             0
         );
 
-        if (!amount || amount <= 0) {
+        // Проверка минимальной суммы заказа
+        const MIN_ORDER_AMOUNT = 5; // €5
+        if (amount < MIN_ORDER_AMOUNT) {
             return NextResponse.json(
-                { error: 'Invalid order amount' },
+                { error: `Минимальная сумма заказа: €${MIN_ORDER_AMOUNT}` },
                 { status: 400 }
             );
         }
 
         console.log('💰 Order amount:', amount);
 
-        // Готовим адрес для метаданных
+        // ✅ PREPARE ADDRESS
         let delivery_address: string;
         let delivery_city: string;
         let delivery_postal_code: string;
 
         if (deliveryMethod === 'delivery') {
-            delivery_address = `${address?.street ?? ''} ${address?.houseNumber ?? ''}`.trim();
-            delivery_city = address?.city ?? '';
-            delivery_postal_code = address?.postalCode ?? '';
+            if (!address) {
+                return NextResponse.json(
+                    { error: 'Адрес доставки обязателен' },
+                    { status: 400 }
+                );
+            }
+            delivery_address = `${address.street} ${address.houseNumber}`.trim();
+            delivery_city = address.city;
+            delivery_postal_code = address.postalCode;
         } else {
             delivery_address = 'Abholung im Salon';
             delivery_city = 'Hannover';
             delivery_postal_code = '0';
         }
 
+        // ✅ GET ACCESS TOKEN
         const accessToken = await getPayPalAccessToken();
 
         // Создаём временный заказ в БД для хранения данных
@@ -121,15 +225,20 @@ export async function POST(request: NextRequest) {
             .from('orders')
             .insert({
                 user_id: userId || null,
-                customer_name: customer.name,
-                customer_email: customer.email,
-                customer_phone: customer.phone,
+                first_name: customer.firstName,
+                last_name: customer.lastName,
+                email: customer.email,
+                phone: customer.phone,
+                street: address?.street || '',
+                house_number: address?.houseNumber || '',
+                postal_code: delivery_postal_code,
+                city: delivery_city,
                 delivery_method: deliveryMethod,
                 payment_method: 'paypal',
-                delivery_address: delivery_address,
-                delivery_city: delivery_city,
-                delivery_postal_code: delivery_postal_code,
-                total_amount: amount,
+                subtotal: amount,
+                shipping: 0,
+                total: amount,
+                order_number: `ORD-${Date.now()}`,
                 status: 'pending',
                 payment_status: 'pending',
             })
@@ -144,12 +253,13 @@ export async function POST(request: NextRequest) {
         console.log('✅ Temporary order created:', tempOrder.id);
 
         // Создаём order_items
-        const orderItems = items.map((item: any) => ({
+        const orderItems = items.map((item) => ({
             order_id: tempOrder.id,
-            product_id: item.productId,
-            product_name: item.productName,
-            product_price: item.productPrice,
+            product_id: item.id,
+            product_name: item.name,
+            product_price: item.price,
             quantity: item.quantity,
+            total: item.price * item.quantity,
         }));
 
         const { error: itemsError } = await supabaseAdmin
@@ -163,8 +273,10 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to create order items');
         }
 
+        // ✅ CREATE PAYPAL ORDER WITH TIMEOUT
         console.log('📦 Creating PayPal order...');
-        const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+
+        const paypalOrderPromise = fetch(`${PAYPAL_API}/v2/checkout/orders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -193,7 +305,16 @@ export async function POST(request: NextRequest) {
                     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1&order_id=${tempOrder.id}`,
                 },
             }),
+            signal: controller.signal,
         });
+
+        // Race between PayPal call and timeout
+        const response = await Promise.race([
+            paypalOrderPromise,
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('PayPal API timeout')), PAYPAL_TIMEOUT)
+            )
+        ]) as Response;
 
         const paypalOrder = await response.json();
 
@@ -203,6 +324,11 @@ export async function POST(request: NextRequest) {
                 statusText: response.statusText,
                 details: paypalOrder
             });
+
+            // Удаляем временный заказ при ошибке PayPal
+            await supabaseAdmin.from('order_items').delete().eq('order_id', tempOrder.id);
+            await supabaseAdmin.from('orders').delete().eq('id', tempOrder.id);
+
             return NextResponse.json(
                 { error: 'Failed to create PayPal order', details: paypalOrder },
                 { status: response.status }
@@ -211,18 +337,50 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ PayPal order created:', paypalOrder.id);
 
+        // ✅ AUDIT LOGGING
+        await createAuditLog({
+            action: 'order.create',
+            resourceType: 'paypal_order',
+            resourceId: tempOrder.id,
+            userId: userId || undefined,
+            userEmail: customer.email,
+            ipAddress: request.headers.get('x-forwarded-for') || undefined,
+            userAgent: request.headers.get('user-agent') || undefined,
+            metadata: {
+                paypalOrderId: paypalOrder.id,
+                amount: amount,
+                itemsCount: items.length,
+                deliveryMethod,
+            },
+        }).catch(err => {
+            console.error('⚠️ Failed to create audit log:', err);
+            // Не прерываем процесс если audit log не создался
+        });
+
         return NextResponse.json({
             id: paypalOrder.id,
             orderId: tempOrder.id, // Наш ID заказа в БД
         });
+
     } catch (error: any) {
         console.error('❌ Error creating PayPal order:', {
             message: error.message,
             stack: error.stack
         });
+
+        // Специальная обработка timeout ошибок
+        if (error.message === 'PayPal API timeout' || error.name === 'AbortError') {
+            return NextResponse.json(
+                { error: 'Die Anfrage dauerte zu lange. Bitte versuchen Sie es erneut.' },
+                { status: 504 }
+            );
+        }
+
         return NextResponse.json(
             { error: error.message || 'Internal server error' },
             { status: 500 }
         );
+    } finally {
+        clearTimeout(timeout);
     }
 }

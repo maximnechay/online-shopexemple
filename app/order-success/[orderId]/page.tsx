@@ -11,11 +11,16 @@ import { useCartStore } from '@/lib/store/useCartStore';
 
 interface Order {
     id: string;
-    customer_name: string;
-    customer_email: string;
-    total_amount: string;      // numeric из Supabase приходит как string
+    order_number: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    subtotal: string;
+    shipping: string;
+    total: string;
     delivery_method: 'delivery' | 'pickup';
-    payment_method: 'card' | 'cash';
+    payment_method: 'card' | 'cash' | 'paypal';
     created_at: string;
 }
 
@@ -106,7 +111,7 @@ export default function OrderSuccessPage() {
         );
     }
 
-    const totalNumber = Number(order.total_amount ?? 0);
+    const totalNumber = Number(order.total ?? 0);
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -187,7 +192,7 @@ export default function OrderSuccessPage() {
                                     </h3>
                                     <p className="text-gray-600">
                                         Sie erhalten in Kürze eine Bestätigungs-E-Mail an{' '}
-                                        <span className="font-medium">{order.customer_email}</span>
+                                        <span className="font-medium">{order.email}</span>
                                     </p>
                                 </div>
                             </div>

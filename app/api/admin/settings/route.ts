@@ -1,6 +1,7 @@
 // app/api/admin/settings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 const SETTINGS_ID = 'default';
 
@@ -33,7 +34,19 @@ function mapDbToResponse(row: any) {
     };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // Rate limiting - public endpoint for reading settings
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.public);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { data, error } = await supabaseAdmin
             .from('shop_settings')
@@ -65,6 +78,18 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+    // Rate limiting - admin endpoint
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
 

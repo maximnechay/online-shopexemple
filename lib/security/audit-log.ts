@@ -15,6 +15,7 @@ export type AuditAction =
     | 'payment.failed'
     | 'payment.refunded'
     | 'payment.duplicate_attempt'
+    | 'checkout.session_created'  // ✅ ДОБАВЛЕНО для Stripe checkout
     | 'settings.update'
     | 'payment_settings.update'
     | 'newsletter.send'
