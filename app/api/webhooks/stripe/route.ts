@@ -224,7 +224,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
         if (!stockResult.success) {
             console.error('❌ Failed to decrease stock:', stockResult.error);
-            
+
             // Критическая ошибка: платёж прошёл, но товара нет
             // Помечаем заказ как проблемный
             await supabaseAdmin
@@ -350,7 +350,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         // Проверяем, что заказ был оплачен (нельзя вернуть то, что не списывалось)
         if (order.payment_status !== 'paid' && order.payment_status !== 'completed') {
             console.log('⚠️ Order was not paid, skipping stock refund');
-            
+
             // Всё равно помечаем как refunded для корректного отображения
             await supabaseAdmin
                 .from('orders')
@@ -359,7 +359,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
                     status: 'cancelled',
                 })
                 .eq('id', order.id);
-            
+
             return;
         }
 
@@ -380,7 +380,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
         if (!stockResult.success) {
             console.error('❌ Failed to return stock:', stockResult.error);
-            
+
             // Логируем ошибку но продолжаем
             await createAuditLog({
                 action: 'payment.refunded',

@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
         if (!stockResult.success) {
             console.error('❌ Failed to decrease stock:', stockResult.error);
-            
+
             // Критическая ситуация: платёж прошёл, но товара нет
             await supabaseAdmin
                 .from('orders')
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
             });
 
             return NextResponse.json(
-                { 
+                {
                     error: 'Insufficient stock',
                     details: stockResult.error,
                     orderId: existingOrder.id,

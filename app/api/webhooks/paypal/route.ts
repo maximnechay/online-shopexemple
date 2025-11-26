@@ -197,7 +197,7 @@ async function handlePaymentCaptured(resource: any) {
 
         if (!stockResult.success) {
             console.error('❌ Failed to decrease stock:', stockResult.error);
-            
+
             // Критическая ошибка: платёж прошёл, но товара нет
             await supabaseAdmin
                 .from('orders')
@@ -241,7 +241,7 @@ async function handlePaymentCaptured(resource: any) {
 
         if (updateError) {
             console.error('❌ Error updating order:', updateError);
-            
+
             // Склад уже уменьшен - логируем для расследования
             await createAuditLog({
                 action: 'payment.completed',
@@ -326,7 +326,7 @@ async function handlePaymentRefunded(resource: any) {
         // Проверяем, что заказ был оплачен
         if (order.payment_status !== 'paid' && order.payment_status !== 'completed') {
             console.log('⚠️ Order was not paid, skipping stock refund');
-            
+
             // Всё равно помечаем как refunded
             await supabaseAdmin
                 .from('orders')
@@ -335,7 +335,7 @@ async function handlePaymentRefunded(resource: any) {
                     status: 'cancelled',
                 })
                 .eq('id', order.id);
-            
+
             return;
         }
 
@@ -356,7 +356,7 @@ async function handlePaymentRefunded(resource: any) {
 
         if (!stockResult.success) {
             console.error('❌ Failed to return stock:', stockResult.error);
-            
+
             await createAuditLog({
                 action: 'payment.refunded',
                 userEmail: 'system',
