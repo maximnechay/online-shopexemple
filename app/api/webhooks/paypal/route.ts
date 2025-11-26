@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { isPaymentProcessed, markPaymentAsProcessed } from '@/lib/security/payment-deduplication';
 import { createAuditLog } from '@/lib/security/audit-log';
+import { decreaseStock, increaseStock } from '@/lib/inventory/stock-manager';
 
 const PAYPAL_API = process.env.NODE_ENV === 'production'
     ? 'https://api-m.paypal.com'
@@ -143,49 +144,137 @@ async function handlePaymentCaptured(resource: any) {
             return;
         }
 
+        console.log('💰 Processing PayPal payment for order:', supabaseOrderId);
+
+        // PayPal capture ID используем как payment_id
+        const paymentId = resource.id;
+
         // Payment deduplication check
-        const alreadyProcessed = await isPaymentProcessed(resource.id, 'paypal');
+        const alreadyProcessed = await isPaymentProcessed(paymentId, 'paypal');
         if (alreadyProcessed) {
-            console.log('⚠️ Payment already processed:', resource.id);
+            console.log('⚠️ Payment already processed:', paymentId);
             await createAuditLog({
                 action: 'payment.duplicate_attempt',
                 resourceType: 'payment',
-                resourceId: resource.id,
+                resourceId: paymentId,
                 metadata: { orderId: supabaseOrderId, provider: 'paypal' },
             });
             return;
         }
 
-        const { error } = await supabaseAdmin
+        // Получаем заказ с items
+        const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .update({
-                payment_status: 'completed',
-                paypal_transaction_id: resource.id,
-                status: 'processing',
-            })
-            .eq('id', supabaseOrderId);
+            .select('id, payment_status, payment_id, order_number, order_items(product_id, quantity)')
+            .eq('id', supabaseOrderId)
+            .single();
 
-        if (error) {
-            console.error('❌ Error updating order:', error);
-        } else {
-            console.log('✅ Order updated:', supabaseOrderId);
+        if (orderError || !order) {
+            console.error('❌ Order not found:', supabaseOrderId);
+            return;
+        }
 
-            // Mark payment as processed
-            const amount = parseFloat(resource.amount?.value || '0');
-            await markPaymentAsProcessed(resource.id, 'paypal', supabaseOrderId, amount);
+        // Проверяем, что заказ еще не оплачен
+        if (order.payment_status === 'paid' || order.payment_status === 'completed') {
+            console.log('⚠️ Order already paid, skipping:', order.id);
+            return;
+        }
 
-            // Audit log
+        // 📦 УМЕНЬШАЕМ СКЛАД
+        const stockItems = order.order_items.map((item: any) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+            notes: `PayPal payment confirmed for order ${order.order_number}`,
+        }));
+
+        console.log('📦 Decreasing stock for', stockItems.length, 'items');
+
+        const stockResult = await decreaseStock(
+            stockItems,
+            order.id,
+            paymentId
+        );
+
+        if (!stockResult.success) {
+            console.error('❌ Failed to decrease stock:', stockResult.error);
+            
+            // Критическая ошибка: платёж прошёл, но товара нет
+            await supabaseAdmin
+                .from('orders')
+                .update({
+                    payment_status: 'completed',
+                    payment_id: paymentId,
+                    paypal_transaction_id: paymentId,
+                    status: 'pending', // Требует ручной обработки
+                    notes: `ВНИМАНИЕ: Недостаточно товара! ${stockResult.error}`,
+                })
+                .eq('id', order.id);
+
             await createAuditLog({
                 action: 'payment.completed',
-                resourceType: 'payment',
-                resourceId: resource.id,
+                resourceType: 'order',
+                resourceId: order.id,
                 metadata: {
-                    orderId: supabaseOrderId,
                     provider: 'paypal',
-                    amount: resource.amount?.value,
+                    paymentId,
+                    error: 'insufficient_stock',
+                    details: stockResult.error,
                 },
             });
+
+            console.log('⚠️ PayPal payment completed but stock insufficient - requires manual handling');
+            return;
         }
+
+        console.log('✅ Stock decreased successfully');
+
+        // Обновляем заказ
+        const { error: updateError } = await supabaseAdmin
+            .from('orders')
+            .update({
+                payment_status: 'paid',
+                payment_id: paymentId,
+                paypal_transaction_id: paymentId,
+                status: 'processing',
+            })
+            .eq('id', order.id);
+
+        if (updateError) {
+            console.error('❌ Error updating order:', updateError);
+            
+            // Склад уже уменьшен - логируем для расследования
+            await createAuditLog({
+                action: 'payment.completed',
+                resourceType: 'order',
+                resourceId: order.id,
+                metadata: {
+                    provider: 'paypal',
+                    error: 'status_update_failed',
+                    note: 'Stock decreased but status update failed - REQUIRES MANUAL REVIEW',
+                },
+            });
+        } else {
+            console.log('✅ Order updated:', order.id);
+        }
+
+        // Mark payment as processed
+        const amount = parseFloat(resource.amount?.value || '0');
+        await markPaymentAsProcessed(paymentId, 'paypal', order.id, amount);
+
+        // Audit log
+        await createAuditLog({
+            action: 'payment.completed',
+            resourceType: 'payment',
+            resourceId: paymentId,
+            metadata: {
+                orderId: order.id,
+                provider: 'paypal',
+                amount: resource.amount?.value,
+                stockDecreased: true,
+            },
+        });
+
+        console.log('✅ PayPal payment processing completed for order:', order.id);
     } catch (error) {
         console.error('❌ handlePaymentCaptured error:', error);
     }
@@ -215,17 +304,100 @@ async function handlePaymentRefunded(resource: any) {
     try {
         const supabaseOrderId = resource.custom_id || resource.invoice_id;
 
-        if (!supabaseOrderId) return;
+        if (!supabaseOrderId) {
+            console.log('⚠️ No order ID in refunded resource');
+            return;
+        }
 
+        console.log('💸 Processing PayPal refund for order:', supabaseOrderId);
+
+        // Получаем заказ с items
+        const { data: order, error: orderError } = await supabaseAdmin
+            .from('orders')
+            .select('id, payment_status, payment_id, order_number, order_items(product_id, quantity)')
+            .eq('id', supabaseOrderId)
+            .single();
+
+        if (orderError || !order) {
+            console.log('ℹ️ Order not found for refund:', supabaseOrderId);
+            return;
+        }
+
+        // Проверяем, что заказ был оплачен
+        if (order.payment_status !== 'paid' && order.payment_status !== 'completed') {
+            console.log('⚠️ Order was not paid, skipping stock refund');
+            
+            // Всё равно помечаем как refunded
+            await supabaseAdmin
+                .from('orders')
+                .update({
+                    payment_status: 'refunded',
+                    status: 'cancelled',
+                })
+                .eq('id', order.id);
+            
+            return;
+        }
+
+        // 📦 ВОЗВРАЩАЕМ ТОВАР НА СКЛАД
+        const stockItems = order.order_items.map((item: any) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+            notes: `PayPal refund processed for order ${order.order_number}`,
+        }));
+
+        console.log('📦 Returning', stockItems.length, 'items to stock');
+
+        const stockResult = await increaseStock(
+            stockItems,
+            order.id,
+            order.payment_id || resource.id
+        );
+
+        if (!stockResult.success) {
+            console.error('❌ Failed to return stock:', stockResult.error);
+            
+            await createAuditLog({
+                action: 'payment.refunded',
+                userEmail: 'system',
+                resourceType: 'order',
+                resourceId: order.id,
+                metadata: {
+                    provider: 'paypal',
+                    error: 'stock_return_failed',
+                    details: stockResult.error,
+                    note: 'Refund processed but stock return failed - REQUIRES MANUAL REVIEW',
+                },
+            });
+        } else {
+            console.log('✅ Stock returned successfully');
+        }
+
+        // Обновляем статус
         await supabaseAdmin
             .from('orders')
             .update({
                 payment_status: 'refunded',
                 status: 'cancelled',
             })
-            .eq('id', supabaseOrderId);
+            .eq('id', order.id)
+            .eq('payment_status', order.payment_status); // Optimistic locking
 
-        console.log('✅ Order marked as refunded:', supabaseOrderId);
+        // Audit log
+        await createAuditLog({
+            action: 'payment.refunded',
+            userEmail: 'system',
+            resourceType: 'order',
+            resourceId: order.id,
+            metadata: {
+                provider: 'paypal',
+                refundId: resource.id,
+                amount: resource.amount?.value,
+                stockReturned: stockResult.success,
+            },
+        });
+
+        console.log('✅ PayPal refund processed for order:', order.id);
     } catch (error) {
         console.error('❌ handlePaymentRefunded error:', error);
     }

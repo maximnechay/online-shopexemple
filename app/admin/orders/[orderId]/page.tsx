@@ -61,6 +61,7 @@ export default function AdminOrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
+    const [confirmingPayment, setConfirmingPayment] = useState(false);
 
     const [editableStatus, setEditableStatus] = useState('');
     const [editablePaymentStatus, setEditablePaymentStatus] = useState('');
@@ -148,6 +149,32 @@ export default function AdminOrderDetailPage() {
         }
     };
 
+    const handleConfirmPayment = async () => {
+        if (!confirm('Möchten Sie die Barzahlung bestätigen? Der Lagerbestand wird entsprechend aktualisiert.')) {
+            return;
+        }
+
+        setConfirmingPayment(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}/confirm-payment`, {
+                method: 'POST',
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                alert('✅ Zahlung bestätigt und Lagerbestand aktualisiert!');
+                await loadOrder(); // Reload order to show updated status
+            } else {
+                alert('❌ Fehler: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error confirming payment:', error);
+            alert('Fehler beim Bestätigen der Zahlung');
+        } finally {
+            setConfirmingPayment(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 py-20 px-4">
@@ -215,6 +242,17 @@ export default function AdminOrderDetailPage() {
                         </div>
 
                         <div className="flex gap-3">
+                            {/* Show confirm payment button only for pending cash orders */}
+                            {order.payment_method === 'cash' && order.payment_status === 'pending' && (
+                                <button
+                                    onClick={handleConfirmPayment}
+                                    disabled={confirmingPayment}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                                >
+                                    <CreditCard className="w-4 h-4" />
+                                    {confirmingPayment ? 'Bestätigt...' : 'Zahlung bestätigen'}
+                                </button>
+                            )}
                             <button
                                 onClick={handleSendEmail}
                                 disabled={sendingEmail}

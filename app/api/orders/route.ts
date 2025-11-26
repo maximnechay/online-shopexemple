@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { createAuditLog } from '@/lib/security/audit-log';
+import { checkAvailability } from '@/lib/inventory/stock-manager';
 
 export async function GET(request: NextRequest) {
     try {
@@ -125,13 +126,46 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate unique order number
+        // ✅ Check stock availability BEFORE creating order
+        // This is a soft check - we don't reserve stock yet
+        console.log('🔍 Checking stock availability for', items.length, 'items');
+        const availability = await checkAvailability(
+            items.map((item: any) => ({
+                productId: item.id,
+                quantity: item.quantity
+            }))
+        );
+
+        if (!availability.available) {
+            const unavailableItems = availability.unavailableItems
+                .map(item => `${item.productName}: benötigt ${item.requested}, verfügbar ${item.inStock}`)
+                .join('; ');
+
+            console.warn('❌ Insufficient stock:', unavailableItems);
+
+            return NextResponse.json(
+                {
+                    error: 'Nicht genügend Lagerbestand',
+                    unavailableItems: availability.unavailableItems,
+                    message: `Folgende Artikel sind nicht verfügbar: ${unavailableItems}`
+                },
+                { status: 400 }
+            );
+        }
+
+        console.log('✅ All items available in stock');
+
+        // Generate unique order number AND payment_id for cash orders
         const orderNumber = `ORD-${Date.now()}`;
+        const paymentId = paymentMethod === 'cash'
+            ? `CASH-${Date.now()}-${Math.random().toString(36).substring(7)}`
+            : null; // Will be set by payment provider webhook for card/paypal
 
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .insert({
                 order_number: orderNumber,
+                payment_id: paymentId, // 🔑 Store payment_id for idempotency
                 user_id: userId || null,
                 email: email,
                 phone: phone,
@@ -148,7 +182,7 @@ export async function POST(request: NextRequest) {
                 total: total || 0,
                 notes: notes || null,
                 status: 'pending',
-                payment_status: 'pending',
+                payment_status: paymentMethod === 'cash' ? 'pending' : 'pending', // Cash orders start as pending
             })
             .select()
             .single();
@@ -193,11 +227,15 @@ export async function POST(request: NextRequest) {
             userAgent: request.headers.get('user-agent') || 'unknown',
             metadata: {
                 orderNumber,
+                paymentId,
                 total: total || 0,
                 paymentMethod,
                 itemsCount: items.length,
+                stockReserved: false, // Stock not decreased yet - only on payment confirmation
             },
         });
+
+        console.log('✅ Order created successfully:', order.id, '- Stock NOT decreased yet');
 
         return NextResponse.json({
             success: true,

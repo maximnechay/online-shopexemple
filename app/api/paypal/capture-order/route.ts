@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendOrderEmails } from '@/lib/email/helpers';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { decreaseStock } from '@/lib/inventory/stock-manager';
+import { createAuditLog } from '@/lib/security/audit-log';
 
 // ✅ Используем отдельную переменную для PayPal mode
 const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox';
@@ -91,13 +93,96 @@ export async function POST(request: NextRequest) {
 
         console.log('🔍 Updating order:', supabaseOrderId);
 
+        // Получаем заказ с items
+        const { data: existingOrder, error: fetchError } = await supabaseAdmin
+            .from('orders')
+            .select('*, order_items(product_id, quantity)')
+            .eq('id', supabaseOrderId)
+            .single();
+
+        if (fetchError || !existingOrder) {
+            console.error('❌ Order not found:', supabaseOrderId);
+            return NextResponse.json(
+                { error: 'Order not found' },
+                { status: 404 }
+            );
+        }
+
+        // Проверяем, что заказ еще не оплачен
+        if (existingOrder.payment_status === 'paid' || existingOrder.payment_status === 'completed') {
+            console.log('⚠️ Order already paid, skipping stock decrease');
+            return NextResponse.json({
+                id: captureData.id,
+                status: 'already_processed',
+                supabaseOrderId: existingOrder.id,
+            });
+        }
+
+        const paymentId = captureData.id;
+
+        // 📦 УМЕНЬШАЕМ СКЛАД
+        const stockItems = existingOrder.order_items.map((item: any) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+            notes: `PayPal payment captured for order ${existingOrder.order_number}`,
+        }));
+
+        console.log('📦 Decreasing stock for', stockItems.length, 'items');
+
+        const stockResult = await decreaseStock(
+            stockItems,
+            existingOrder.id,
+            paymentId
+        );
+
+        if (!stockResult.success) {
+            console.error('❌ Failed to decrease stock:', stockResult.error);
+            
+            // Критическая ситуация: платёж прошёл, но товара нет
+            await supabaseAdmin
+                .from('orders')
+                .update({
+                    payment_status: 'completed',
+                    payment_id: paymentId,
+                    paypal_transaction_id: paymentId,
+                    status: 'pending', // Требует ручной обработки
+                    notes: `ВНИМАНИЕ: Недостаточно товара! ${stockResult.error}`,
+                })
+                .eq('id', existingOrder.id);
+
+            await createAuditLog({
+                action: 'payment.completed',
+                resourceType: 'order',
+                resourceId: existingOrder.id,
+                metadata: {
+                    provider: 'paypal',
+                    paymentId,
+                    error: 'insufficient_stock',
+                    details: stockResult.error,
+                },
+            });
+
+            return NextResponse.json(
+                { 
+                    error: 'Insufficient stock',
+                    details: stockResult.error,
+                    orderId: existingOrder.id,
+                    requiresManualReview: true
+                },
+                { status: 400 }
+            );
+        }
+
+        console.log('✅ Stock decreased successfully');
+
         // Обновляем существующий заказ статусом оплаты
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
             .update({
-                payment_status: 'completed',
+                payment_status: 'paid',
+                payment_id: paymentId,
                 status: 'processing',
-                paypal_transaction_id: captureData.id,
+                paypal_transaction_id: paymentId,
             })
             .eq('id', supabaseOrderId)
             .select('*')
@@ -112,6 +197,20 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('✅ Order updated after PayPal payment:', order.id);
+
+        // Audit log
+        await createAuditLog({
+            action: 'payment.completed',
+            resourceType: 'order',
+            resourceId: order.id,
+            metadata: {
+                provider: 'paypal',
+                paymentId,
+                captureId: captureData.id,
+                amount: captureData.purchase_units[0]?.amount?.value,
+                stockDecreased: true,
+            },
+        });
 
         // Отправляем email подтверждения
         try {

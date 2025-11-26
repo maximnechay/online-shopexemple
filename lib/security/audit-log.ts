@@ -11,6 +11,8 @@ export type AuditAction =
     | 'order.create'
     | 'order.update'
     | 'order.cancel'
+    | 'order.payment_confirm'
+    | 'order.payment_confirm.failed'
     | 'payment.completed'
     | 'payment.failed'
     | 'payment.refunded'
