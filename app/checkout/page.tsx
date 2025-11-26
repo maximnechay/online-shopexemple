@@ -198,6 +198,31 @@ export default function CheckoutPage() {
         setError(null);
 
         try {
+            // ✅ ФИНАЛЬНАЯ ПРОВЕРКА STOCK перед оплатой
+            const stockCheckResponse = await fetch('/api/checkout/check-stock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: items.map(item => ({
+                        productId: item.product.id,
+                        quantity: item.quantity,
+                    })),
+                }),
+            });
+
+            const stockCheck = await stockCheckResponse.json();
+
+            if (!stockCheckResponse.ok || !stockCheck.available) {
+                const unavailableItems = stockCheck.unavailableItems || [];
+                const itemsList = unavailableItems
+                    .map((item: any) => `${item.productName}: benötigt ${item.requested}, verfügbar ${item.inStock}`)
+                    .join('\n');
+
+                throw new Error(
+                    `Einige Artikel sind nicht mehr auf Lager:\n\n${itemsList}\n\nBitte aktualisieren Sie Ihren Warenkorb.`
+                );
+            }
+
             // Подготавливаем данные заказа
             const orderData: any = {
                 userId: user?.id || null,

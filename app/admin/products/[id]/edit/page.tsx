@@ -48,6 +48,12 @@ export default function EditProductPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Stock adjustment modal
+    const [showStockModal, setShowStockModal] = useState(false);
+    const [stockAdjustment, setStockAdjustment] = useState('');
+    const [stockReason, setStockReason] = useState('');
+    const [adjustingStock, setAdjustingStock] = useState(false);
+
     // Загрузка товара
     useEffect(() => {
         if (!id) return;
@@ -103,6 +109,71 @@ export default function EditProductPage() {
         setForm(prev => ({ ...prev, in_stock: !prev.in_stock }));
     };
 
+    const handleStockAdjustment = async () => {
+        if (!stockReason.trim()) {
+            alert('Bitte geben Sie einen Grund ein');
+            return;
+        }
+
+        const change = Number(stockAdjustment);
+        if (isNaN(change) || change === 0) {
+            alert('Bitte geben Sie eine gültige Zahl ein (+10 oder -5)');
+            return;
+        }
+
+        setAdjustingStock(true);
+        setError(null);
+
+        try {
+            const res = await fetch(`/api/admin/products/${id}/adjust-stock`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Важно: отправляет cookies
+                body: JSON.stringify({
+                    quantityChange: change,
+                    reason: stockReason,
+                }),
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                let errorMessage = 'Fehler beim Anpassen des Lagerbestands';
+
+                try {
+                    const data = JSON.parse(text);
+                    errorMessage = data.error || errorMessage;
+                } catch {
+                    errorMessage = text || errorMessage;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const data = await res.json();
+
+            // Обновляем локальное состояние
+            setForm(prev => ({
+                ...prev,
+                stock_quantity: String(data.data.stock_after),
+            }));
+
+            // Закрываем модалку и очищаем
+            setShowStockModal(false);
+            setStockAdjustment('');
+            setStockReason('');
+
+            alert(`Lagerbestand erfolgreich aktualisiert: ${data.data.stock_before} → ${data.data.stock_after}`);
+        } catch (err: any) {
+            console.error('Stock adjustment error:', err);
+            setError(err.message || 'Unbekannter Fehler');
+            alert(err.message || 'Fehler beim Anpassen des Lagerbestands');
+        } finally {
+            setAdjustingStock(false);
+        }
+    };
+
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -114,9 +185,8 @@ export default function EditProductPage() {
                 price: Number(form.price),
                 category: form.category.trim(),
                 description: form.description.trim(),
-                stock_quantity: form.stock_quantity
-                    ? Number(form.stock_quantity)
-                    : 0,
+                // stock_quantity НЕ обновляется через PATCH!
+                // Используйте adjust_stock_manual() функцию
                 in_stock: form.in_stock,
                 compare_at_price: form.compare_at_price
                     ? Number(form.compare_at_price)
@@ -254,12 +324,25 @@ export default function EditProductPage() {
                                     name="stock_quantity"
                                     type="number"
                                     value={form.stock_quantity}
-                                    onChange={change}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                                    disabled
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">
-                                Wenn leer, wird automatisch 0 gesetzt.
+                            <p className="mt-1 text-xs text-amber-600">
+                                ⚠️ Lagerbestand kann nicht direkt geändert werden.
+                            </p>
+
+                            {/* Stock adjustment button - MOVED HERE */}
+                            <button
+                                type="button"
+                                onClick={() => setShowStockModal(true)}
+                                className="mt-3 w-full py-3.5 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white rounded-xl font-bold hover:from-orange-600 hover:via-amber-600 hover:to-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl shadow-orange-500/50 flex items-center justify-center gap-2 transform hover:scale-105 animate-pulse hover:animate-none border-2 border-white"
+                            >
+                                <PackagePlus className="w-5 h-5 animate-bounce" />
+                                <span className="text-base">Lagerbestand anpassen</span>
+                            </button>
+                            <p className="mt-2 text-xs text-gray-600 text-center font-medium">
+                                👉 Wareneingang, Inventur oder Ausschuss
                             </p>
                         </div>
 
@@ -371,6 +454,87 @@ export default function EditProductPage() {
                         {saving ? 'Speichern...' : 'Änderungen speichern'}
                     </button>
                 </form>
+
+                {/* Stock Adjustment Modal */}
+                {showStockModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                            <h3 className="text-2xl font-medium text-gray-900 mb-6">
+                                Lagerbestand anpassen
+                            </h3>
+
+                            <div className="space-y-6">
+                                {/* Current stock */}
+                                <div className="bg-gray-50 p-4 rounded-xl">
+                                    <p className="text-sm text-gray-600 mb-1">
+                                        Aktueller Bestand
+                                    </p>
+                                    <p className="text-3xl font-medium text-gray-900">
+                                        {form.stock_quantity || 0} Stk
+                                    </p>
+                                </div>
+
+                                {/* Quantity change */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Änderung
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={stockAdjustment}
+                                        onChange={(e) => setStockAdjustment(e.target.value)}
+                                        placeholder="+10 oder -5"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    />
+                                    <p className="mt-2 text-sm text-gray-600">
+                                        Neuer Bestand:{' '}
+                                        <span className="font-medium text-gray-900">
+                                            {Number(form.stock_quantity || 0) + Number(stockAdjustment || 0)} Stk
+                                        </span>
+                                    </p>
+                                </div>
+
+                                {/* Reason */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Grund (erforderlich)
+                                    </label>
+                                    <textarea
+                                        value={stockReason}
+                                        onChange={(e) => setStockReason(e.target.value)}
+                                        placeholder="z.B. Wareneingang, Inventur, Ausschuss"
+                                        rows={3}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowStockModal(false);
+                                            setStockAdjustment('');
+                                            setStockReason('');
+                                        }}
+                                        disabled={adjustingStock}
+                                        className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition disabled:opacity-60"
+                                    >
+                                        Abbrechen
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleStockAdjustment}
+                                        disabled={adjustingStock || !stockReason.trim()}
+                                        className="flex-1 py-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        {adjustingStock ? 'Wird gespeichert...' : 'Bestätigen'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

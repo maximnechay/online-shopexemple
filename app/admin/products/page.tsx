@@ -204,8 +204,15 @@ export default function AdminProductsPage() {
                                                 <Package className="w-4 h-4 text-gray-500" />
                                                 <span>
                                                     Lager:{' '}
-                                                    <span className="font-medium text-gray-800">
+                                                    <span className={`font-medium ${(p.stock_quantity ?? 0) === 0
+                                                            ? 'text-red-600'
+                                                            : (p.stock_quantity ?? 0) < 10
+                                                                ? 'text-amber-600'
+                                                                : 'text-gray-800'
+                                                        }`}>
                                                         {p.stock_quantity ?? 0} Stk
+                                                        {(p.stock_quantity ?? 0) === 0 && ' (Ausverkauft)'}
+                                                        {(p.stock_quantity ?? 0) > 0 && (p.stock_quantity ?? 0) < 10 && ' (Niedrig)'}
                                                     </span>
                                                 </span>
                                             </div>

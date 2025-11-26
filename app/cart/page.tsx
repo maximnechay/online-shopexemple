@@ -169,11 +169,27 @@ export default function CartPage() {
                                             </div>
 
                                             {/* Stock warning */}
-                                            {item.quantity >= item.product.stockQuantity && (
+                                            {item.product.stockQuantity === 0 ? (
+                                                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">
+                                                    <p className="text-xs text-red-700 font-medium">
+                                                        ⚠️ Nicht auf Lager - Bitte entfernen Sie diesen Artikel
+                                                    </p>
+                                                </div>
+                                            ) : item.quantity > item.product.stockQuantity ? (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+                                                    <p className="text-xs text-amber-700 font-medium">
+                                                        ⚠️ Nur noch {item.product.stockQuantity} verfügbar - Menge anpassen
+                                                    </p>
+                                                </div>
+                                            ) : item.quantity >= item.product.stockQuantity ? (
                                                 <p className="text-xs text-amber-600 mt-2">
                                                     Maximale verfügbare Menge erreicht
                                                 </p>
-                                            )}
+                                            ) : item.product.stockQuantity < 5 ? (
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    Nur noch {item.product.stockQuantity} auf Lager
+                                                </p>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
@@ -235,13 +251,28 @@ export default function CartPage() {
                                     </div>
                                 </div>
 
-                                <Link
-                                    href="/checkout"
-                                    className="w-full bg-black text-white py-4 rounded-full font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 mb-3"
-                                >
-                                    Zur Kasse
-                                    <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
-                                </Link>
+                                {items.some(item => item.product.stockQuantity === 0 || item.quantity > item.product.stockQuantity) ? (
+                                    <div className="mb-3">
+                                        <button
+                                            disabled
+                                            className="w-full bg-gray-300 text-gray-500 py-4 rounded-full font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            Zur Kasse
+                                            <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
+                                        </button>
+                                        <p className="text-xs text-red-600 text-center mt-2">
+                                            Einige Artikel sind nicht verfügbar
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <Link
+                                        href="/checkout"
+                                        className="w-full bg-black text-white py-4 rounded-full font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 mb-3"
+                                    >
+                                        Zur Kasse
+                                        <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
+                                    </Link>
+                                )}
 
                                 <Link
                                     href="/catalog"

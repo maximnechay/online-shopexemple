@@ -87,7 +87,13 @@ export async function checkAvailability(
 /**
  * Decrease stock for purchased items
  * Called ONLY when payment is confirmed
- * This is atomic and will rollback if any item fails
+ * 
+ * АТОМАРНАЯ ОПЕРАЦИЯ через PostgreSQL транзакцию:
+ * - Использует RPC function с FOR UPDATE блокировкой
+ * - Проверяет stock >= quantity для ВСЕХ товаров
+ * - Если хоть один товар недоступен - RAISE EXCEPTION откатывает ВСЮ транзакцию
+ * - Ошибка прилетает в error (не в data.success)
+ * - Полностью защищено от race condition
  */
 export async function decreaseStock(
     items: StockChange[],
@@ -97,59 +103,42 @@ export async function decreaseStock(
     const supabase = supabaseAdmin;
 
     try {
-        // Start transaction-like operation
-        // First, verify all items are still available
-        const availability = await checkAvailability(
-            items.map(item => ({ productId: item.productId, quantity: item.quantity }))
-        );
+        // Prepare items for PostgreSQL function
+        const itemsJson = items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes || `Purchase for order`,
+        }));
 
-        if (!availability.available) {
-            const unavailableNames = availability.unavailableItems
-                .map(item => `${item.productName} (need ${item.requested}, have ${item.inStock})`)
-                .join(', ');
+        // Call PostgreSQL RPC function - это АТОМАРНАЯ ТРАНЗАКЦИЯ
+        // Внутри функции:
+        // BEGIN (неявно)
+        //   FOR each item:
+        //     SELECT ... FOR UPDATE (блокирует строку)
+        //     IF stock < quantity THEN собираем ошибки
+        //     UPDATE stock = stock - quantity
+        //     INSERT INTO stock_logs
+        //   IF есть ошибки THEN RAISE EXCEPTION → ROLLBACK всей транзакции
+        // COMMIT (неявно, только если не было RAISE EXCEPTION)
+        const { data, error } = await supabase.rpc('decrease_stock_atomic', {
+            items: itemsJson,
+            p_order_id: orderId,
+            p_payment_id: paymentId,
+        });
 
+        // Если PostgreSQL RAISE EXCEPTION - прилетает в error
+        if (error) {
+            console.error('❌ Atomic stock decrease failed:', error);
             return {
                 success: false,
-                error: `Insufficient stock for: ${unavailableNames}`,
+                error: error.message || 'Failed to decrease stock',
             };
         }
 
-        // Decrease stock for each item
-        for (const item of items) {
-            const product = availability.allItems.find(p => p.productId === item.productId);
-            if (!product) continue;
-
-            const stockBefore = product.inStock;
-            const stockAfter = stockBefore - item.quantity;
-
-            // Update product stock
-            const { error: updateError } = await supabase
-                .from('products')
-                .update({ stock_quantity: stockAfter })
-                .eq('id', item.productId)
-                .eq('stock_quantity', stockBefore); // Optimistic locking
-
-            if (updateError) {
-                console.error('Error decreasing stock:', updateError);
-                throw new Error(`Failed to decrease stock for product ${item.productId}`);
-            }
-
-            // Log the stock change
-            await logStockChange({
-                productId: item.productId,
-                orderId,
-                eventType: 'purchase',
-                quantityChange: -item.quantity,
-                stockBefore,
-                stockAfter,
-                paymentId,
-                notes: item.notes,
-            });
-        }
-
+        // Если функция вернула data без ошибки - успех
         return { success: true };
     } catch (error) {
-        console.error('Error in decreaseStock:', error);
+        console.error('❌ Error in decreaseStock:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to decrease stock',
@@ -259,12 +248,72 @@ async function logStockChange(params: {
 
 /**
  * Manual stock adjustment (for admin use)
+ * Uses RELATIVE changes (+N or -N) instead of absolute values
+ * 
+ * @param productId - Product UUID
+ * @param quantityChange - Positive for increase (+10), negative for decrease (-5)
+ * @param reason - Human-readable reason (required for audit)
+ * @param adminUserId - Admin user ID performing the adjustment
+ * 
+ * Examples:
+ *   adjustStock(productId, +50, "Поступление со склада", adminId)
+ *   adjustStock(productId, -3, "Брак при проверке", adminId)
  */
 export async function adjustStock(
+    productId: string,
+    quantityChange: number,
+    reason: string,
+    adminUserId: string
+): Promise<{ success: boolean; error?: string; result?: any }> {
+    const supabase = supabaseAdmin;
+
+    try {
+        if (!reason || reason.trim().length === 0) {
+            return {
+                success: false,
+                error: 'Reason is required for stock adjustment',
+            };
+        }
+
+        // Call PostgreSQL RPC function - АТОМАРНАЯ ОПЕРАЦИЯ
+        // Использует FOR UPDATE блокировку и проверяет что stock >= 0
+        const { data, error } = await supabase.rpc('adjust_stock_manual', {
+            p_product_id: productId,
+            p_quantity_change: quantityChange,
+            p_reason: reason,
+            p_admin_user_id: adminUserId,
+        });
+
+        if (error) {
+            console.error('❌ Manual stock adjustment failed:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to adjust stock',
+            };
+        }
+
+        console.log('✅ Stock adjusted:', data);
+        return { success: true, result: data };
+    } catch (error) {
+        console.error('❌ Error in adjustStock:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to adjust stock',
+        };
+    }
+}
+
+/**
+ * @deprecated Use adjustStock with relative changes instead
+ * This function is kept for backward compatibility but should not be used
+ */
+export async function setStockAbsolute(
     productId: string,
     newStock: number,
     notes: string
 ): Promise<{ success: boolean; error?: string }> {
+    console.warn('⚠️ setStockAbsolute is deprecated. Use adjustStock with relative changes.');
+
     const supabase = supabaseAdmin;
 
     try {
@@ -282,33 +331,13 @@ export async function adjustStock(
         const stockBefore = product.stock_quantity;
         const quantityChange = newStock - stockBefore;
 
-        // Update stock
-        const { error: updateError } = await supabase
-            .from('products')
-            .update({ stock_quantity: newStock })
-            .eq('id', productId);
-
-        if (updateError) {
-            throw new Error('Failed to update stock');
-        }
-
-        // Log the change
-        await logStockChange({
-            productId,
-            orderId: '00000000-0000-0000-0000-000000000000', // Placeholder for manual adjustments
-            eventType: 'manual_adjust',
-            quantityChange,
-            stockBefore,
-            stockAfter: newStock,
-            notes,
-        });
-
-        return { success: true };
+        // Use the proper adjustStock function
+        return await adjustStock(productId, quantityChange, notes, '00000000-0000-0000-0000-000000000000');
     } catch (error) {
-        console.error('Error in adjustStock:', error);
+        console.error('Error in setStockAbsolute:', error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Failed to adjust stock',
+            error: error instanceof Error ? error.message : 'Failed to set stock',
         };
     }
 }
