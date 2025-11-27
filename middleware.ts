@@ -18,76 +18,79 @@ export async function middleware(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                getAll() {
-                    return request.cookies.getAll().map((cookie) => ({
-                        name: cookie.name,
-                        value: cookie.value,
-                    }));
+                get(name: string) {
+                    return request.cookies.get(name)?.value;
                 },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => {
-                        request.cookies.set(name, value);
-                        response.cookies.set(name, value, options);
+                set(name: string, value: string, options: any) {
+                    request.cookies.set({
+                        name,
+                        value,
+                        ...options,
+                    });
+                    response = NextResponse.next({
+                        request: {
+                            headers: request.headers,
+                        },
+                    });
+                    response.cookies.set({
+                        name,
+                        value,
+                        ...options,
+                    });
+                },
+                remove(name: string, options: any) {
+                    request.cookies.set({
+                        name,
+                        value: '',
+                        ...options,
+                    });
+                    response = NextResponse.next({
+                        request: {
+                            headers: request.headers,
+                        },
+                    });
+                    response.cookies.set({
+                        name,
+                        value: '',
+                        ...options,
                     });
                 },
             },
         }
     );
 
-    const pathname = request.nextUrl.pathname;
-
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const isAuthPage =
-        pathname.startsWith('/auth/login') ||
-        pathname.startsWith('/auth/register');
-
-    const isProfileRoute = pathname.startsWith('/profile');
-
-    const isAdminRoute =
-        pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
-
-    // 1) Админ-зона
-    if (isAdminRoute) {
-        // нет юзера — на логин
+    // Protected admin routes
+    if (request.nextUrl.pathname.startsWith('/admin')) {
         if (!user) {
-            const redirectUrl = new URL('/auth/login', request.url);
-            redirectUrl.searchParams.set('redirect', pathname);
-            return NextResponse.redirect(redirectUrl);
+            return NextResponse.redirect(new URL('/auth/login', request.url));
         }
 
-        // есть юзер — проверяем роль
-        const { data: profile, error } = await supabase
+        // Check if user is admin
+        const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-        if (error) {
-            console.error('Error loading profile in middleware:', error);
-            return new NextResponse('Access denied', { status: 403 });
+        if (profile?.role !== 'admin') {
+            return NextResponse.redirect(new URL('/', request.url));
         }
-
-        if (!profile || profile.role !== 'admin') {
-            return new NextResponse('Access denied', { status: 403 });
-        }
-
-        // admin пропускаем дальше
-        return response;
     }
 
-    // 2) Защита /profile
-    if (!user && isProfileRoute) {
-        const redirectUrl = new URL('/auth/login', request.url);
-        redirectUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(redirectUrl);
+    // Redirect authenticated users away from auth pages
+    if (user && (request.nextUrl.pathname === '/auth/login' || request.nextUrl.pathname === '/auth/register')) {
+        return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // 3) Если пользователь уже залогинен и идёт на /auth/*
-    if (user && isAuthPage) {
-        return NextResponse.redirect(new URL('/profile', request.url));
+    // Protected user routes
+    if (request.nextUrl.pathname.startsWith('/profile')) {
+        if (!user) {
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
     }
 
     return response;
@@ -95,10 +98,14 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/profile/:path*',
-        '/auth/login',
-        '/auth/register',
-        '/admin/:path*',
-        '/api/admin/:path*',
+        /*
+         * Match all request paths except:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         * - public folder
+         * - api routes (let them handle their own auth)
+         */
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };
