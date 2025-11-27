@@ -2,23 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, Tag, Euro, FileText, PackagePlus } from 'lucide-react';
+import { Tag, Euro, FileText, PackagePlus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import {
-
-    ArrowLeft
-} from 'lucide-react';
 import { useCategories } from '@/lib/hooks/useCategories';
+import ImageUpload from '@/components/admin/ImageUpload';
 
 export default function CreateProduct() {
     const router = useRouter();
     const { categories } = useCategories();
 
+    // Отдельный state для изображений
+    const [images, setImages] = useState<string[]>([]);
+
     const [form, setForm] = useState({
         name: '',
         price: '',
         compareAtPrice: '',
-        images: '',
         category: '',
         description: '',
         stockQuantity: '',
@@ -43,8 +42,24 @@ export default function CreateProduct() {
         }));
     };
 
+    const handleImageUploaded = (url: string) => {
+        setImages(prev => [...prev, url]);
+        console.log('✅ Image uploaded:', url);
+    };
+
+    const handleImageRemoved = (url: string) => {
+        setImages(prev => prev.filter(img => img !== url));
+        console.log('🗑️ Image removed:', url);
+    };
+
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Валидация: должно быть хотя бы одно изображение
+        if (images.length === 0) {
+            alert('Bitte laden Sie mindestens ein Bild hoch');
+            return;
+        }
 
         const payload = {
             name: form.name,
@@ -59,10 +74,7 @@ export default function CreateProduct() {
                 ? Number(form.stockQuantity)
                 : 0,
             inStock: form.inStock,
-            images: form.images
-                ? form.images.split(',').map(i => i.trim()).filter(Boolean)
-                : [],
-            // можно отправлять строкой — API сам разбирает
+            images: images, // Массив URL изображений
             tags: form.tags,
         };
 
@@ -79,7 +91,9 @@ export default function CreateProduct() {
             return;
         }
 
+        console.log('✅ Product created:', data);
         router.push('/admin/products');
+        router.refresh();
     };
 
     return (
@@ -88,6 +102,7 @@ export default function CreateProduct() {
                 <h1 className="text-4xl font-light text-gray-900 mb-10">
                     Neues Produkt hinzufügen
                 </h1>
+
                 {/* Back */}
                 <Link
                     href="/admin/products"
@@ -96,11 +111,11 @@ export default function CreateProduct() {
                     <ArrowLeft className="w-4 h-4" />
                     Zurück zur Produktliste
                 </Link>
+
                 <form
                     onSubmit={submit}
                     className="space-y-8 bg-gray-50 p-8 rounded-3xl border border-gray-200 shadow-sm"
                 >
-
                     {/* Name */}
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">
@@ -227,43 +242,27 @@ export default function CreateProduct() {
                         </select>
                     </div>
 
-                    {/* Images */}
+                    {/* ========== IMAGE UPLOAD COMPONENT ========== */}
                     <div>
-                        <label className="block text-gray-700 font-medium mb-2">
-                            Bild-URL(s) (kommagetrennt) *
+                        <label className="block text-gray-700 font-medium mb-3">
+                            Produktbilder *
                         </label>
 
-                        <div className="flex items-center gap-3">
-                            <ImagePlus className="w-5 h-5 text-gray-500" />
-                            <input
-                                name="images"
-                                value={form.images}
-                                onChange={change}
-                                required
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black"
-                                placeholder="https://... , https://..."
-                            />
-                        </div>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Das erste Bild wird als Hauptbild verwendet. Sie können bis zu 5 Bilder hochladen.
+                        </p>
 
-                        {form.images && (
-                            <div className="grid grid-cols-3 gap-4 mt-4">
-                                {form.images
-                                    .split(',')
-                                    .map((url, i) => url.trim())
-                                    .filter(Boolean)
-                                    .map((url, i) => (
-                                        <div
-                                            key={i}
-                                            className="w-full h-28 bg-gray-200 rounded-xl overflow-hidden"
-                                        >
-                                            <img
-                                                src={url}
-                                                className="object-cover w-full h-full"
-                                                alt=""
-                                            />
-                                        </div>
-                                    ))}
-                            </div>
+                        <ImageUpload
+                            onImageUploaded={handleImageUploaded}
+                            onImageRemoved={handleImageRemoved}
+                            existingImages={images}
+                            maxImages={5}
+                        />
+
+                        {images.length === 0 && (
+                            <p className="mt-3 text-sm text-amber-600">
+                                ⚠️ Bitte laden Sie mindestens ein Bild hoch
+                            </p>
                         )}
                     </div>
 
@@ -300,7 +299,9 @@ export default function CreateProduct() {
                     </div>
 
                     <button
-                        className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition"
+                        type="submit"
+                        disabled={images.length === 0}
+                        className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Produkt erstellen
                     </button>
