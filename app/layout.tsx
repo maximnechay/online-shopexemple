@@ -27,7 +27,7 @@ export function generateMetadata(): Metadata {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://elegance-beauty.de';
   const siteName = 'Élégance Beauty & Cosmetics';
   const siteDescription = 'Hochwertige Beauty-Produkte und professionelle Kosmetik für Ihre natürliche Schönheit. Entdecken Sie Premium-Hautpflege, Make-up und Wellness-Produkte in Deutschland.';
-  
+
   return {
     title: {
       default: siteName,
