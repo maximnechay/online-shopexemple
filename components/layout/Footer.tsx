@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Mail, Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Clock } from 'lucide-react';
 
 export default function Footer() {
@@ -38,10 +39,25 @@ export default function Footer() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
                     {/* Brand Column */}
                     <div className="lg:col-span-2">
-                        <Link href="/" className="inline-block mb-6">
-                            <h2 className="text-3xl font-light tracking-tight hover:text-gray-300 transition-colors">
-                                Élégance
-                            </h2>
+                        <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
+                            {/* Logo */}
+                            <div className="relative w-10 h-10 transition-transform duration-300 group-hover:scale-110">
+                                <Image
+                                    src="/logo.png"
+                                    alt="Élégance Logo"
+                                    fill
+                                    className="object-contain"
+                                />
+                            </div>
+                            {/* Text */}
+                            <div>
+                                <h2 className="text-2xl font-light tracking-tight group-hover:text-gray-300 transition-colors">
+                                    <span className="font-serif italic">Élégance</span>
+                                </h2>
+                                <span className="text-[10px] text-gray-500 tracking-[0.2em] uppercase">
+                                    Beauty & Cosmetics
+                                </span>
+                            </div>
                         </Link>
                         <p className="text-gray-400 leading-relaxed mb-6 max-w-sm">
                             Professionelle Kosmetik für Ihre natürliche Schönheit. Entdecken Sie hochwertige Beauty-Produkte, die Ihre Haut verwöhnen und pflegen.

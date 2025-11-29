@@ -1,0 +1,33 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+
+# Disallow auth pages
+Disallow: /auth/
+
+# Allow catalog and products
+Allow: /catalog
+Allow: /product/
+
+# Sitemaps
+Sitemap: https://elegance-beauty.de/sitemap.xml
+
+# Crawl-delay (optional, для снижения нагрузки)
+Crawl-delay: 1
+
+# Specific rules for Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
+
+# Specific rules for Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
