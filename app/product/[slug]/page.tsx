@@ -166,18 +166,30 @@ export default function ProductPage() { // ← Убрали params из проп
                                         -{discount}%
                                     </span>
                                 )}
+
+                                {/* Image Counter */}
+                                {product.images.length > 1 && (
+                                    <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                        {selectedImage + 1} / {product.images.length}
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Thumbnails */}
+                            {/* Thumbnails - Always show if there are images */}
                             {product.images.length > 1 && (
-                                <div className="grid grid-cols-4 gap-4">
+                                <div className={`grid gap-4 ${product.images.length === 2
+                                        ? 'grid-cols-2'
+                                        : product.images.length === 3
+                                            ? 'grid-cols-3'
+                                            : 'grid-cols-4'
+                                    }`}>
                                     {product.images.map((image, index) => (
                                         <button
                                             key={index}
                                             onClick={() => setSelectedImage(index)}
                                             className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${selectedImage === index
-                                                ? 'border-gray-900'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-gray-900 ring-2 ring-gray-900 ring-offset-2'
+                                                : 'border-gray-200 hover:border-gray-400'
                                                 }`}
                                         >
                                             <div

@@ -54,6 +54,7 @@ export default function RegisterPage() {
             const supabase = createClient();
 
             // Регистрация пользователя
+            const fullName = `${formData.firstName} ${formData.lastName}`.trim();
             const { data, error: signUpError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -61,6 +62,7 @@ export default function RegisterPage() {
                     data: {
                         first_name: formData.firstName,
                         last_name: formData.lastName,
+                        full_name: fullName, // Добавляем для триггера profiles
                         newsletter_enabled: formData.newsletter,
                     },
                 },

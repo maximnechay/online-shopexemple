@@ -141,15 +141,28 @@ export async function POST(request: NextRequest) {
         }
 
         // Получаем данные пользователя
-        const { data: profile } = await supabaseAdmin
+        const { data: profile, error: profileError } = await supabaseAdmin
             .from('profiles')
-            .select('first_name, last_name, email')
+            .select('full_name, email')
             .eq('id', user.id)
             .single();
 
-        const customerName = profile
-            ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Anonym'
-            : 'Anonym';
+        console.log('👤 Profile data:', { profile, profileError, userId: user.id });
+
+        // GDPR: показываем только имя и первую букву фамилии (Max M.)
+        let customerName = 'Anonym';
+        if (profile?.full_name) {
+            const nameParts = profile.full_name.trim().split(' ');
+            if (nameParts.length > 1) {
+                const firstName = nameParts[0];
+                const lastInitial = nameParts[nameParts.length - 1].charAt(0);
+                customerName = `${firstName} ${lastInitial}.`;
+            } else if (nameParts.length === 1) {
+                customerName = nameParts[0]; // Только имя
+            }
+        }
+
+        console.log('📝 Customer name:', customerName);
 
         // Создаём отзыв
         const { data: review, error: insertError } = await supabaseAdmin

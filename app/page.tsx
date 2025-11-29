@@ -128,15 +128,18 @@ export default function HomePage() {
                                 Neu im Shop - ausgewählte Profi Marken
                             </div>
 
-                            <div className="space-y-6">
-                                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light text-gray-900 leading-[1.1] tracking-tight">
+                            <div className="space-y-8">
+                                <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl font-light text-gray-900 leading-[0.95] tracking-tight">
                                     Premium Beauty
-                                    <span className="block font-normal mt-2">für jeden Tag</span>
+                                    <span className="block mt-4 pb-2 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
+                                        für jeden Tag
+                                    </span>
                                 </h1>
 
-                                <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                                <p className="text-lg sm:text-xl text-gray-600 leading-[1.8] max-w-xl font-light">
                                     Hochwertige Kosmetik von führenden Marken.
-                                    Professionell ausgewählt, sicher und schnell geliefert.
+                                    <br />
+                                    <span className="text-gray-900">Professionell kuratiert</span>, authentisch und mit Liebe zum Detail ausgewählt.
                                 </p>
                             </div>
 
