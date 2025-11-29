@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Filter, X } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import ProductCard from '@/components/shop/ProductCard';
+import ProductGrid from '@/components/shop/ProductGrid';
 import { Product, ProductCategory, SortOption } from '@/lib/types';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { viewItemList } from '@/lib/analytics';
@@ -581,21 +581,12 @@ function CatalogContent() {
                     ) : (
                         <>
                             <motion.div
-                                key={`page-${currentPage}-${selectedCategory}`}
                                 variants={containerVariants}
                                 initial="hidden"
                                 animate="visible"
                                 className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
                             >
-                                {paginatedProducts.map((product) => (
-                                    <motion.div
-                                        key={product.id}
-                                        variants={cardVariants}
-                                        layout
-                                    >
-                                        <ProductCard product={product} />
-                                    </motion.div>
-                                ))}
+                                <ProductGrid products={paginatedProducts} animated />
                             </motion.div>
 
                             {/* Pagination */}

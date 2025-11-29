@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { ReviewStatsProvider } from '@/lib/contexts/ReviewStatsContext';
 import PayPalProvider from '@/components/providers/PayPalProvider';
 import CookieBanner from '@/components/cookie/CookieBanner';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
@@ -47,10 +48,12 @@ export default function RootLayout({
         )}
 
         <AuthProvider>
-          <PayPalProvider>
-            {children}
-            <CookieBanner />
-          </PayPalProvider>
+          <ReviewStatsProvider>
+            <PayPalProvider>
+              {children}
+              <CookieBanner />
+            </PayPalProvider>
+          </ReviewStatsProvider>
         </AuthProvider>
       </body>
     </html>

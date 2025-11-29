@@ -10,6 +10,8 @@ import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { Product } from '@/lib/types';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
+import ProductReviews from '@/components/product/ProductReviews';
+import { useReviewStats } from '@/lib/contexts/ReviewStatsContext';
 
 export default function ProductPage() { // ← Убрали params из пропсов
     const params = useParams(); // ← Используем useParams hook
@@ -18,6 +20,7 @@ export default function ProductPage() { // ← Убрали params из проп
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const { getStats, loadStats } = useReviewStats();
 
     const addItem = useCartStore((state) => state.addItem);
     const [quantity, setQuantity] = useState(1);
@@ -29,6 +32,12 @@ export default function ProductPage() { // ← Убрали params из проп
             fetchProduct();
         }
     }, [slug]);
+
+    useEffect(() => {
+        if (product?.id) {
+            loadStats([product.id]);
+        }
+    }, [product?.id]);
 
     const fetchProduct = async () => {
         setLoading(true);
@@ -50,6 +59,7 @@ export default function ProductPage() { // ← Убрали params из проп
             setLoading(false);
         }
     };
+
     const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
     const inWishlist = product ? isInWishlist(product.id) : false;
 
@@ -120,6 +130,8 @@ export default function ProductPage() { // ← Убрали params из проп
     const discount = product.compareAtPrice
         ? calculateDiscount(product.price, product.compareAtPrice)
         : 0;
+
+    const reviewStats = product ? getStats(product.id) || { average: 0, total: 0 } : { average: 0, total: 0 };
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -193,13 +205,13 @@ export default function ProductPage() { // ← Убрали params из проп
                             </h1>
 
                             {/* Rating */}
-                            {product.rating && (
+                            {reviewStats.total > 0 && (
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
                                         {[...Array(5)].map((_, i) => (
                                             <Star
                                                 key={i}
-                                                className={`w-5 h-5 ${i < Math.floor(product.rating!)
+                                                className={`w-5 h-5 ${i < Math.floor(reviewStats.average)
                                                     ? 'text-amber-400 fill-amber-400'
                                                     : 'text-gray-300'
                                                     }`}
@@ -207,7 +219,7 @@ export default function ProductPage() { // ← Убрали params из проп
                                         ))}
                                     </div>
                                     <span className="text-sm text-gray-600">
-                                        {product.rating} ({product.reviewCount} Bewertungen)
+                                        {reviewStats.average.toFixed(1)} ({reviewStats.total} Bewertungen)
                                     </span>
                                 </div>
                             )}
@@ -331,6 +343,12 @@ export default function ProductPage() { // ← Убрали params из проп
                         </div>
                     </div>
                 </div>
+
+                {/* Reviews Section */}
+                <ProductReviews
+                    productId={product.id}
+                    productName={product.name}
+                />
             </main>
 
             <Footer />

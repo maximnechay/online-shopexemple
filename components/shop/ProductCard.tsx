@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, Heart, ArrowRight, Sparkles } from 'lucide-react';
+import { ShoppingBag, Heart, ArrowRight, Sparkles, Star } from 'lucide-react';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { Product } from '@/lib/types';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { addToCart as trackAddToCart } from '@/lib/analytics'; // ⭐ GA4
 import { useState } from 'react';
+import { useReviewStats } from '@/lib/contexts/ReviewStatsContext';
 
 interface ProductCardProps {
     product: Product;
@@ -17,8 +18,10 @@ export default function ProductCard({ product }: ProductCardProps) {
     const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
     const { addItem: addToCart } = useCartStore();
     const [isAdding, setIsAdding] = useState(false);
+    const { getStats } = useReviewStats();
 
     const inWishlist = isInWishlist(product.id);
+    const reviewStats = getStats(product.id) || { average: 0, total: 0 };
 
     const discount = product.compareAtPrice
         ? calculateDiscount(product.price, product.compareAtPrice)
@@ -149,11 +152,21 @@ export default function ProductCard({ product }: ProductCardProps) {
                 </div>
 
                 {/* Rating */}
-                {product.rating && (
-                    <div className="flex items-center gap-1 mt-2">
-                        <span className="text-amber-400 text-sm">★</span>
+                {reviewStats.total > 0 && (
+                    <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                                <Star
+                                    key={i}
+                                    className={`w-4 h-4 ${i < Math.floor(reviewStats.average)
+                                        ? 'text-amber-400 fill-amber-400'
+                                        : 'text-gray-300'
+                                        }`}
+                                />
+                            ))}
+                        </div>
                         <span className="text-sm text-gray-600">
-                            {product.rating} ({product.reviewCount || 0})
+                            {reviewStats.average.toFixed(1)} ({reviewStats.total})
                         </span>
                     </div>
                 )}
