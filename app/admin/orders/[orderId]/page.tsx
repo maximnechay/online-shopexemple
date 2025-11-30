@@ -43,10 +43,13 @@ interface Order {
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
     subtotal: string;
     shipping: string;
+    coupon_discount?: string | null;
+    coupon_code?: string | null;
     total: string;
     notes: string | null;
     created_at: string;
     updated_at: string;
+    payment_id?: string | null;
     paypal_transaction_id?: string | null;
     stripe_payment_intent_id?: string | null;
     order_items: OrderItem[];
@@ -353,9 +356,17 @@ export default function AdminOrderDetailPage() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Versand</span>
                                     <span className="text-gray-900">
-                                        {order.delivery_method === 'delivery' ? '4.99 €' : 'Kostenlos'}
+                                        {Number(order.shipping).toFixed(2)} €
                                     </span>
                                 </div>
+                                {order.coupon_code && order.coupon_discount && Number(order.coupon_discount) > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">
+                                            Gutschein <span className="font-mono font-medium text-green-600">{order.coupon_code}</span>
+                                        </span>
+                                        <span className="text-green-600">-{Number(order.coupon_discount).toFixed(2)} €</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">MwSt. (19%)</span>
                                     <span className="text-gray-900">
@@ -481,15 +492,30 @@ export default function AdminOrderDetailPage() {
                                     </div>
                                 </div>
 
+                                {order.payment_id && (
+                                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                        <div className="text-xs text-gray-600 mb-1">Quittungsnummer</div>
+                                        <div className="text-sm font-mono font-medium text-gray-900 break-all">
+                                            {order.payment_id}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {order.stripe_payment_intent_id && (
-                                    <div className="text-xs text-gray-600 font-mono break-all">
-                                        Stripe: {order.stripe_payment_intent_id}
+                                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                        <div className="text-xs text-blue-600 mb-1">Stripe Payment Intent</div>
+                                        <div className="text-sm font-mono text-blue-900 break-all">
+                                            {order.stripe_payment_intent_id}
+                                        </div>
                                     </div>
                                 )}
 
                                 {order.paypal_transaction_id && (
-                                    <div className="text-xs text-gray-600 font-mono break-all">
-                                        PayPal: {order.paypal_transaction_id}
+                                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                                        <div className="text-xs text-indigo-600 mb-1">PayPal Transaction ID</div>
+                                        <div className="text-sm font-mono text-indigo-900 break-all">
+                                            {order.paypal_transaction_id}
+                                        </div>
                                     </div>
                                 )}
                             </div>

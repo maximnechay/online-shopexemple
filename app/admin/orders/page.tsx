@@ -30,11 +30,14 @@ interface Order {
     postal_code: string;
     subtotal: string;
     shipping: string;
+    coupon_discount?: string | null;
+    coupon_code?: string | null;
     total: string;
     delivery_method: 'delivery' | 'pickup';
     payment_method: 'card' | 'paypal' | 'cash';
     payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    payment_id?: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -284,6 +287,11 @@ export default function AdminOrdersPage() {
                                                         order.payment_method === 'paypal' ? '💳 PayPal' :
                                                             '💵 Bar'}
                                                 </div>
+                                                {order.coupon_code && (
+                                                    <div className="text-xs text-green-600 font-mono mt-1">
+                                                        🎫 {order.coupon_code}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm font-medium text-gray-900">
@@ -310,6 +318,11 @@ export default function AdminOrdersPage() {
                                                 <div className="text-sm font-semibold text-gray-900">
                                                     {Number(order.total).toFixed(2)} €
                                                 </div>
+                                                {order.coupon_discount && Number(order.coupon_discount) > 0 && (
+                                                    <div className="text-xs text-green-600">
+                                                        -{Number(order.coupon_discount).toFixed(2)} € Rabatt
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${paymentStatusColors[order.payment_status]
