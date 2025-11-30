@@ -35,6 +35,8 @@ interface Order {
     payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
     subtotal: string;
     shipping: string;
+    coupon_discount?: string | null;
+    coupon_code?: string | null;
     total: string;
     status: string;
     notes: string | null;

@@ -49,6 +49,16 @@ export const RATE_LIMITS = {
 
     // Payment
     payment: { maxRequests: 10, windowMs: 60000 }, // 10 req/min
+
+    // Reviews
+    reviews: { maxRequests: 5, windowMs: 3600000 }, // 5 req/hour (creating reviews)
+    reviewsRead: { maxRequests: 100, windowMs: 60000 }, // 100 req/min (reading)
+
+    // Coupons
+    coupons: { maxRequests: 20, windowMs: 60000 }, // 20 req/min
+
+    // Contact form
+    contact: { maxRequests: 5, windowMs: 3600000 }, // 5 req/hour
 };
 
 export function rateLimit(

@@ -2,12 +2,25 @@
 import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // GET /api/admin/coupons/[id] - Получить купон
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const { id } = params;
@@ -57,6 +70,18 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const { id } = params;
@@ -104,6 +129,18 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const { id } = params;

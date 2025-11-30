@@ -15,7 +15,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
  */
 export async function POST(request: NextRequest) {
     // Rate limiting - 5 requests per hour to prevent spam
-    const rateLimitResult = rateLimit(request, RATE_LIMITS.newsletter);
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.contact);
     if (!rateLimitResult.success) {
         return NextResponse.json(
             { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },

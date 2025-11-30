@@ -1,6 +1,7 @@
 // app/api/admin/reviews/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,6 +11,18 @@ export const revalidate = 0;
  * Получить все отзывы для модерации
  */
 export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         // Создаем свежий клиент для каждого запроса
         const supabase = createClient(

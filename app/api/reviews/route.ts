@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,18 @@ export const dynamic = 'force-dynamic';
  * Получить отзывы для продукта
  */
 export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.reviewsRead);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const productId = searchParams.get('product_id');
@@ -73,6 +86,18 @@ export async function GET(request: NextRequest) {
  * Создать новый отзыв
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.reviews);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         // Создаем Supabase клиент с cookies для аутентификации
         const cookieStore = cookies();

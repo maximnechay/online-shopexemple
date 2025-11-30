@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.newsletter);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const { newsletter_enabled } = await request.json();
+
+        // Validation
+        if (typeof newsletter_enabled !== 'boolean') {
+            return NextResponse.json(
+                { error: 'Invalid newsletter_enabled value' },
+                { status: 400 }
+            );
+        }
 
         const supabase = createClient();
 

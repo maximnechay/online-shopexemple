@@ -2,9 +2,22 @@
 import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // GET /api/admin/coupons - Получить все купоны
 export async function GET(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
 
@@ -58,6 +71,18 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/coupons - Создать купон
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = createServerSupabaseAdminClient();
         const body = await request.json();
@@ -80,6 +105,14 @@ export async function POST(request: NextRequest) {
         if (!code || !type || amount === undefined) {
             return NextResponse.json(
                 { error: 'Code, type, and amount are required' },
+                { status: 400 }
+            );
+        }
+
+        // Validate coupon code format (uppercase letters, numbers, hyphens only)
+        if (!/^[A-Z0-9\-]+$/.test(code)) {
+            return NextResponse.json(
+                { error: 'Invalid coupon code format. Use only uppercase letters, numbers, and hyphens' },
                 { status: 400 }
             );
         }

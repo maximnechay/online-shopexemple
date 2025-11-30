@@ -47,6 +47,8 @@ interface Order {
     payment_status: 'pending' | 'completed' | 'paid' | 'failed' | 'refunded';
     subtotal: string;
     shipping: string;
+    coupon_discount?: string | null;
+    coupon_code?: string | null;
     total: string;
     status: string;
     notes: string | null;
@@ -373,13 +375,27 @@ export default function OrderDetailsPage() {
                             </div>
                         )}
 
-                        <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between">
-                            <span className="text-sm text-gray-600">
-                                Gesamt
-                            </span>
-                            <span className="text-lg font-semibold text-gray-900">
-                                {formatPrice(totalNumber)}
-                            </span>
+                        <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Zwischensumme</span>
+                                <span className="text-gray-900">{formatPrice(Number(order.subtotal))}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Versand</span>
+                                <span className="text-gray-900">{formatPrice(Number(order.shipping))}</span>
+                            </div>
+                            {order.coupon_code && order.coupon_discount && Number(order.coupon_discount) > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">
+                                        Gutschein <span className="font-mono font-medium text-green-600">{order.coupon_code}</span>
+                                    </span>
+                                    <span className="text-green-600">-{formatPrice(Number(order.coupon_discount))}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
+                                <span className="text-gray-900">Gesamt</span>
+                                <span className="text-rose-600">{formatPrice(totalNumber)}</span>
+                            </div>
                         </div>
                     </div>
 

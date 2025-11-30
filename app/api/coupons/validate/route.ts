@@ -2,9 +2,22 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // POST /api/coupons/validate - Проверить купон
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.coupons);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const supabase = await createServerSupabaseClient();
         const { code, orderAmount } = await request.json();
