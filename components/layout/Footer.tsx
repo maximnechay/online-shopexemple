@@ -5,34 +5,7 @@ import { Mail, Instagram, Facebook, Youtube, Twitter, MapPin, Phone, Clock } fro
 export default function Footer() {
     return (
         <footer className="bg-gradient-to-br from-gray-900 via-gray-900 to-black text-white">
-            {/* Newsletter Section */}
-            <div className="border-b border-gray-800">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h3 className="text-3xl font-light mb-3 tracking-tight">
-                                Bleiben Sie informiert
-                            </h3>
-                            <p className="text-gray-400 text-lg leading-relaxed">
-                                Exklusive Angebote, Beauty-Tipps und neue Produkte direkt in Ihr Postfach
-                            </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="relative flex-1">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                    type="email"
-                                    placeholder="Ihre E-Mail-Adresse"
-                                    className="w-full pl-12 pr-4 py-4 bg-white/10 border border-gray-700 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
-                                />
-                            </div>
-                            <button className="px-8 py-4 bg-white text-gray-900 rounded-2xl font-medium hover:bg-gray-100 transition-all whitespace-nowrap shadow-lg hover:shadow-xl">
-                                Abonnieren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             {/* Main Footer Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

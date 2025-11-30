@@ -25,11 +25,44 @@ export default function NewsletterPage() {
     const [sending, setSending] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const [previewHTML, setPreviewHTML] = useState('');
+    const [loadingPreview, setLoadingPreview] = useState(false);
 
     // Загрузка получателей
     useEffect(() => {
         loadRecipients();
     }, []);
+
+    // Загрузка предпросмотра при изменении subject или message
+    useEffect(() => {
+        const loadPreview = async () => {
+            if (!subject && !message) {
+                setPreviewHTML('');
+                return;
+            }
+
+            setLoadingPreview(true);
+            try {
+                const response = await fetch('/api/admin/newsletter/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject, message }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setPreviewHTML(data.html);
+                }
+            } catch (err) {
+                console.error('Fehler beim Laden der Vorschau:', err);
+            } finally {
+                setLoadingPreview(false);
+            }
+        };
+
+        // Debounce для предпросмотра
+        const timer = setTimeout(loadPreview, 500);
+        return () => clearTimeout(timer);
+    }, [subject, message]);
 
     const loadRecipients = async () => {
         try {
@@ -123,14 +156,39 @@ export default function NewsletterPage() {
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
                     </div>
                 ) : (
-                    <div className="grid lg:grid-cols-3 gap-8">
+                    <div className="space-y-8">
                         {/* Form */}
-                        <div className="lg:col-span-2">
-                            <form onSubmit={handleSend} className="bg-gray-50 rounded-3xl p-8 border border-gray-200">
+                        <div className="bg-gray-50 rounded-3xl p-8 border border-gray-200">
+                            <form onSubmit={handleSend}>
                                 <h2 className="text-2xl font-semibold mb-6 flex items-center gap-3">
                                     <Mail className="w-6 h-6 text-rose-600" />
                                     Nachricht erstellen
                                 </h2>
+
+                                <div className="grid lg:grid-cols-3 gap-6 mb-6">
+                                    {/* Recipients Stats */}
+                                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <Users className="w-5 h-5 text-blue-600" />
+                                            <h3 className="font-semibold text-gray-900">Empfänger</h3>
+                                        </div>
+                                        <div className="text-3xl font-bold text-blue-600 mb-1">{stats.total}</div>
+                                        <div className="text-xs text-gray-600">
+                                            {stats.profiles} Profile, {stats.newsletter} Newsletter
+                                        </div>
+                                    </div>
+
+                                    {/* Info Cards */}
+                                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 lg:col-span-2">
+                                        <h3 className="text-sm font-semibold mb-2 text-amber-900">💡 Tipps</h3>
+                                        <div className="text-xs text-amber-800 grid grid-cols-2 gap-x-4 gap-y-1">
+                                            <div>• Personalisieren Sie die Betreffzeile</div>
+                                            <div>• Halten Sie die Nachricht kurz</div>
+                                            <div>• Fügen Sie einen Call-to-Action hinzu</div>
+                                            <div>• Testen Sie vor dem Versand</div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {/* Subject */}
                                 <div className="mb-6">
@@ -200,66 +258,41 @@ export default function NewsletterPage() {
                             </form>
                         </div>
 
-                        {/* Sidebar - Stats & Preview */}
-                        <div className="space-y-6">
-                            {/* Recipients Stats */}
-                            <div className="bg-blue-50 rounded-3xl p-6 border border-blue-200">
-                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-blue-600" />
-                                    Empfänger
-                                </h3>
+                        {/* Preview - Full Width Below */}
+                        <div className="bg-gray-50 rounded-3xl p-8 border border-gray-200">
+                            <h3 className="text-2xl font-semibold mb-6 flex items-center gap-3">
+                                <Mail className="w-6 h-6 text-rose-600" />
+                                E-Mail Vorschau
+                            </h3>
 
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Gesamt</span>
-                                        <span className="text-2xl font-bold text-blue-600">{stats.total}</span>
-                                    </div>
-                                    <div className="h-px bg-blue-200"></div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-600">Kundenprofile</span>
-                                        <span className="font-semibold">{stats.profiles}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-600">Newsletter</span>
-                                        <span className="font-semibold">{stats.newsletter}</span>
-                                    </div>
+                            {loadingPreview ? (
+                                <div className="flex items-center justify-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
                                 </div>
-                            </div>
-
-                            {/* Preview */}
-                            {(subject || message) && (
-                                <div className="bg-gray-50 rounded-3xl p-6 border border-gray-200">
-                                    <h3 className="text-lg font-semibold mb-4">Vorschau</h3>
-
-                                    {subject && (
-                                        <div className="mb-4">
-                                            <p className="text-xs text-gray-500 mb-1">Betreff:</p>
-                                            <p className="font-semibold text-gray-900">{subject}</p>
-                                        </div>
-                                    )}
-
-                                    {message && (
-                                        <div className="bg-white rounded-xl p-4 border border-gray-200">
-                                            <p className="text-xs text-gray-500 mb-2">Nachricht:</p>
-                                            <div
-                                                className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                                dangerouslySetInnerHTML={{ __html: message }}
-                                            />
-                                        </div>
-                                    )}
+                            ) : previewHTML ? (
+                                <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-lg">
+                                    <iframe
+                                        srcDoc={previewHTML}
+                                        className="w-full h-[800px] border-0"
+                                        title="Email Preview"
+                                        sandbox="allow-same-origin"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-xl p-16 border border-gray-200 text-center">
+                                    <Mail className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-500 text-lg">
+                                        Geben Sie einen Betreff und eine Nachricht ein,<br />
+                                        um die Vorschau zu sehen
+                                    </p>
                                 </div>
                             )}
 
-                            {/* Info */}
-                            <div className="bg-amber-50 rounded-3xl p-6 border border-amber-200">
-                                <h3 className="text-sm font-semibold mb-2 text-amber-900">💡 Tipps</h3>
-                                <ul className="text-xs text-amber-800 space-y-1">
-                                    <li>• Personalisieren Sie die Betreffzeile</li>
-                                    <li>• Halten Sie die Nachricht kurz und prägnant</li>
-                                    <li>• Fügen Sie einen klaren Call-to-Action hinzu</li>
-                                    <li>• Testen Sie vor dem Versand</li>
-                                </ul>
-                            </div>
+                            {previewHTML && (
+                                <p className="text-sm text-gray-500 mt-4 text-center">
+                                    So wird Ihre E-Mail bei den Empfängern aussehen
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}

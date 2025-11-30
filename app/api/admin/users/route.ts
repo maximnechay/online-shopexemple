@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
             (profiles || []).map(async (profile: any) => {
                 const { data: orders, error: ordersError } = await supabase
                     .from('orders')
-                    .select('id, total')
-                    .eq('user_id', profile.id);
+                    .select('id, total, created_at')
+                    .eq('user_id', profile.id)
+                    .order('created_at', { ascending: false });
 
                 if (ordersError) {
                     console.error('Error fetching orders for user:', ordersError);
@@ -51,6 +52,8 @@ export async function GET(request: NextRequest) {
                         ...profile,
                         order_count: 0,
                         total_spent: 0,
+                        last_order_date: null,
+                        average_order_value: 0,
                     };
                 }
 
@@ -59,11 +62,15 @@ export async function GET(request: NextRequest) {
                     (sum: number, order: any) => sum + Number(order.total || 0),
                     0
                 ) || 0;
+                const lastOrderDate = orders && orders.length > 0 ? orders[0].created_at : null;
+                const averageOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
 
                 return {
                     ...profile,
                     order_count: orderCount,
                     total_spent: totalSpent,
+                    last_order_date: lastOrderDate,
+                    average_order_value: averageOrderValue,
                 };
             })
         );

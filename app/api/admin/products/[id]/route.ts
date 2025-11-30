@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
+// ВАЖНО: stock_quantity НЕ редактируется через этот endpoint
+// Используйте POST /api/admin/products/[id]/adjust-stock для изменения запасов
+// Это обеспечивает логирование всех изменений в stock_logs
+
 // GET /api/admin/products/:id — получить один товар для формы редактирования
 export async function GET(
     request: NextRequest,
@@ -68,7 +72,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             'category',
             'description',
             'images',
-            'stock_quantity',
             'in_stock',
             'compare_at_price',
             'brand',
@@ -103,6 +106,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             { status: 400 }
         );
     }
+}
+
+// PUT /api/admin/products/:id — полное обновление (алиас для PATCH)
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+    return PATCH(request, { params });
 }
 
 // DELETE /api/admin/products/:id — удаление

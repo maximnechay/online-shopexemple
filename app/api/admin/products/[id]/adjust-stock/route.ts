@@ -200,6 +200,9 @@ export async function POST(
         return NextResponse.json({
             success: true,
             data: result.result,
+            newStock: result.result?.stock_after,
+            stockBefore: result.result?.stock_before,
+            productName: result.result?.product_name,
         });
     } catch (error) {
         console.error('❌ Error adjusting stock:', error);
