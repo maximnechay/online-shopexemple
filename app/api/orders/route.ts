@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
             items,
             subtotal,
             shipping,
+            discount,
+            couponCode,
             total,
         } = body;
 
@@ -179,6 +181,8 @@ export async function POST(request: NextRequest) {
                 payment_method: paymentMethod,
                 subtotal: subtotal || 0,
                 shipping: shipping || 0,
+                coupon_discount: discount || 0,
+                coupon_code: couponCode || null,
                 total: total || 0,
                 notes: notes || null,
                 status: 'pending',
@@ -215,6 +219,38 @@ export async function POST(request: NextRequest) {
                 { error: 'Fehler beim Erstellen der Bestellpositionen', details: itemsError.message },
                 { status: 500 }
             );
+        }
+
+        // Сохраняем использование купона если он был применен
+        if (couponCode && discount && discount > 0) {
+            console.log('🎟️ Recording coupon usage:', couponCode);
+            
+            // Находим купон по коду
+            const { data: coupon } = await supabaseAdmin
+                .from('coupons')
+                .select('id')
+                .eq('code', couponCode)
+                .single();
+
+            if (coupon) {
+                // Создаем запись об использовании
+                const { error: usageError } = await supabaseAdmin
+                    .from('coupon_usages')
+                    .insert({
+                        coupon_id: coupon.id,
+                        order_id: order.id,
+                        user_id: userId || null,
+                        discount_amount: discount,
+                    });
+
+                if (usageError) {
+                    console.error('⚠️ Failed to record coupon usage:', usageError);
+                } else {
+                    console.log('✅ Coupon usage recorded');
+                }
+            } else {
+                console.warn('⚠️ Coupon not found:', couponCode);
+            }
         }
 
         // Audit log

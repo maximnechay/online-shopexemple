@@ -169,3 +169,39 @@ export type SortOption =
   | 'name-desc'
   | 'newest'
   | 'popular';
+
+// Coupon Types
+export interface Coupon {
+  id: string;
+  code: string;
+  description?: string;
+  type: 'fixed' | 'percentage' | 'free_shipping';
+  amount: number;
+  min_order_amount: number;
+  max_discount_amount?: number;
+  max_uses?: number;
+  uses_count: number;
+  per_user_limit?: number;
+  valid_from: string;
+  valid_until?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CouponUsage {
+  id: string;
+  coupon_id: string;
+  order_id: string;
+  user_id?: string;
+  discount_amount: number;
+  created_at: string;
+}
+
+export interface CouponValidation {
+  is_valid: boolean;
+  error_message?: string;
+  coupon_id?: string;
+  discount_amount: number;
+  coupon_type?: 'fixed' | 'percentage' | 'free_shipping';
+}

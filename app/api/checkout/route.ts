@@ -48,9 +48,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { items, customer, deliveryMethod, address, userId } = validation.data;
+        const { items, customer, deliveryMethod, address, userId, discount, couponCode } = validation.data;
 
-        console.log('🛒 Preparing checkout with items:', items.length);
+        console.log('🛍️ Preparing checkout with items:', items.length);
 
         // ✅ BUSINESS LOGIC VALIDATION
         // Проверяем что все товары существуют и доступны
@@ -108,10 +108,22 @@ export async function POST(req: NextRequest) {
         }
 
         // ✅ CALCULATE TOTAL
-        const total = items.reduce(
+        const subtotal = items.reduce(
             (sum, item) => sum + item.price * item.quantity,
             0
         );
+
+        // Apply discount if provided
+        const discountAmount = discount || 0;
+        const total = Math.max(0, subtotal - discountAmount);
+
+        console.log('💰 Discount info:', { 
+            discount, 
+            couponCode, 
+            discountAmount, 
+            subtotal, 
+            total 
+        });
 
         // Проверка минимальной суммы заказа
         const MIN_ORDER_AMOUNT = 5; // €5
@@ -144,20 +156,23 @@ export async function POST(req: NextRequest) {
         }
 
         // ✅ CREATE STRIPE SESSION WITH TIMEOUT
-        const sessionPromise = stripe.checkout.sessions.create({
+        const lineItems = items.map((item) => ({
+            price_data: {
+                currency: 'eur',
+                unit_amount: Math.round(item.price * 100),
+                product_data: {
+                    name: item.name,
+                    description: `Menge: ${item.quantity}`,
+                },
+            },
+            quantity: item.quantity,
+        }));
+
+        // Build session config
+        const sessionConfig: any = {
             mode: 'payment',
             payment_method_types: ['card'],
-            line_items: items.map((item) => ({
-                price_data: {
-                    currency: 'eur',
-                    unit_amount: Math.round(item.price * 100),
-                    product_data: {
-                        name: item.name,
-                        description: `Menge: ${item.quantity}`,
-                    },
-                },
-                quantity: item.quantity,
-            })),
+            line_items: lineItems,
             customer_email: customer.email,
             metadata: {
                 // Сохраняем все данные заказа в metadata для создания после оплаты
@@ -167,6 +182,8 @@ export async function POST(req: NextRequest) {
                 customerEmail: customer.email,
                 customerPhone: customer.phone,
                 totalAmount: total.toFixed(2),
+                discount: discountAmount.toFixed(2),
+                couponCode: couponCode || '',
                 deliveryMethod: deliveryMethod,
                 deliveryAddress: delivery_address,
                 deliveryCity: delivery_city,
@@ -181,7 +198,24 @@ export async function POST(req: NextRequest) {
             success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?canceled=1`,
             expires_at: Math.floor(Date.now() / 1000) + 1800, // 30 минут
-        });
+        };
+
+        // Add discount using Stripe's discounts feature if applicable
+        if (discountAmount > 0 && couponCode) {
+            // Create a one-time coupon for this session
+            const stripeCoupon = await stripe.coupons.create({
+                amount_off: Math.round(discountAmount * 100),
+                currency: 'eur',
+                duration: 'once',
+                name: `Gutschein: ${couponCode}`,
+            });
+
+            sessionConfig.discounts = [{
+                coupon: stripeCoupon.id,
+            }];
+        }
+
+        const sessionPromise = stripe.checkout.sessions.create(sessionConfig);
 
         // Race between Stripe call and timeout
         const session = await Promise.race([

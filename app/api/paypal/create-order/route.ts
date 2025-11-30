@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { items, customer, deliveryMethod, address, userId } = validation.data;
+        const { items, customer, deliveryMethod, address, userId, discount, couponCode } = validation.data;
 
         console.log('🔍 Creating PayPal order with items:', items.length);
 
@@ -179,10 +179,14 @@ export async function POST(request: NextRequest) {
         }
 
         // ✅ CALCULATE TOTAL
-        const amount = items.reduce(
+        const subtotal = items.reduce(
             (sum, item) => sum + item.price * item.quantity,
             0
         );
+
+        // Apply discount if provided
+        const discountAmount = discount || 0;
+        const amount = Math.max(0, subtotal - discountAmount);
 
         // Проверка минимальной суммы заказа
         const MIN_ORDER_AMOUNT = 5; // €5
@@ -235,8 +239,10 @@ export async function POST(request: NextRequest) {
                 city: delivery_city,
                 delivery_method: deliveryMethod,
                 payment_method: 'paypal',
-                subtotal: amount,
+                subtotal: subtotal,
                 shipping: 0,
+                coupon_discount: discountAmount,
+                coupon_code: couponCode || null,
                 total: amount,
                 order_number: `ORD-${Date.now()}`,
                 status: 'pending',

@@ -20,6 +20,7 @@ import { useCartStore } from '@/lib/store/useCartStore';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import PayPalButtonsWrapper from '@/components/checkout/PayPalButtons';
+import CouponInput from '@/components/checkout/CouponInput';
 import { useShopSettings } from '@/lib/hooks/useShopSettings';
 import { beginCheckout } from '@/lib/analytics';
 
@@ -44,6 +45,9 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPayPal, setShowPayPal] = useState(false);
+    const [couponDiscount, setCouponDiscount] = useState(0);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponType, setCouponType] = useState('');
 
     const [formData, setFormData] = useState<CheckoutFormData>({
         firstName: '',
@@ -157,14 +161,17 @@ export default function CheckoutPage() {
     // 1. Abholung — 0
     // 2. Если доставка и сумма >= freeShippingFrom — 0
     // 3. Иначе baseShipping
+    // 4. Если купон на бесплатную доставку - 0
     const shipping =
         formData.deliveryMethod === 'pickup'
             ? 0
-            : total >= freeShippingFrom
+            : couponType === 'free_shipping'
                 ? 0
-                : baseShipping;
+                : total >= freeShippingFrom
+                    ? 0
+                    : baseShipping;
 
-    const finalTotal = total + shipping;
+    const finalTotal = Math.max(0, total - couponDiscount + shipping);
     useEffect(() => {
         console.log('🛒 Checkout mounted:', {
             itemsLength: items.length,
@@ -238,8 +245,10 @@ export default function CheckoutPage() {
                 paymentMethod: formData.paymentMethod,
                 notes: formData.notes || null,
                 subtotal: getTotal(),
-                shipping: formData.deliveryMethod === 'delivery' ? (settings?.shippingCost || 4.99) : 0,
-                total: formData.deliveryMethod === 'delivery' ? getTotal() + (settings?.shippingCost || 4.99) : getTotal(),
+                shipping: shipping,
+                discount: couponDiscount,
+                couponCode: couponCode || null,
+                total: finalTotal,
                 items: items.map(item => ({
                     id: item.product.id,
                     name: item.product.name,
@@ -293,6 +302,8 @@ export default function CheckoutPage() {
                                 : null,
                         subtotal: orderData.subtotal,
                         shipping: orderData.shipping,
+                        discount: orderData.discount,
+                        couponCode: orderData.couponCode,
                         total: orderData.total,
                     }),
                 });
@@ -753,6 +764,8 @@ export default function CheckoutPage() {
                                                 postalCode: formData.postalCode,
                                             } : null}
                                             userId={user?.id}
+                                            discount={couponDiscount}
+                                            couponCode={couponCode}
                                             onSuccess={handlePayPalSuccess}
                                             onError={handlePayPalError}
                                         />
@@ -819,8 +832,25 @@ export default function CheckoutPage() {
                                     ))}
                                 </div>
 
+                                {/* Coupon Input */}
+                                <div className="mb-6">
+                                    <CouponInput
+                                        orderAmount={total}
+                                        onCouponApplied={(discount, code, type) => {
+                                            setCouponDiscount(discount);
+                                            setCouponCode(code);
+                                            setCouponType(type);
+                                        }}
+                                        onCouponRemoved={() => {
+                                            setCouponDiscount(0);
+                                            setCouponCode('');
+                                            setCouponType('');
+                                        }}
+                                    />
+                                </div>
+
                                 {/* Free Shipping Progress */}
-                                {formData.deliveryMethod === 'delivery' && total < freeShippingFrom && (
+                                {formData.deliveryMethod === 'delivery' && total < freeShippingFrom && couponType !== 'free_shipping' && (
                                     <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm font-medium text-blue-900">
@@ -848,11 +878,21 @@ export default function CheckoutPage() {
                                         <span>Zwischensumme</span>
                                         <span>{total.toFixed(2)} €</span>
                                     </div>
+                                    {couponDiscount > 0 && (
+                                        <div className="flex justify-between text-green-600 font-medium">
+                                            <span>Gutschein ({couponCode})</span>
+                                            <span>-{couponDiscount.toFixed(2)} €</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-gray-600">
                                         <span>Versandkosten</span>
                                         <span>
                                             {shipping === 0 ? (
-                                                formData.deliveryMethod === 'delivery' &&
+                                                couponType === 'free_shipping' ? (
+                                                    <span className="text-green-600 font-medium">
+                                                        Gutschein: Kostenlos
+                                                    </span>
+                                                ) : formData.deliveryMethod === 'delivery' &&
                                                     total >= freeShippingFrom ? (
                                                     <span className="text-green-600 font-medium">
                                                         Kostenlos ab {freeShippingFrom}€

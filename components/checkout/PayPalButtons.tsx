@@ -21,6 +21,8 @@ interface PayPalButtonsWrapperProps {
         postalCode: string;
     } | null;
     userId?: string;
+    discount?: number;
+    couponCode?: string;
     onSuccess: (supabaseOrderId: string, paypalTransactionId: string) => void;
     onError?: () => void;
 }
@@ -31,6 +33,8 @@ export default function PayPalButtonsWrapper({
     deliveryMethod,
     address,
     userId,
+    discount,
+    couponCode,
     onSuccess,
     onError,
 }: PayPalButtonsWrapperProps) {
@@ -67,6 +71,8 @@ export default function PayPalButtonsWrapper({
                                 deliveryMethod,
                                 address,
                                 userId,
+                                discount,
+                                couponCode,
                             }),
                         });
 

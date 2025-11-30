@@ -121,7 +121,7 @@ export const checkoutSchema = z.object({
         firstName: z.string().min(1, 'Vorname ist erforderlich').max(100),
         lastName: z.string().min(1, 'Nachname ist erforderlich').max(100),
         email: z.string().email('Ungültige E-Mail-Adresse'),
-        phone: z.string().min(5).max(20).regex(/^[+\d\s()\-]+$/, 'Ungültige Telefonnummer'),
+        phone: z.string().min(5).max(20).regex(/^[\d\s()+\-]+$/, 'Ungültige Telefonnummer'),
     }),
 
     deliveryMethod: z.enum(['delivery', 'pickup']),
@@ -135,6 +135,9 @@ export const checkoutSchema = z.object({
     }).nullable().optional(),
 
     userId: z.string().uuid().optional().nullable(),
+
+    discount: z.number().min(0).optional(),
+    couponCode: z.string().max(50).optional().nullable(),
 
     subtotal: z.number().positive().optional(),
     shipping: z.number().min(0).optional(),

@@ -13,6 +13,7 @@ import {
     Users,
     Layers,
     Star,
+    Tag,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -164,6 +165,24 @@ export default function AdminPage() {
 
                         <p className="text-gray-600 text-sm leading-relaxed">
                             Produktkategorien hinzufügen, bearbeiten oder löschen.
+                        </p>
+                    </Link>
+
+                    {/* Купоны */}
+                    <Link
+                        href="/admin/coupons"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Tag className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Gutscheine & Rabatte
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Erstellen und verwalten Sie Gutscheincodes für Rabatte.
                         </p>
                     </Link>
 

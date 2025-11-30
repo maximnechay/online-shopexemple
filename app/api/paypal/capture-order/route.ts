@@ -175,6 +175,45 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ Stock decreased successfully');
 
+        // Получаем данные заказа для проверки купона
+        const { data: orderData } = await supabaseAdmin
+            .from('orders')
+            .select('coupon_code, coupon_discount, user_id')
+            .eq('id', supabaseOrderId)
+            .single();
+
+        // Сохраняем использование купона если он был применен
+        if (orderData?.coupon_code && orderData?.coupon_discount && parseFloat(orderData.coupon_discount) > 0) {
+            console.log('🎟️ Recording coupon usage:', orderData.coupon_code);
+            
+            // Находим купон по коду
+            const { data: coupon } = await supabaseAdmin
+                .from('coupons')
+                .select('id')
+                .eq('code', orderData.coupon_code)
+                .single();
+
+            if (coupon) {
+                // Создаем запись об использовании
+                const { error: usageError } = await supabaseAdmin
+                    .from('coupon_usages')
+                    .insert({
+                        coupon_id: coupon.id,
+                        order_id: supabaseOrderId,
+                        user_id: orderData.user_id || null,
+                        discount_amount: parseFloat(orderData.coupon_discount),
+                    });
+
+                if (usageError) {
+                    console.error('⚠️ Failed to record coupon usage:', usageError);
+                } else {
+                    console.log('✅ Coupon usage recorded');
+                }
+            } else {
+                console.warn('⚠️ Coupon not found:', orderData.coupon_code);
+            }
+        }
+
         // Обновляем существующий заказ статусом оплаты
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')

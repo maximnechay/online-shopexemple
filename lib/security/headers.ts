@@ -10,12 +10,12 @@ export function getSecurityHeaders() {
     // Content Security Policy
     const csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.google-analytics.com https://www.googletagmanager.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.sandbox.paypal.com https://www.google-analytics.com https://www.googletagmanager.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.paypal.com https://www.google-analytics.com https://o4510422575415296.ingest.de.sentry.io",
-        "frame-src 'self' https://www.paypal.com https://www.google.com",
+        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://www.paypal.com https://www.sandbox.paypal.com https://www.google-analytics.com https://o4510422575415296.ingest.de.sentry.io",
+        "frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://www.google.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

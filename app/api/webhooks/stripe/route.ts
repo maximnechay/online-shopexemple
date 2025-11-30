@@ -165,6 +165,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                 postal_code: metadata.deliveryPostalCode || '',
                 subtotal: parseFloat(metadata.totalAmount) || 0,
                 shipping: 0,
+                coupon_discount: parseFloat(metadata.discount) || 0,
+                coupon_code: metadata.couponCode || null,
                 total: parseFloat(metadata.totalAmount),
                 delivery_method: metadata.deliveryMethod,
                 payment_method: 'card',
@@ -256,7 +258,47 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
         console.log('✅ Stock decreased successfully');
 
-        // 4) Обновляем статус заказа на paid и processing
+        // 4) Сохраняем использование купона если он был применен
+        console.log('🔍 Checking coupon metadata:', {
+            couponCode: metadata.couponCode,
+            discount: metadata.discount,
+            hasCode: !!metadata.couponCode,
+            hasDiscount: !!metadata.discount,
+            discountValue: parseFloat(metadata.discount || '0')
+        });
+
+        if (metadata.couponCode && metadata.couponCode !== '' && metadata.discount && parseFloat(metadata.discount) > 0) {
+            console.log('🎟️ Recording coupon usage:', metadata.couponCode);
+            
+            // Находим купон по коду
+            const { data: coupon } = await supabaseAdmin
+                .from('coupons')
+                .select('id')
+                .eq('code', metadata.couponCode)
+                .single();
+
+            if (coupon) {
+                // Создаем запись об использовании
+                const { error: usageError } = await supabaseAdmin
+                    .from('coupon_usages')
+                    .insert({
+                        coupon_id: coupon.id,
+                        order_id: order.id,
+                        user_id: metadata.userId || null,
+                        discount_amount: parseFloat(metadata.discount),
+                    });
+
+                if (usageError) {
+                    console.error('⚠️ Failed to record coupon usage:', usageError);
+                } else {
+                    console.log('✅ Coupon usage recorded');
+                }
+            } else {
+                console.warn('⚠️ Coupon not found:', metadata.couponCode);
+            }
+        }
+
+        // 5) Обновляем статус заказа на paid и processing
         const { error: updateError } = await supabaseAdmin
             .from('orders')
             .update({
