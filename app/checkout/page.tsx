@@ -350,7 +350,7 @@ export default function CheckoutPage() {
         <div className="min-h-screen bg-white">
             <Header />
 
-            <main className="pt-40 md:pt-24 pb-16">
+            <main className="pt-6 md:pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Back Button */}
                     <Link
@@ -390,8 +390,143 @@ export default function CheckoutPage() {
                     )}
 
                     <div className="grid lg:grid-cols-3 gap-12">
-                        {/* Form */}
-                        <div className="lg:col-span-2">
+                        {/* Order Summary - сначала на мобилке */}
+                        <div className="lg:col-span-1 lg:order-2">
+                            <div className="lg:sticky lg:top-24 h-fit">
+                                <div className="bg-gray-50 rounded-2xl p-6 lg:p-8">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <ShoppingBag className="w-6 h-6 text-rose-600" />
+                                        <h2 className="text-2xl font-serif text-gray-900">
+                                            Bestellübersicht
+                                        </h2>
+                                    </div>
+
+                                    {/* Items */}
+                                    <div className="space-y-4 mb-6">
+                                        {items.map(item => (
+                                            <div key={item.product.id} className="flex gap-4">
+                                                <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
+                                                    <img
+                                                        src={item.product.images[0]}
+                                                        alt={item.product.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                        {item.product.name}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-600">
+                                                        {item.quantity}x {item.product.price.toFixed(2)} €
+                                                    </p>
+                                                </div>
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {(item.product.price * item.quantity).toFixed(2)} €
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Coupon Input */}
+                                    <div className="mb-6">
+                                        <CouponInput
+                                            orderAmount={total}
+                                            onCouponApplied={(discount, code, type) => {
+                                                setCouponDiscount(discount);
+                                                setCouponCode(code);
+                                                setCouponType(type);
+                                            }}
+                                            onCouponRemoved={() => {
+                                                setCouponDiscount(0);
+                                                setCouponCode('');
+                                                setCouponType('');
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Free Shipping Progress */}
+                                    {formData.deliveryMethod === 'delivery' && total < freeShippingFrom && couponType !== 'free_shipping' && (
+                                        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium text-blue-900">
+                                                    Noch {(freeShippingFrom - total).toFixed(2)}€ bis zur kostenlosen Lieferung!
+                                                </span>
+                                                <Truck className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div className="w-full bg-blue-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-blue-600 h-2 rounded-full transition-all"
+                                                    style={{
+                                                        width: `${Math.min(
+                                                            (total / freeShippingFrom) * 100,
+                                                            100
+                                                        )}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Totals */}
+                                    <div className="space-y-3 border-t border-gray-200 pt-6">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Zwischensumme</span>
+                                            <span className="font-medium">{total.toFixed(2)} €</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Versand</span>
+                                            <span className="font-medium">
+                                                {shipping === 0 ? (
+                                                    couponType === 'free_shipping' ? (
+                                                        <span className="text-green-600">Gutschein: Kostenlos</span>
+                                                    ) : formData.deliveryMethod === 'delivery' && total >= freeShippingFrom ? (
+                                                        <span className="text-green-600">Kostenlos ab {freeShippingFrom}€</span>
+                                                    ) : (
+                                                        <span className="text-green-600">Kostenlos</span>
+                                                    )
+                                                ) : (
+                                                    `${shipping.toFixed(2)} €`
+                                                )}
+                                            </span>
+                                        </div>
+                                        {couponDiscount > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">
+                                                    Gutschein {couponCode && <span className="font-mono">({couponCode})</span>}
+                                                </span>
+                                                <span className="font-medium text-green-600">
+                                                    -{couponDiscount.toFixed(2)} €
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-3">
+                                            <span>Gesamt</span>
+                                            <span className="text-rose-600">{finalTotal.toFixed(2)} €</span>
+                                        </div>
+                                        <p className="text-xs text-gray-600">inkl. MwSt.</p>
+                                    </div>
+
+                                    {/* Trust Badges */}
+                                    <div className="mt-6 pt-6 border-t border-gray-200 space-y-3 text-sm text-gray-600">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                            <span>Sichere Zahlung</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                            <span>14 Tage Rückgaberecht</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                            <span>Kostenlose Lieferung ab {freeShippingFrom}€</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Form - потом на мобилке */}
+                        <div className="lg:col-span-2 lg:order-1">
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Personal Information */}
                                 <div className="bg-gray-50 rounded-2xl p-6 lg:p-8">
@@ -794,140 +929,6 @@ export default function CheckoutPage() {
                                     </button>
                                 )}
                             </form>
-                        </div>
-
-                        {/* Order Summary */}
-                        <div className="lg:sticky lg:top-24 h-fit">
-                            <div className="bg-gray-50 rounded-2xl p-6 lg:p-8">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <ShoppingBag className="w-6 h-6 text-rose-600" />
-                                    <h2 className="text-2xl font-serif text-gray-900">
-                                        Bestellübersicht
-                                    </h2>
-                                </div>
-
-                                {/* Items */}
-                                <div className="space-y-4 mb-6">
-                                    {items.map(item => (
-                                        <div key={item.product.id} className="flex gap-4">
-                                            <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
-                                                <img
-                                                    src={item.product.images[0]}
-                                                    alt={item.product.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-sm font-medium text-gray-900 truncate">
-                                                    {item.product.name}
-                                                </h3>
-                                                <p className="text-sm text-gray-600">
-                                                    {item.quantity}x {item.product.price.toFixed(2)} €
-                                                </p>
-                                            </div>
-                                            <div className="text-sm font-semibold text-gray-900">
-                                                {(item.product.price * item.quantity).toFixed(2)} €
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Coupon Input */}
-                                <div className="mb-6">
-                                    <CouponInput
-                                        orderAmount={total}
-                                        onCouponApplied={(discount, code, type) => {
-                                            setCouponDiscount(discount);
-                                            setCouponCode(code);
-                                            setCouponType(type);
-                                        }}
-                                        onCouponRemoved={() => {
-                                            setCouponDiscount(0);
-                                            setCouponCode('');
-                                            setCouponType('');
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Free Shipping Progress */}
-                                {formData.deliveryMethod === 'delivery' && total < freeShippingFrom && couponType !== 'free_shipping' && (
-                                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-blue-900">
-                                                Noch {(freeShippingFrom - total).toFixed(2)}€ bis zur kostenlosen Lieferung!
-                                            </span>
-                                            <Truck className="w-5 h-5 text-blue-600" />
-                                        </div>
-                                        <div className="w-full bg-blue-200 rounded-full h-2">
-                                            <div
-                                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                                style={{
-                                                    width: `${Math.min(
-                                                        (total / freeShippingFrom) * 100,
-                                                        100
-                                                    )}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Totals */}
-                                <div className="space-y-3 pt-6 border-t border-gray-300">
-                                    <div className="flex justify-between text-gray-600">
-                                        <span>Zwischensumme</span>
-                                        <span>{total.toFixed(2)} €</span>
-                                    </div>
-                                    {couponDiscount > 0 && (
-                                        <div className="flex justify-between text-green-600 font-medium">
-                                            <span>Gutschein ({couponCode})</span>
-                                            <span>-{couponDiscount.toFixed(2)} €</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between text-gray-600">
-                                        <span>Versandkosten</span>
-                                        <span>
-                                            {shipping === 0 ? (
-                                                couponType === 'free_shipping' ? (
-                                                    <span className="text-green-600 font-medium">
-                                                        Gutschein: Kostenlos
-                                                    </span>
-                                                ) : formData.deliveryMethod === 'delivery' &&
-                                                    total >= freeShippingFrom ? (
-                                                    <span className="text-green-600 font-medium">
-                                                        Kostenlos ab {freeShippingFrom}€
-                                                    </span>
-                                                ) : (
-                                                    'Kostenlos'
-                                                )
-                                            ) : (
-                                                `${shipping.toFixed(2)} €`
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-xl font-semibold text-gray-900 pt-3 border-t border-gray-300">
-                                        <span>Gesamt</span>
-                                        <span>{finalTotal.toFixed(2)} €</span>
-                                    </div>
-                                    <p className="text-xs text-gray-600">inkl. MwSt.</p>
-                                </div>
-
-                                {/* Trust Badges */}
-                                <div className="mt-6 pt-6 border-t border-gray-300 space-y-3 text-sm text-gray-600">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>Sichere Zahlung</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>14 Tage Rückgaberecht</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>Kostenlose Lieferung ab {freeShippingFrom}€</span>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

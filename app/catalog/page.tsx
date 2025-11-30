@@ -277,7 +277,7 @@ function CatalogContent() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="flex-1 pt-40 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-6 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -305,7 +305,7 @@ function CatalogContent() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <div className="flex-1 pt-40 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="flex-1 pt-6 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <motion.div
