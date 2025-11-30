@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { checkAdmin } from '@/lib/auth/admin-check';
 
 // Отключаем кеширование
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,9 @@ export const revalidate = 0;
  * Получить все заказы для админ-панели
  */
 export async function GET(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {

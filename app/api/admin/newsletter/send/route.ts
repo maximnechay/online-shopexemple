@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { checkAdmin } from '@/lib/auth/admin-check';
 
 // Инициализируем Resend только в runtime, а не во время билда
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
@@ -17,6 +18,9 @@ interface SendRequest {
 }
 
 export async function POST(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     try {
         const { subject, message, recipients }: SendRequest = await request.json();
 

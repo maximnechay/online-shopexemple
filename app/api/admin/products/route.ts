@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { checkAdmin } from '@/lib/auth/admin-check';
+import { createProductSchema, validateSchema } from '@/lib/validation/schemas';
+import { sanitizeProductDescription } from '@/lib/utils/sanitize';
+import { safeLog } from '@/lib/utils/logger';
 
 function makeSlug(name: string) {
     return name
@@ -13,6 +17,12 @@ function makeSlug(name: string) {
 }
 
 export async function GET(request: NextRequest) {
+    // ✅ Admin authentication
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) {
+        return adminCheck;
+    }
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -39,6 +49,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    // ✅ Admin authentication
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) {
+        return adminCheck;
+    }
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -54,77 +70,42 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        const {
-            name,
-            price,
-            category,
-            description,
-            images,
-            brand,
-            compareAtPrice,
-            stockQuantity,
-            inStock,
-            tags,
-        } = body;
-
-        if (!name || !price || !category) {
+        // ✅ Валидация с Zod
+        const validation = validateSchema(createProductSchema, body);
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Name, price und category sind erforderlich' },
+                { error: 'Validation failed', details: validation.errors },
                 { status: 400 }
             );
         }
 
-        const slug = makeSlug(name);
+        const validated = validation.data;
 
-        const insertData: any = {
-            name,
-            slug,
-            description: description ?? '',
-            price: Number(price),
-            category,
-            brand: brand || null,
-            compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-            in_stock: typeof inStock === 'boolean' ? inStock : true,
-            stock_quantity: stockQuantity ? Number(stockQuantity) : 0,
-            images: Array.isArray(images)
-                ? images
-                : images
-                    ? [images]
-                    : [],
-            tags: Array.isArray(tags)
-                ? tags
-                : typeof tags === 'string'
-                    ? tags
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter(Boolean)
-                    : [],
-        };
+        // ✅ Санитизация описания
+        const cleanDescription = sanitizeProductDescription(validated.description);
 
-        console.log('ADMIN CREATE PRODUCT insertData:', insertData);
+        // Генерация slug
+        const slug = makeSlug(validated.name);
 
         const { data, error } = await supabaseAdmin
             .from('products')
-            .insert(insertData)
+            .insert({
+                ...validated,
+                description: cleanDescription,
+                slug,
+            })
             .select()
             .single();
 
         if (error) {
-            console.error('ADMIN CREATE PRODUCT supabase error:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code,
-            });
-            return NextResponse.json(
-                { error: 'Failed to create product', details: error },
-                { status: 500 }
-            );
+            console.error('❌ ADMIN POST product error:', error);
+            return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
         }
 
+        safeLog('✅ Product created by admin:', { productId: data.id, name: data.name });
         return NextResponse.json(data);
-    } catch (e: any) {
-        console.error('ADMIN CREATE PRODUCT exception:', e);
+    } catch (error) {
+        console.error('❌ ADMIN POST error:', error);
         return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 }

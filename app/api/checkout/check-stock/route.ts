@@ -1,6 +1,8 @@
 // app/api/checkout/check-stock/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAvailability } from '@/lib/inventory/stock-manager';
+import { validateSchema, checkStockSchema } from '@/lib/validation/schemas';
+import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 /**
  * Endpoint для финальной проверки наличия товаров перед оплатой
@@ -15,16 +17,31 @@ import { checkAvailability } from '@/lib/inventory/stock-manager';
  * }
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = rateLimit(request, RATE_LIMITS.payment);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { error: 'Too many requests' },
+            {
+                status: 429,
+                headers: { 'Retry-After': rateLimitResult.retryAfter.toString() }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
-        const { items } = body;
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
+        // ✅ Zod validation
+        const validation = validateSchema(checkStockSchema, body);
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Items array is required' },
+                { error: 'Invalid input', details: validation.errors },
                 { status: 400 }
             );
         }
+
+        const { items } = validation.data;
 
         console.log('🔍 Checking stock availability for', items.length, 'items');
 

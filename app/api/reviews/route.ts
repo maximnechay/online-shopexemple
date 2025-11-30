@@ -4,6 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { createReviewSchema, validateSchema } from '@/lib/validation/schemas';
+import { sanitizeReview, sanitizeHTML } from '@/lib/utils/sanitize';
+import { safeLog } from '@/lib/utils/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,22 +133,18 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { product_id, rating, title, comment, order_id } = body;
 
-        // Валидация
-        if (!product_id || !rating) {
+        // ✅ Валидация с Zod
+        const validation = validateSchema(createReviewSchema, body);
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Product ID and rating are required' },
+                { error: 'Validation failed', details: validation.errors },
                 { status: 400 }
             );
         }
 
-        if (rating < 1 || rating > 5) {
-            return NextResponse.json(
-                { error: 'Rating must be between 1 and 5' },
-                { status: 400 }
-            );
-        }
+        const { product_id, rating, title, comment } = validation.data;
+        const { order_id } = body; // опциональное поле
 
         // Проверяем, купил ли пользователь этот продукт
         let verifiedPurchase = false;
@@ -189,6 +188,10 @@ export async function POST(request: NextRequest) {
 
         console.log('📝 Customer name:', customerName);
 
+        // ✅ Санитизация контента перед сохранением
+        const cleanTitle = sanitizeHTML(title);
+        const cleanComment = sanitizeReview(comment);
+
         // Создаём отзыв
         const { data: review, error: insertError } = await supabaseAdmin
             .from('reviews')
@@ -197,8 +200,8 @@ export async function POST(request: NextRequest) {
                 user_id: user.id,
                 order_id: order_id || null,
                 rating,
-                title: title || null,
-                comment: comment || null,
+                title: cleanTitle || null,
+                comment: cleanComment || null,
                 customer_name: customerName,
                 customer_email: user.email,
                 verified_purchase: verifiedPurchase,
@@ -215,6 +218,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        safeLog('✅ Review created:', { reviewId: review.id, productId: product_id });
         return NextResponse.json({
             review,
             message: 'Bewertung wurde zur Prüfung eingereicht'

@@ -3,9 +3,13 @@ import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { validateRequest, createCategorySchema } from '@/lib/security/validation';
 import { createAuditLog } from '@/lib/security/audit-log';
+import { checkAdmin } from '@/lib/auth/admin-check';
 
 // GET - получить все категории
 export async function GET(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -46,6 +50,9 @@ export async function GET(request: NextRequest) {
 
 // POST - создать новую категорию
 export async function POST(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {

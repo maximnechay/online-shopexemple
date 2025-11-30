@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { addSecurityHeaders } from '@/lib/security/headers';
+import { verifyCSRFToken } from '@/lib/security/csrf';
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -12,6 +13,21 @@ export async function middleware(request: NextRequest) {
 
     // Add security headers to all responses
     response = addSecurityHeaders(response);
+
+    // CSRF protection for state-changing operations
+    const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method);
+    const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+    const isWebhook = request.nextUrl.pathname.startsWith('/api/webhooks/');
+
+    if (isStateChanging && isApiRoute && !isWebhook) {
+        const token = request.headers.get('x-csrf-token');
+        if (!token || !verifyCSRFToken(token)) {
+            return NextResponse.json(
+                { error: 'Invalid or missing CSRF token' },
+                { status: 403 }
+            );
+        }
+    }
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

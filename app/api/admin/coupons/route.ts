@@ -3,9 +3,13 @@ import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { checkAdmin } from '@/lib/auth/admin-check';
 
 // GET /api/admin/coupons - Получить все купоны
 export async function GET(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -71,6 +75,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/coupons - Создать купон
 export async function POST(request: NextRequest) {
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
