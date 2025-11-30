@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         // Сохраняем использование купона если он был применен
         if (orderData?.coupon_code && orderData?.coupon_discount && parseFloat(orderData.coupon_discount) > 0) {
             console.log('🎟️ Recording coupon usage:', orderData.coupon_code);
-            
+
             // Находим купон по коду
             const { data: coupon } = await supabaseAdmin
                 .from('coupons')

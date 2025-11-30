@@ -269,7 +269,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
         if (metadata.couponCode && metadata.couponCode !== '' && metadata.discount && parseFloat(metadata.discount) > 0) {
             console.log('🎟️ Recording coupon usage:', metadata.couponCode);
-            
+
             // Находим купон по коду
             const { data: coupon } = await supabaseAdmin
                 .from('coupons')

@@ -117,12 +117,12 @@ export async function POST(req: NextRequest) {
         const discountAmount = discount || 0;
         const total = Math.max(0, subtotal - discountAmount);
 
-        console.log('💰 Discount info:', { 
-            discount, 
-            couponCode, 
-            discountAmount, 
-            subtotal, 
-            total 
+        console.log('💰 Discount info:', {
+            discount,
+            couponCode,
+            discountAmount,
+            subtotal,
+            total
         });
 
         // Проверка минимальной суммы заказа
