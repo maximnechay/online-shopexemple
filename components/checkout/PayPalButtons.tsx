@@ -4,6 +4,7 @@
 import { PayPalButtons } from '@paypal/react-paypal-js';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiPost } from '@/lib/api/client';
 
 interface PayPalButtonsWrapperProps {
     items: any[];
@@ -60,27 +61,15 @@ export default function PayPalButtonsWrapper({
                 createOrder={async () => {
                     try {
                         // Создаём PayPal order БЕЗ создания в БД
-                        const response = await fetch('/api/paypal/create-order', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                items,
-                                customer,
-                                deliveryMethod,
-                                address,
-                                userId,
-                                discount,
-                                couponCode,
-                            }),
+                        const data = await apiPost('/api/paypal/create-order', {
+                            items,
+                            customer,
+                            deliveryMethod,
+                            address,
+                            userId,
+                            discount,
+                            couponCode,
                         });
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(data.error || 'Failed to create order');
-                        }
 
                         // Сохраняем ID заказа для использования в onApprove
                         if (data.orderId) {
@@ -96,21 +85,9 @@ export default function PayPalButtonsWrapper({
                 onApprove={async (data) => {
                     try {
                         // Захватываем платёж и СОЗДАЁМ заказ в БД
-                        const response = await fetch('/api/paypal/capture-order', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                orderID: data.orderID,
-                            }),
+                        const captureData = await apiPost('/api/paypal/capture-order', {
+                            orderID: data.orderID,
                         });
-
-                        const captureData = await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(captureData.error || 'Failed to capture payment');
-                        }
 
                         // Вызываем onSuccess с ID заказа
                         if (onSuccess && captureData.supabaseOrderId) {

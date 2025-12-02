@@ -4,6 +4,7 @@
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { fetchCSRFToken } from '@/lib/api/client';
 
 interface ImageUploadProps {
     onImageUploaded: (url: string) => void;
@@ -95,9 +96,15 @@ export default function ImageUpload({
             const formData = new FormData();
             formData.append('file', file);
 
+            // Получаем CSRF токен
+            const csrfToken = await fetchCSRFToken();
+
             // Загрузка
             const response = await fetch('/api/admin/products/upload-image', {
                 method: 'POST',
+                headers: {
+                    'x-csrf-token': csrfToken,
+                },
                 body: formData,
             });
 
@@ -132,10 +139,18 @@ export default function ImageUpload({
             const path = urlObj.pathname.split('/storage/v1/object/public/product-images/')[1];
 
             if (path) {
+                // Получаем CSRF токен
+                const csrfToken = await fetchCSRFToken();
+
                 // Удаляем из Storage
                 const response = await fetch(
                     `/api/admin/products/upload-image?path=${encodeURIComponent(path)}`,
-                    { method: 'DELETE' }
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'x-csrf-token': csrfToken,
+                        }
+                    }
                 );
 
                 if (!response.ok) {
@@ -159,8 +174,8 @@ export default function ImageUpload({
             {canUploadMore && (
                 <div
                     className={`relative border-2 border-dashed rounded-xl p-8 transition-all ${dragActive
-                            ? 'border-rose-500 bg-rose-50'
-                            : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-rose-500 bg-rose-50'
+                        : 'border-gray-300 hover:border-gray-400'
                         }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}

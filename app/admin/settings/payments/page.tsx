@@ -11,6 +11,7 @@ import {
     AlertCircle,
     CheckCircle2,
 } from 'lucide-react';
+import { apiPut } from '@/lib/api/client';
 
 interface PaymentSettings {
     id: number;
@@ -67,26 +68,16 @@ export default function PaymentSettingsPage() {
         setMessage(null);
 
         try {
-            const res = await fetch('/api/admin/settings/payments', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mode,
-                    currency,
-                    vat_rate: vatRate,
-                    stripe_enabled: stripeEnabled,
-                    paypal_enabled: paypalEnabled,
-                }),
+            const data = await apiPut('/api/admin/settings/payments', {
+                mode,
+                currency,
+                vat_rate: vatRate,
+                stripe_enabled: stripeEnabled,
+                paypal_enabled: paypalEnabled,
             });
 
-            const data = await res.json();
-
-            if (res.ok) {
-                setSettings(data.settings);
-                setMessage({ type: 'success', text: 'Einstellungen erfolgreich gespeichert!' });
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Fehler beim Speichern' });
-            }
+            setSettings(data.settings);
+            setMessage({ type: 'success', text: 'Einstellungen erfolgreich gespeichert!' });
         } catch (error) {
             console.error('Error saving settings:', error);
             setMessage({ type: 'error', text: 'Fehler beim Speichern der Einstellungen' });
@@ -139,8 +130,8 @@ export default function PaymentSettingsPage() {
                 {message && (
                     <div
                         className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${message.type === 'success'
-                                ? 'bg-green-50 text-green-800 border border-green-200'
-                                : 'bg-red-50 text-red-800 border border-red-200'
+                            ? 'bg-green-50 text-green-800 border border-green-200'
+                            : 'bg-red-50 text-red-800 border border-red-200'
                             }`}
                     >
                         {message.type === 'success' ? (

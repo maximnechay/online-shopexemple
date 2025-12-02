@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Star } from 'lucide-react';
+import { apiPost } from '@/lib/api/client';
 
 interface ReviewFormProps {
     productId: string;
@@ -38,23 +39,13 @@ export default function ReviewForm({
         setSubmitting(true);
 
         try {
-            const res = await fetch('/api/reviews', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    product_id: productId,
-                    order_id: orderId,
-                    rating,
-                    title: title.trim() || null,
-                    comment: comment.trim() || null,
-                }),
+            await apiPost('/api/reviews', {
+                product_id: productId,
+                order_id: orderId,
+                rating,
+                title: title.trim() || null,
+                comment: comment.trim() || null,
             });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Fehler beim Absenden');
-            }
 
             onSuccess();
         } catch (err: any) {
@@ -89,8 +80,8 @@ export default function ReviewForm({
                         >
                             <Star
                                 className={`w-8 h-8 transition-colors ${star <= (hoverRating || rating)
-                                        ? 'fill-yellow-400 text-yellow-400'
-                                        : 'text-gray-300'
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300'
                                     }`}
                             />
                         </button>

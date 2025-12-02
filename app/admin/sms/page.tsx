@@ -12,6 +12,7 @@ import {
     AlertCircle,
     Loader2,
 } from 'lucide-react';
+import { apiPost } from '@/lib/api/client';
 
 interface Recipient {
     phone: string;
@@ -71,22 +72,10 @@ export default function AdminSMSPage() {
         setSuccess(false);
 
         try {
-            const response = await fetch('/api/admin/sms/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: message.trim(),
-                    recipients: recipients,
-                }),
+            const data = await apiPost('/api/admin/sms/send', {
+                message: message.trim(),
+                recipients: recipients,
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Fehler beim Senden');
-            }
 
             setSuccess(true);
             setMessage('');

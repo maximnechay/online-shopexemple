@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Users, Send, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { apiPost } from '@/lib/api/client';
 
 interface Recipient {
     email: string;
@@ -43,12 +44,7 @@ export default function NewsletterPage() {
 
             setLoadingPreview(true);
             try {
-                const response = await fetch('/api/admin/newsletter/preview', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject, message }),
-                });
-                const data = await response.json();
+                const data = await apiPost('/api/admin/newsletter/preview', { subject, message });
                 if (data.success) {
                     setPreviewHTML(data.html);
                 }
@@ -102,17 +98,11 @@ export default function NewsletterPage() {
         setSuccess(false);
 
         try {
-            const response = await fetch('/api/admin/newsletter/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject,
-                    message,
-                    recipients: recipients.map(r => ({ email: r.email, name: r.name })),
-                }),
+            const data = await apiPost('/api/admin/newsletter/send', {
+                subject,
+                message,
+                recipients: recipients.map(r => ({ email: r.email, name: r.name })),
             });
-
-            const data = await response.json();
 
             if (data.success) {
                 setSuccess(true);

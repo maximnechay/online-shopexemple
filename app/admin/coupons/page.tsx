@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Tag, Calendar, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { Coupon } from '@/lib/types';
+import { apiDelete } from '@/lib/api/client';
 
 export default function AdminCouponsPage() {
     const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -34,13 +35,8 @@ export default function AdminCouponsPage() {
         if (!confirm('Gutschein löschen?')) return;
 
         try {
-            const response = await fetch(`/api/admin/coupons/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (response.ok) {
-                setCoupons(coupons.filter((c) => c.id !== id));
-            }
+            await apiDelete(`/api/admin/coupons/${id}`);
+            setCoupons(coupons.filter((c) => c.id !== id));
         } catch (error) {
             console.error('Failed to delete coupon:', error);
             alert('Fehler beim Löschen des Gutscheins');

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Star, Check, X, Eye, Filter, RefreshCw } from 'lucide-react';
+import { apiDelete } from '@/lib/api/client';
 
 interface Review {
     id: string;
@@ -134,17 +135,11 @@ export default function AdminReviewsPage() {
         if (!confirm('Möchten Sie diese Bewertung wirklich löschen?')) return;
 
         try {
-            const res = await fetch(`/api/admin/reviews/${reviewId}`, {
-                method: 'DELETE',
-            });
-
-            if (res.ok) {
-                // Мгновенно удаляем из списка
-                setReviews(prevReviews => prevReviews.filter(r => r.id !== reviewId));
-
-                // Обновляем статистику
-                loadStats();
-            }
+            await apiDelete(`/api/admin/reviews/${reviewId}`);
+            // Мгновенно удаляем из списка
+            setReviews(prevReviews => prevReviews.filter(r => r.id !== reviewId));
+            // Обновляем статистику
+            loadStats();
         } catch (error) {
             console.error('Error deleting review:', error);
         }

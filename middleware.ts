@@ -14,14 +14,17 @@ export async function middleware(request: NextRequest) {
     // Add security headers to all responses
     response = addSecurityHeaders(response);
 
-    // CSRF protection for state-changing operations
+    // ✅ CSRF Protection
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method);
     const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
     const isWebhook = request.nextUrl.pathname.startsWith('/api/webhooks/');
+    const isCsrfEndpoint = request.nextUrl.pathname === '/api/csrf-token';
 
-    if (isStateChanging && isApiRoute && !isWebhook) {
+    if (isStateChanging && isApiRoute && !isWebhook && !isCsrfEndpoint) {
         const token = request.headers.get('x-csrf-token');
-        if (!token || !verifyCSRFToken(token)) {
+        const isValid = await verifyCSRFToken(token || '');
+
+        if (!isValid) {
             return NextResponse.json(
                 { error: 'Invalid or missing CSRF token' },
                 { status: 403 }

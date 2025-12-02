@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Tag, Check, X, Loader2 } from 'lucide-react';
+import { apiPost } from '@/lib/api/client';
 
 interface CouponInputProps {
     orderAmount: number;
@@ -56,18 +57,12 @@ export default function CouponInput({
         setError('');
 
         try {
-            const response = await fetch('/api/coupons/validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    code: code.trim(),
-                    orderAmount,
-                }),
+            const data = await apiPost('/api/coupons/validate', {
+                code: code.trim(),
+                orderAmount,
             });
 
-            const data = await response.json();
-
-            if (!response.ok || !data.valid) {
+            if (!data.valid) {
                 setError(translateError(data.error) || 'Ungültiger Gutschein');
                 setLoading(false);
                 return;

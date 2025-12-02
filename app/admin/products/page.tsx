@@ -11,6 +11,7 @@ import {
     Image as ImageIcon,
     ArrowLeft,
 } from 'lucide-react';
+import { apiDelete } from '@/lib/api/client';
 
 interface AdminProduct {
     id: string;
@@ -44,7 +45,7 @@ export default function AdminProductsPage() {
     const remove = async (id: string) => {
         if (!confirm('Produkt wirklich löschen?')) return;
         try {
-            await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+            await apiDelete(`/api/admin/products/${id}`);
             load();
         } catch (e) {
             console.error('Fehler beim Löschen des Produkts', e);
@@ -205,10 +206,10 @@ export default function AdminProductsPage() {
                                                 <span>
                                                     Lager:{' '}
                                                     <span className={`font-medium ${(p.stock_quantity ?? 0) === 0
-                                                            ? 'text-red-600'
-                                                            : (p.stock_quantity ?? 0) < 10
-                                                                ? 'text-amber-600'
-                                                                : 'text-gray-800'
+                                                        ? 'text-red-600'
+                                                        : (p.stock_quantity ?? 0) < 10
+                                                            ? 'text-amber-600'
+                                                            : 'text-gray-800'
                                                         }`}>
                                                         {p.stock_quantity ?? 0} Stk
                                                         {(p.stock_quantity ?? 0) === 0 && ' (Ausverkauft)'}

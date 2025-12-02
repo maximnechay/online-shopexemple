@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { apiPost, apiPut, apiDelete } from '@/lib/api/client';
 
 interface Category {
     id: string;
@@ -62,21 +63,9 @@ export default function CategoriesPage() {
 
     const handleSave = async (id: string) => {
         try {
-            const res = await fetch(`/api/admin/categories/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editForm)
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                await loadCategories();
-                setEditingId(null);
-            } else {
-                console.error('Server error:', data);
-                alert(data.error || 'Fehler beim Aktualisieren der Kategorie');
-            }
+            await apiPut(`/api/admin/categories/${id}`, editForm);
+            await loadCategories();
+            setEditingId(null);
         } catch (error) {
             console.error('Error updating category:', error);
             alert('Netzwerkfehler beim Aktualisieren der Kategorie');
@@ -87,18 +76,8 @@ export default function CategoriesPage() {
         if (!confirm('Möchten Sie diese Kategorie wirklich löschen?')) return;
 
         try {
-            const res = await fetch(`/api/admin/categories/${id}`, {
-                method: 'DELETE'
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                await loadCategories();
-            } else {
-                console.error('Server error:', data);
-                alert(data.error || 'Fehler beim Löschen der Kategorie');
-            }
+            await apiDelete(`/api/admin/categories/${id}`);
+            await loadCategories();
         } catch (error) {
             console.error('Error deleting category:', error);
             alert('Netzwerkfehler beim Löschen der Kategorie');
@@ -112,22 +91,10 @@ export default function CategoriesPage() {
         }
 
         try {
-            const res = await fetch('/api/admin/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCategory)
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                await loadCategories();
-                setShowAddForm(false);
-                setNewCategory({ id: '', name: '', slug: '', description: '', image: '' });
-            } else {
-                console.error('Server error:', data);
-                alert(data.error || 'Fehler beim Erstellen der Kategorie');
-            }
+            await apiPost('/api/admin/categories', newCategory);
+            await loadCategories();
+            setShowAddForm(false);
+            setNewCategory({ id: '', name: '', slug: '', description: '', image: '' });
         } catch (error) {
             console.error('Error creating category:', error);
             alert('Netzwerkfehler beim Erstellen der Kategorie');

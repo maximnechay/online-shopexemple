@@ -6,6 +6,7 @@ import { Tag, Euro, FileText, PackagePlus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useCategories } from '@/lib/hooks/useCategories';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { apiPost } from '@/lib/api/client';
 
 export default function CreateProduct() {
     const router = useRouter();
@@ -78,22 +79,15 @@ export default function CreateProduct() {
             tags: form.tags,
         };
 
-        const res = await fetch('/api/admin/products', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-            console.error('Create product error:', data);
-            alert(data.error || 'Fehler beim Erstellen des Produkts');
-            return;
+        try {
+            const data = await apiPost('/api/admin/products', payload);
+            console.log('✅ Product created:', data);
+            router.push('/admin/products');
+            router.refresh();
+        } catch (error: any) {
+            console.error('Create product error:', error);
+            alert(error.message || 'Fehler beim Erstellen des Produkts');
         }
-
-        console.log('✅ Product created:', data);
-        router.push('/admin/products');
-        router.refresh();
     };
 
     return (

@@ -18,6 +18,7 @@ import {
     Send,
     Printer,
 } from 'lucide-react';
+import { apiPost } from '@/lib/api/client';
 
 interface OrderItem {
     id: string;
@@ -134,10 +135,7 @@ export default function AdminOrderDetailPage() {
     const handleSendEmail = async () => {
         setSendingEmail(true);
         try {
-            const res = await fetch(`/api/orders/${orderId}/send-email`, {
-                method: 'POST',
-            });
-            const result = await res.json();
+            const result = await apiPost(`/api/orders/${orderId}/send-email`, {});
 
             if (result.success) {
                 alert('📧 E-Mails erfolgreich gesendet!');
@@ -159,10 +157,7 @@ export default function AdminOrderDetailPage() {
 
         setConfirmingPayment(true);
         try {
-            const res = await fetch(`/api/admin/orders/${orderId}/confirm-payment`, {
-                method: 'POST',
-            });
-            const result = await res.json();
+            const result = await apiPost(`/api/admin/orders/${orderId}/confirm-payment`, {});
 
             if (result.success) {
                 alert('✅ Zahlung bestätigt und Lagerbestand aktualisiert!');

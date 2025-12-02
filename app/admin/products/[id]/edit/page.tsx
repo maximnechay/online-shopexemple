@@ -6,6 +6,7 @@ import { Tag, Euro, FileText, PackagePlus, ArrowLeft, Loader2, Package } from 'l
 import Link from 'next/link';
 import { useCategories } from '@/lib/hooks/useCategories';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { apiPut, apiPost } from '@/lib/api/client';
 
 interface EditProductProps {
     params: Promise<{ id: string }>;
@@ -91,23 +92,8 @@ export default function EditProduct({ params }: EditProductProps) {
         // Автосохранение статуса доступности
         if (name === 'inStock') {
             try {
-                const res = await fetch(`/api/admin/products/${productId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ in_stock: checked }),
-                });
-
-                if (!res.ok) {
-                    console.error('Failed to update availability status');
-                    // Откатываем изменение при ошибке
-                    setForm(prev => ({
-                        ...prev,
-                        [name]: !checked,
-                    }));
-                    alert('Fehler beim Speichern des Verfügbarkeitsstatus');
-                } else {
-                    console.log('✅ Availability status updated automatically');
-                }
+                await apiPut(`/api/admin/products/${productId}`, { in_stock: checked });
+                console.log('✅ Availability status updated automatically');
             } catch (error) {
                 console.error('Error updating availability:', error);
                 setForm(prev => ({
@@ -156,30 +142,15 @@ export default function EditProduct({ params }: EditProductProps) {
             tags: tagsArray,
         };
 
-        const res = await fetch(`/api/admin/products/${productId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        let data;
         try {
-            data = await res.json();
-        } catch (e) {
-            console.error('JSON parse error:', e);
-            alert('Fehler beim Aktualisieren des Produkts');
-            return;
+            const data = await apiPut(`/api/admin/products/${productId}`, payload);
+            console.log('✅ Product updated:', data);
+            router.push('/admin/products');
+            router.refresh();
+        } catch (error: any) {
+            console.error('Update product error:', error);
+            alert(error.message || 'Fehler beim Aktualisieren des Produkts');
         }
-
-        if (!res.ok) {
-            console.error('Update product error:', data);
-            alert(data.error || 'Fehler beim Aktualisieren des Produkts');
-            return;
-        }
-
-        console.log('✅ Product updated:', data);
-        router.push('/admin/products');
-        router.refresh();
     };
 
     if (loading) {
@@ -516,21 +487,10 @@ export default function EditProduct({ params }: EditProductProps) {
                                         }
 
                                         try {
-                                            const res = await fetch(`/api/admin/products/${productId}/adjust-stock`, {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    quantityChange,
-                                                    reason: stockAdjustment.reason,
-                                                }),
+                                            const data = await apiPost(`/api/admin/products/${productId}/adjust-stock`, {
+                                                quantityChange,
+                                                reason: stockAdjustment.reason,
                                             });
-
-                                            const data = await res.json();
-
-                                            if (!res.ok) {
-                                                alert(data.error || 'Fehler beim Anpassen des Bestands');
-                                                return;
-                                            }
 
                                             console.log('✅ Stock adjusted:', data);
                                             setCurrentStock(data.newStock);
