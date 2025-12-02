@@ -21,7 +21,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -134,7 +134,7 @@ export async function POST(
         }
 
         // 3. Валидация параметров
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
         const { quantityChange, reason } = body;
 

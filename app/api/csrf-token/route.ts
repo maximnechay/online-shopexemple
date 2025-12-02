@@ -8,7 +8,7 @@ import { generateCSRFToken } from '@/lib/security/csrf';
  */
 export async function GET() {
     try {
-        const token = generateCSRFToken();
+        const token = await generateCSRFToken();
 
         return NextResponse.json({
             token,

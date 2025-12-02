@@ -10,7 +10,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -25,7 +25,7 @@ export async function GET(
     }
 
     try {
-        const { orderId } = params;
+        const { orderId } = await params;
 
         const { data: order, error } = await supabaseAdmin
             .from('orders')
@@ -67,7 +67,7 @@ export async function GET(
  */
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -82,7 +82,7 @@ export async function PATCH(
     }
 
     try {
-        const { orderId } = params;
+        const { orderId } = await params;
         const body = await request.json();
 
         console.log('📝 Updating order:', orderId, body);
@@ -150,7 +150,7 @@ export async function PATCH(
  */
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -165,7 +165,7 @@ export async function DELETE(
     }
 
     try {
-        const { orderId } = params;
+        const { orderId } = await params;
 
         const { error } = await supabaseAdmin
             .from('orders')

@@ -23,6 +23,7 @@ import PayPalButtonsWrapper from '@/components/checkout/PayPalButtons';
 import CouponInput from '@/components/checkout/CouponInput';
 import { useShopSettings } from '@/lib/hooks/useShopSettings';
 import { beginCheckout } from '@/lib/analytics';
+import { apiPost } from '@/lib/api/client';
 
 interface CheckoutFormData {
     firstName: string;
@@ -206,20 +207,14 @@ export default function CheckoutPage() {
 
         try {
             // ✅ ФИНАЛЬНАЯ ПРОВЕРКА STOCK перед оплатой
-            const stockCheckResponse = await fetch('/api/checkout/check-stock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    items: items.map(item => ({
-                        productId: item.product.id,
-                        quantity: item.quantity,
-                    })),
-                }),
+            const stockCheck = await apiPost('/api/checkout/check-stock', {
+                items: items.map(item => ({
+                    productId: item.product.id,
+                    quantity: item.quantity,
+                })),
             });
 
-            const stockCheck = await stockCheckResponse.json();
-
-            if (!stockCheckResponse.ok || !stockCheck.available) {
+            if (!stockCheck.available) {
                 const unavailableItems = stockCheck.unavailableItems || [];
                 const itemsList = unavailableItems
                     .map((item: any) => `${item.productName}: benötigt ${item.requested}, verfügbar ${item.inStock}`)
@@ -259,17 +254,7 @@ export default function CheckoutPage() {
 
             // 1) НАЛИЧНЫЕ
             if (formData.paymentMethod === 'cash') {
-                const response = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(orderData),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Fehler beim Erstellen der Bestellung');
-                }
+                const result = await apiPost('/api/orders', orderData);
 
                 // Корзина очистится на странице order-success
                 window.location.href = `/order-success?order_id=${result.orderId}`;
@@ -278,41 +263,32 @@ export default function CheckoutPage() {
 
             // 2) КАРТА — Stripe
             if (formData.paymentMethod === 'card') {
-                const response = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: user?.id ?? null,
-                        items: orderData.items,
-                        deliveryMethod: orderData.deliveryMethod,
-                        customer: {
-                            firstName: formData.firstName,
-                            lastName: formData.lastName,
-                            email: formData.email,
-                            phone: formData.phone,
-                        },
-                        address:
-                            orderData.deliveryMethod === 'delivery'
-                                ? {
-                                    street: formData.street,
-                                    houseNumber: formData.houseNumber,
-                                    postalCode: formData.postalCode,
-                                    city: formData.city,
-                                }
-                                : null,
-                        subtotal: orderData.subtotal,
-                        shipping: orderData.shipping,
-                        discount: orderData.discount,
-                        couponCode: orderData.couponCode,
-                        total: orderData.total,
-                    }),
+                const result = await apiPost('/api/checkout', {
+                    userId: user?.id ?? null,
+                    items: orderData.items,
+                    deliveryMethod: orderData.deliveryMethod,
+                    customer: {
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        email: formData.email,
+                        phone: formData.phone,
+                    },
+                    address:
+                        orderData.deliveryMethod === 'delivery'
+                            ? {
+                                street: formData.street,
+                                houseNumber: formData.houseNumber,
+                                postalCode: formData.postalCode,
+                                city: formData.city,
+                            }
+                            : null,
+                    subtotal: orderData.subtotal,
+                    shipping: orderData.shipping,
+                    discount: orderData.discount,
+                    couponCode: orderData.couponCode,
+                    total: orderData.total,
+                    notes: orderData.notes,
                 });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Fehler beim Starten der Zahlung');
-                }
 
                 // Корзина очистится на странице order-success после успешной оплаты
                 window.location.href = result.url;
@@ -598,7 +574,7 @@ export default function CheckoutPage() {
                                                 onChange={handleInputChange}
                                                 required
                                                 placeholder="+49 123 456789"
-                                                pattern="[+\d\s()\-]+"
+                                                pattern="[+\d\s()-]+"
                                                 minLength={5}
                                                 maxLength={20}
                                                 title="Nur Ziffern, Leerzeichen, +, -, () erlaubt"

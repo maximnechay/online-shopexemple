@@ -65,22 +65,22 @@ export async function getOrderEmailData(orderId: string): Promise<OrderEmailData
 
         const taxRate = 0.19; // 19% MwSt
         const tax = subtotal * taxRate;
-        const total = parseFloat(order.total_amount);
+        const total = parseFloat(order.total);
 
         const emailData: OrderEmailData = {
             orderId: order.id,
             orderNumber: order.order_number || `ORD-${order.id.slice(0, 8).toUpperCase()}`,
-            customerName: order.customer_name,
-            customerEmail: order.customer_email,
+            customerName: `${order.first_name} ${order.last_name}`,
+            customerEmail: order.email,
             items,
             subtotal,
             shipping,
             tax,
             total,
             shippingAddress: {
-                street: order.delivery_address || '',
-                city: order.delivery_city || '',
-                postalCode: order.delivery_postal_code || '',
+                street: `${order.street} ${order.house_number}`,
+                city: order.city,
+                postalCode: order.postal_code,
                 country: 'Deutschland',
             },
             paymentMethod: order.payment_method || 'card',

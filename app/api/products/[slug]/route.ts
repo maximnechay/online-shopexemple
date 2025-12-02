@@ -9,9 +9,9 @@ export const runtime = 'nodejs';
 
 export async function GET(
     request: Request,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
-    const { slug } = params;
+    const { slug } = await params;
 
     try {
         const { data: product, error } = await supabaseAdmin

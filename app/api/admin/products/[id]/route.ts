@@ -10,7 +10,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 // GET /api/admin/products/:id — получить один товар для формы редактирования
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -25,10 +25,11 @@ export async function GET(
     }
 
     try {
+        const { id } = await params;
         const { data, error } = await supabaseAdmin
             .from('products')
             .select('*')
-            .eq('id', params.id)
+            .eq('id', id)
             .single();
 
         if (error || !data) {
@@ -50,7 +51,7 @@ export async function GET(
 }
 
 // PATCH /api/admin/products/:id — обновление
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -64,6 +65,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     try {
+        const { id } = await params;
         const body = await request.json();
 
         const allowed = [
@@ -86,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         const { data, error } = await supabaseAdmin
             .from('products')
             .update(updateData)
-            .eq('id', params.id)
+            .eq('id', id)
             .select()
             .single();
 
@@ -109,12 +111,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // PUT /api/admin/products/:id — полное обновление (алиас для PATCH)
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     return PATCH(request, { params });
 }
 
 // DELETE /api/admin/products/:id — удаление
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
@@ -127,10 +129,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         );
     }
 
+    const { id } = await params;
     const { error } = await supabaseAdmin
         .from('products')
         .delete()
-        .eq('id', params.id);
+        .eq('id', id);
 
     if (error) {
         console.error('DELETE product error:', error);

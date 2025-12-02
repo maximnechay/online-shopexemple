@@ -18,7 +18,7 @@ import {
     Send,
     Printer,
 } from 'lucide-react';
-import { apiPost } from '@/lib/api/client';
+import { apiPost, apiPatch } from '@/lib/api/client';
 
 interface OrderItem {
     id: string;
@@ -98,31 +98,22 @@ export default function AdminOrderDetailPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`/api/admin/orders/${orderId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: editableStatus,
-                    payment_status: editablePaymentStatus,
-                    notes: editableNotes || null,
-                }),
+            const updated = await apiPatch(`/api/admin/orders/${orderId}`, {
+                status: editableStatus,
+                payment_status: editablePaymentStatus,
+                notes: editableNotes || null,
             });
 
-            if (res.ok) {
-                const updated = await res.json();
-                setOrder(updated);
+            setOrder(updated);
 
-                // Перезагрузить данные заказа, чтобы убедиться, что все синхронизировано
-                await loadOrder();
+            // Перезагрузить данные заказа, чтобы убедиться, что все синхронизировано
+            await loadOrder();
 
-                alert('Bestellung erfolgreich aktualisiert!');
+            alert('Bestellung erfolgreich aktualisiert!');
 
-                // Если статус изменился на processing и оплата completed - отправляем email
-                if (editableStatus === 'processing' && editablePaymentStatus === 'completed') {
-                    await handleSendEmail();
-                }
-            } else {
-                alert('Fehler beim Aktualisieren der Bestellung');
+            // Если статус изменился на processing и оплата completed - отправляем email
+            if (editableStatus === 'processing' && editablePaymentStatus === 'completed') {
+                await handleSendEmail();
             }
         } catch (error) {
             console.error('Error updating order:', error);

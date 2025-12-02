@@ -9,21 +9,29 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
     try {
-        const { orderId } = params;
+        const { orderId } = await params;
 
         console.log('📧 Email send request for order:', orderId);
 
         // Проверяем статус заказа
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .select('payment_status, status, customer_email')
+            .select('payment_status, status, email')
             .eq('id', orderId)
             .single();
 
-        if (orderError || !order) {
+        if (orderError) {
+            console.error('❌ Order fetch error:', orderError);
+            return NextResponse.json(
+                { error: 'Order not found', details: orderError.message },
+                { status: 404 }
+            );
+        }
+
+        if (!order) {
             console.error('❌ Order not found:', orderId);
             return NextResponse.json(
                 { error: 'Order not found' },

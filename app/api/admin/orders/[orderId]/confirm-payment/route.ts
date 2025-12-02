@@ -12,7 +12,7 @@ import { decreaseStock } from '@/lib/inventory/stock-manager';
  */
 export async function POST(
     request: NextRequest,
-    { params }: { params: { orderId: string } }
+    { params }: { params: Promise<{ orderId: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -27,7 +27,7 @@ export async function POST(
     }
 
     try {
-        const { orderId } = params;
+        const { orderId } = await params;
 
         console.log('💰 Admin confirming payment for order:', orderId);
 

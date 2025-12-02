@@ -82,7 +82,31 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Protected admin routes
+    // ✅ ADMIN API ROUTES PROTECTION
+    if (request.nextUrl.pathname.startsWith('/api/admin')) {
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Authentication required' },
+                { status: 401 }
+            );
+        }
+
+        // Check if user is admin
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.role !== 'admin') {
+            return NextResponse.json(
+                { error: 'Admin access required' },
+                { status: 403 }
+            );
+        }
+    }
+
+    // ✅ ADMIN UI ROUTES PROTECTION
     if (request.nextUrl.pathname.startsWith('/admin')) {
         if (!user) {
             return NextResponse.redirect(new URL('/auth/login', request.url));
@@ -122,8 +146,7 @@ export const config = {
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
-         * - public folder
-         * - api routes (let them handle their own auth)
+         * - public folder assets
          */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],

@@ -5,7 +5,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -20,7 +20,8 @@ export async function GET(
     }
 
     try {
-        const userId = params.id;
+        const { id } = await params;
+        const userId = id;
         const supabase = supabaseAdmin;
 
         // Get user profile

@@ -96,6 +96,35 @@ export async function apiPut<T = any>(
 }
 
 /**
+ * API PATCH request with CSRF protection
+ */
+export async function apiPatch<T = any>(
+  url: string,
+  data?: any,
+  options?: RequestInit
+): Promise<T> {
+  const token = await fetchCSRFToken();
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-csrf-token': token,
+      ...options?.headers,
+    },
+    body: data ? JSON.stringify(data) : undefined,
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
  * API DELETE request with CSRF protection
  */
 export async function apiDelete<T = any>(

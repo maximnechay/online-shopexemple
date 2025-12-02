@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Tag, Calendar, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { Coupon } from '@/lib/types';
-import { apiDelete } from '@/lib/api/client';
+import { apiDelete, apiPost, apiPatch } from '@/lib/api/client';
 
 export default function AdminCouponsPage() {
     const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -363,24 +363,15 @@ function CouponModal({
         setSaving(true);
 
         try {
-            const url = coupon ? `/api/admin/coupons/${coupon.id}` : '/api/admin/coupons';
-            const method = coupon ? 'PATCH' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-
-            if (response.ok) {
-                onSave();
+            if (coupon) {
+                await apiPatch(`/api/admin/coupons/${coupon.id}`, formData);
             } else {
-                const data = await response.json();
-                alert(data.error || 'Fehler beim Speichern');
+                await apiPost('/api/admin/coupons', formData);
             }
-        } catch (error) {
+            onSave();
+        } catch (error: any) {
             console.error('Save error:', error);
-            alert('Fehler beim Speichern des Gutscheins');
+            alert(error.message || 'Fehler beim Speichern des Gutscheins');
         } finally {
             setSaving(false);
         }

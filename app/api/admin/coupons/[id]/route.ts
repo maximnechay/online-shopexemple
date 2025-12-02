@@ -7,7 +7,7 @@ import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 // GET /api/admin/coupons/[id] - Получить купон
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -23,7 +23,7 @@ export async function GET(
 
     try {
         const supabase = createServerSupabaseAdminClient();
-        const { id } = params;
+        const { id } = await params;
 
         const { data: coupon, error } = await supabase
             .from('coupons')
@@ -68,7 +68,7 @@ export async function GET(
 // PATCH /api/admin/coupons/[id] - Обновить купон
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -84,7 +84,7 @@ export async function PATCH(
 
     try {
         const supabase = createServerSupabaseAdminClient();
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
 
         const updateData: any = {};
@@ -127,7 +127,7 @@ export async function PATCH(
 // DELETE /api/admin/coupons/[id] - Удалить купон
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     // Rate limiting
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
@@ -143,7 +143,7 @@ export async function DELETE(
 
     try {
         const supabase = createServerSupabaseAdminClient();
-        const { id } = params;
+        const { id } = await params;
 
         const { error } = await supabase
             .from('coupons')
