@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 // GET - публичный endpoint для получения категорий
 export async function GET(request: NextRequest) {
     try {
-        const supabase = createServerSupabaseClient();
+        const supabase = await createServerSupabaseClient();
 
         const { data, error } = await supabase
             .from('categories')
