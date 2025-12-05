@@ -4,10 +4,14 @@ import { Playfair_Display, Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { ReviewStatsProvider } from '@/lib/contexts/ReviewStatsContext';
+import { QuickViewProvider } from '@/lib/contexts/QuickViewContext';
 import PayPalProvider from '@/components/providers/PayPalProvider';
 import CookieBanner from '@/components/cookie/CookieBanner';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import StructuredData from '@/components/seo/StructuredData';
+import QuickViewModal from '@/components/shop/QuickViewModal';
+import GuestEmailPrompt from '@/components/cart/GuestEmailPrompt';
+import CartTracker from '@/components/cart/CartTracker';
 import * as Sentry from '@sentry/nextjs';
 
 const playfair = Playfair_Display({
@@ -152,10 +156,15 @@ export default function RootLayout({
 
         <AuthProvider>
           <ReviewStatsProvider>
-            <PayPalProvider>
-              {children}
-              <CookieBanner />
-            </PayPalProvider>
+            <QuickViewProvider>
+              <PayPalProvider>
+                <CartTracker />
+                {children}
+                <CookieBanner />
+                <QuickViewModal />
+                <GuestEmailPrompt />
+              </PayPalProvider>
+            </QuickViewProvider>
           </ReviewStatsProvider>
         </AuthProvider>
       </body>

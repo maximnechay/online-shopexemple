@@ -19,8 +19,9 @@ export async function middleware(request: NextRequest) {
     const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
     const isWebhook = request.nextUrl.pathname.startsWith('/api/webhooks/');
     const isCsrfEndpoint = request.nextUrl.pathname === '/api/csrf-token';
+    const isAbandonedCartEndpoint = request.nextUrl.pathname.startsWith('/api/abandoned-cart/');
 
-    if (isStateChanging && isApiRoute && !isWebhook && !isCsrfEndpoint) {
+    if (isStateChanging && isApiRoute && !isWebhook && !isCsrfEndpoint && !isAbandonedCartEndpoint) {
         const token = request.headers.get('x-csrf-token');
         const isValid = await verifyCSRFToken(token || '');
 

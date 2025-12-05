@@ -32,7 +32,7 @@ export function useCategories() {
 
     const loadCategories = async () => {
         try {
-            const res = await fetch('/api/admin/categories');
+            const res = await fetch('/api/categories');
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.length > 0) {

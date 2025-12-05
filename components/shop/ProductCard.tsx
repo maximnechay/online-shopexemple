@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, Heart, ArrowRight, Sparkles, Star } from 'lucide-react';
+import { ShoppingBag, Heart, ArrowRight, Sparkles, Star, Eye } from 'lucide-react';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { Product } from '@/lib/types';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
@@ -9,6 +9,7 @@ import { useCartStore } from '@/lib/store/useCartStore';
 import { addToCart as trackAddToCart } from '@/lib/analytics'; // ⭐ GA4
 import { useState } from 'react';
 import { useReviewStats } from '@/lib/contexts/ReviewStatsContext';
+import { useQuickView } from '@/lib/contexts/QuickViewContext';
 
 interface ProductCardProps {
     product: Product;
@@ -19,6 +20,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const { addItem: addToCart } = useCartStore();
     const [isAdding, setIsAdding] = useState(false);
     const { getStats } = useReviewStats();
+    const { openQuickView } = useQuickView();
 
     const inWishlist = isInWishlist(product.id);
     const reviewStats = getStats(product.id) || { average: 0, total: 0 };
@@ -53,6 +55,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         }
 
         setTimeout(() => setIsAdding(false), 1000);
+    };
+
+    const handleQuickView = (e: React.MouseEvent) => {
+        e.preventDefault();
+        openQuickView(product);
     };
 
     return (
@@ -117,6 +124,15 @@ export default function ProductCard({ product }: ProductCardProps) {
                         </button>
                     )}
                 </div>
+
+                {/* Quick View Button - Centered */}
+                <button
+                    onClick={handleQuickView}
+                    className="absolute inset-x-0 bottom-4 mx-auto w-[calc(100%-2rem)] h-12 rounded-full bg-white/95 hover:bg-black hover:text-white text-gray-900 font-medium text-sm flex items-center justify-center gap-2 shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Eye className="w-4 h-4" strokeWidth={2} />
+                    Schnellansicht
+                </button>
             </div>
 
             <div className="flex-1 flex flex-col gap-1">
