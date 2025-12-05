@@ -5,6 +5,9 @@ import { validateRequest, createCategorySchema } from '@/lib/security/validation
 import { createAuditLog } from '@/lib/security/audit-log';
 import { checkAdmin } from '@/lib/auth/admin-check';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 // GET - получить все категории
 export async function GET(request: NextRequest) {
     const adminCheck = await checkAdmin(request);

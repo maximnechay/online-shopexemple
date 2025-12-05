@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 // GET - публичный endpoint для получения категорий
 export async function GET(request: NextRequest) {
     try {

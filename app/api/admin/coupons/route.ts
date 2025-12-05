@@ -5,6 +5,9 @@ import type { NextRequest } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { checkAdmin } from '@/lib/auth/admin-check';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/coupons - Получить все купоны
 export async function GET(request: NextRequest) {
     const adminCheck = await checkAdmin(request);

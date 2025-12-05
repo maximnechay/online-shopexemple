@@ -7,6 +7,9 @@ import { createProductSchema, validateSchema } from '@/lib/validation/schemas';
 import { sanitizeProductDescription } from '@/lib/utils/sanitize';
 import { safeLog } from '@/lib/utils/logger';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 function makeSlug(name: string) {
     return name
         .toLowerCase()

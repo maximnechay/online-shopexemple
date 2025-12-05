@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { checkAdmin } from '@/lib/auth/admin-check';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 // Инициализируем Resend только в runtime, а не во время билда
 const getResend = () => new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'Beauty Salon <noreply@xinvestai.com>';
