@@ -6,9 +6,11 @@ import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useShopSettings } from '@/lib/hooks/useShopSettings';
+import { useCSRFToken } from '@/lib/hooks/useCSRF';
 
 export default function ContactsPage() {
     const { settings, loading } = useShopSettings();
+    const { token: csrfToken, loading: csrfLoading } = useCSRFToken();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -40,6 +42,7 @@ export default function ContactsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
                 },
                 body: JSON.stringify(formData),
             });
@@ -293,7 +296,7 @@ export default function ContactsPage() {
 
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting || isSubmitted}
+                                    disabled={isSubmitting || isSubmitted || csrfLoading || !csrfToken}
                                     className={`w-full py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all
                                         ${isSubmitted
                                             ? 'bg-green-600 text-white'

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { verifyCSRFToken } from '@/lib/security/csrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,15 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
  * Отправка контактной формы
  */
 export async function POST(request: NextRequest) {
+    // CSRF Token verification
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (!csrfToken || !(await verifyCSRFToken(csrfToken))) {
+        return NextResponse.json(
+            { error: 'Invalid or missing CSRF token' },
+            { status: 403 }
+        );
+    }
+
     // Rate limiting - 5 requests per hour to prevent spam
     const rateLimitResult = rateLimit(request, RATE_LIMITS.contact);
     if (!rateLimitResult.success) {

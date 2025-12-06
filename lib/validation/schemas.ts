@@ -7,11 +7,16 @@ import { z } from 'zod';
 
 export const createProductSchema = z.object({
     name: z.string().min(1, 'Name is required').max(200, 'Name too long'),
-    description: z.string().min(10, 'Description too short').max(5000, 'Description too long'),
+    description: z.string().min(3, 'Description too short').max(5000, 'Description too long'),
     price: z.number().positive('Price must be positive'),
     stock_quantity: z.number().int().min(0, 'Stock cannot be negative'),
     category: z.string().min(1, 'Category is required'),
-    image_url: z.string().url('Invalid image URL').optional(),
+    image_url: z.string().url('Invalid image URL').optional().nullable(),
+    images: z.array(z.string().url()).optional().nullable(),
+    brand: z.string().max(100).optional().nullable(),
+    tags: z.array(z.string()).optional().nullable(),
+    compare_at_price: z.number().positive().optional().nullable(),
+    in_stock: z.boolean().optional(),
     sku: z.string().max(50).optional(),
     is_featured: z.boolean().optional(),
 });

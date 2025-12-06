@@ -65,18 +65,18 @@ export default function CreateProduct() {
         const payload = {
             name: form.name,
             price: Number(form.price),
-            compareAtPrice: form.compareAtPrice
+            compare_at_price: form.compareAtPrice
                 ? Number(form.compareAtPrice)
                 : null,
             category: form.category,
             description: form.description,
             brand: form.brand || null,
-            stockQuantity: form.stockQuantity
+            stock_quantity: form.stockQuantity
                 ? Number(form.stockQuantity)
                 : 0,
-            inStock: form.inStock,
-            images: images, // Массив URL изображений
-            tags: form.tags,
+            in_stock: form.inStock,
+            images: images.length > 0 ? images : null, // Массив URL или null
+            tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null, // Преобразуем строку в массив
         };
 
         try {
