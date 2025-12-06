@@ -1,10 +1,20 @@
 // Test script to create abandoned cart with 1h trigger time
 import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
 
-const supabase = createClient(
-    'https://ftnesgtxepluwpicbydh.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0bmVzZ3R4ZXBsdXdwaWNieWRoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzU3MTc3NywiZXhwIjoyMDc5MTQ3Nzc3fQ.iRgMkjl2PYadAJZuz9iyYZeaPLfw43bTpJz5Wgg4w4Y'
-);
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('❌ Missing environment variables!');
+    console.error('Please ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in .env.local');
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function createTestCart() {
     const oneDayAgo = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 hours ago for 24h email
