@@ -79,9 +79,32 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    // Get user with error handling for invalid sessions (e.g., after JWT key rotation)
+    let user = null;
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+            // Clear invalid session cookies
+            console.warn('Invalid session detected, clearing cookies:', error.message);
+            const cookiesToClear = request.cookies.getAll().filter(cookie =>
+                cookie.name.startsWith('sb-')
+            );
+            cookiesToClear.forEach(cookie => {
+                response.cookies.delete(cookie.name);
+            });
+        } else {
+            user = data.user;
+        }
+    } catch (err) {
+        console.error('Error getting user session:', err);
+        // Clear all Supabase cookies on error
+        const cookiesToClear = request.cookies.getAll().filter(cookie =>
+            cookie.name.startsWith('sb-')
+        );
+        cookiesToClear.forEach(cookie => {
+            response.cookies.delete(cookie.name);
+        });
+    }
 
     // ✅ ADMIN API ROUTES PROTECTION
     if (request.nextUrl.pathname.startsWith('/api/admin')) {

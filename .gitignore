@@ -26,6 +26,11 @@ yarn-error.log*
 .env*.local
 .env
 
+# Test files with sensitive data
+test-*.ts
+test-*.js
+apply-admin-security.js
+
 # Vercel
 .vercel
 
