@@ -9,8 +9,10 @@ import Footer from '@/components/layout/Footer';
 import { formatPrice, calculateDiscount } from '@/lib/utils';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { Product } from '@/lib/types';
+import { ProductAttribute } from '@/lib/types/attributes';
 import { useWishlistStore } from '@/lib/store/useWishlistStore';
 import ProductReviews from '@/components/product/ProductReviews';
+import VariantSelector from '@/components/product/VariantSelector';
 import { useReviewStats } from '@/lib/contexts/ReviewStatsContext';
 
 export default function ProductPage() { // ← Убрали params из пропсов
@@ -18,6 +20,8 @@ export default function ProductPage() { // ← Убрали params из проп
     const slug = params.slug as string; // ← Получаем slug
 
     const [product, setProduct] = useState<Product | null>(null);
+    const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
+    const [productVariants, setProductVariants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const { getStats, loadStats } = useReviewStats();
@@ -52,6 +56,28 @@ export default function ProductPage() { // ← Убрали params из проп
             }
             const data = await response.json();
             setProduct(data);
+
+            // Load product attributes using slug
+            try {
+                const attrsResponse = await fetch(`/api/products/${slug}/attributes`);
+                if (attrsResponse.ok) {
+                    const attrsData = await attrsResponse.json();
+                    setProductAttributes(attrsData);
+                }
+            } catch (err) {
+                console.error('Error fetching product attributes:', err);
+            }
+
+            // Load product variants
+            try {
+                const variantsResponse = await fetch(`/api/products/${slug}/variants`);
+                if (variantsResponse.ok) {
+                    const variantsData = await variantsResponse.json();
+                    setProductVariants(variantsData.variants || []);
+                }
+            } catch (err) {
+                console.error('Error fetching product variants:', err);
+            }
         } catch (err) {
             console.error('Error fetching product:', err);
             setError(true);
@@ -178,10 +204,10 @@ export default function ProductPage() { // ← Убрали params из проп
                             {/* Thumbnails - Always show if there are images */}
                             {product.images.length > 1 && (
                                 <div className={`grid gap-4 ${product.images.length === 2
-                                        ? 'grid-cols-2'
-                                        : product.images.length === 3
-                                            ? 'grid-cols-3'
-                                            : 'grid-cols-4'
+                                    ? 'grid-cols-2'
+                                    : product.images.length === 3
+                                        ? 'grid-cols-3'
+                                        : 'grid-cols-4'
                                     }`}>
                                     {product.images.map((image, index) => (
                                         <button
@@ -272,6 +298,15 @@ export default function ProductPage() { // ← Убрали params из проп
                                 )}
                             </div>
 
+                            {/* Variant Selector */}
+                            {productVariants.length > 0 && product && (
+                                <VariantSelector
+                                    currentProductId={product.id}
+                                    variants={productVariants}
+                                    variantAttributeSlug="volumen"
+                                />
+                            )}
+
                             {/* Quantity Selector */}
                             {product.inStock && (
                                 <div className="flex items-center gap-4">
@@ -338,6 +373,29 @@ export default function ProductPage() { // ← Убрали params из проп
                                     <p className="text-xs text-gray-600">14 Tage Rückgaberecht</p>
                                 </div>
                             </div>
+
+                            {/* Product Attributes */}
+                            {productAttributes.length > 0 && (
+                                <div className="pt-6 border-t border-gray-100">
+                                    <h3 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">
+                                        Produkteigenschaften
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {productAttributes
+                                            .filter(attr => attr.attribute?.visibleInCatalog !== false)
+                                            .map((attr) => (
+                                                <div key={attr.id} className="flex flex-col">
+                                                    <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                                                        {attr.attribute?.name}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-gray-900">
+                                                        {attr.attributeValue?.value || attr.customValue || '—'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Tags */}
                             {product.tags && product.tags.length > 0 && (

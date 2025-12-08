@@ -160,15 +160,53 @@ export default function AdminPage() {
                         </div>
 
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            Kategorien verwalten
+                            Kategorien
                         </h2>
 
                         <p className="text-gray-600 text-sm leading-relaxed">
-                            Produktkategorien hinzufügen, bearbeiten oder löschen.
+                            Produktkategorien verwalten und organisieren.
                         </p>
                     </Link>
 
-                    {/* Купоны */}
+                    {/* Attribute */}
+                    <Link
+                        href="/admin/attributes"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Tag className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Attribute
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Produktattribute und Filter für den Katalog verwalten.
+                        </p>
+                    </Link>
+
+                    {/* Product Variants */}
+                    <Link
+                        href="/admin/product-variants"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Produktvarianten
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Verknüpfen Sie zusammengehörige Produkte (z.B. verschiedene Größen).
+                        </p>
+                    </Link>
+
+                    {/* Bewertungen */}
                     <Link
                         href="/admin/coupons"
                         className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"

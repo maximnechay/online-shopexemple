@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tag, Euro, FileText, PackagePlus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useCategories } from '@/lib/hooks/useCategories';
 import ImageUpload from '@/components/admin/ImageUpload';
 import { apiPost } from '@/lib/api/client';
+import { Attribute } from '@/lib/types/attributes';
 
 export default function CreateProduct() {
     const router = useRouter();
@@ -14,6 +15,8 @@ export default function CreateProduct() {
 
     // Отдельный state для изображений
     const [images, setImages] = useState<string[]>([]);
+    const [attributes, setAttributes] = useState<Attribute[]>([]);
+    const [selectedAttributes, setSelectedAttributes] = useState<{ [attributeId: string]: string | string[] }>({});
 
     const [form, setForm] = useState({
         name: '',
@@ -26,6 +29,20 @@ export default function CreateProduct() {
         tags: '',
         inStock: true,
     });
+
+    // Load attributes
+    useEffect(() => {
+        const loadAttributes = async () => {
+            try {
+                const res = await fetch('/api/admin/attributes');
+                const data = await res.json();
+                setAttributes(data || []);
+            } catch (e) {
+                console.error('Error loading attributes:', e);
+            }
+        };
+        loadAttributes();
+    }, []);
 
     const change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target as HTMLInputElement;
@@ -51,6 +68,13 @@ export default function CreateProduct() {
     const handleImageRemoved = (url: string) => {
         setImages(prev => prev.filter(img => img !== url));
         console.log('🗑️ Image removed:', url);
+    };
+
+    const handleAttributeChange = (attributeId: string, value: string | string[], isMultiselect: boolean) => {
+        setSelectedAttributes(prev => ({
+            ...prev,
+            [attributeId]: value,
+        }));
     };
 
     const submit = async (e: React.FormEvent) => {
@@ -82,6 +106,43 @@ export default function CreateProduct() {
         try {
             const data = await apiPost('/api/admin/products', payload);
             console.log('✅ Product created:', data);
+            console.log('📝 Selected attributes:', selectedAttributes);
+
+            // Save product attributes
+            if (Object.keys(selectedAttributes).length > 0) {
+                const productId = data.id;
+                console.log('💾 Saving attributes for product:', productId);
+
+                const attributePromises = Object.entries(selectedAttributes).map(([attributeId, value]) => {
+                    if (Array.isArray(value)) {
+                        // Multiselect - create multiple entries
+                        console.log('  📋 Multiselect attribute:', attributeId, 'values:', value);
+                        return Promise.all(
+                            value.map(valueId =>
+                                apiPost('/api/admin/products/attributes', {
+                                    productId,
+                                    attributeId,
+                                    attributeValueId: valueId,
+                                })
+                            )
+                        );
+                    } else if (value) {
+                        // Single select
+                        console.log('  📌 Single attribute:', attributeId, 'value:', value);
+                        return apiPost('/api/admin/products/attributes', {
+                            productId,
+                            attributeId,
+                            attributeValueId: value,
+                        });
+                    }
+                });
+
+                await Promise.all(attributePromises);
+                console.log('✅ All attributes saved');
+            } else {
+                console.log('⚠️ No attributes selected');
+            }
+
             router.push('/admin/products');
             router.refresh();
         } catch (error: any) {
@@ -291,6 +352,70 @@ export default function CreateProduct() {
                             placeholder="serum, vitamin-c, anti-aging"
                         />
                     </div>
+
+                    {/* Attributes */}
+                    {attributes.length > 0 && (
+                        <div className="border-t border-gray-200 pt-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                Produktattribute
+                            </h3>
+                            <div className="space-y-4">
+                                {attributes.map((attr) => (
+                                    <div key={attr.id}>
+                                        <label className="block text-gray-700 font-medium mb-2">
+                                            {attr.name}
+                                        </label>
+                                        {attr.type === 'select' && (
+                                            <select
+                                                value={(selectedAttributes[attr.id] as string) || ''}
+                                                onChange={(e) => handleAttributeChange(attr.id, e.target.value, false)}
+                                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black bg-white"
+                                            >
+                                                <option value="">-- {attr.name} wählen --</option>
+                                                {attr.values?.map((val) => (
+                                                    <option key={val.id} value={val.id}>
+                                                        {val.value}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        {attr.type === 'multiselect' && (
+                                            <div className="space-y-2">
+                                                {attr.values?.map((val) => (
+                                                    <label key={val.id} className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={(selectedAttributes[attr.id] as string[] || []).includes(val.id)}
+                                                            onChange={(e) => {
+                                                                const current = (selectedAttributes[attr.id] as string[]) || [];
+                                                                const newValue = e.target.checked
+                                                                    ? [...current, val.id]
+                                                                    : current.filter(id => id !== val.id);
+                                                                handleAttributeChange(attr.id, newValue, true);
+                                                            }}
+                                                            className="w-4 h-4"
+                                                        />
+                                                        <span className="text-gray-700 text-sm">{val.value}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {attr.type === 'boolean' && (
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAttributes[attr.id] === 'true'}
+                                                    onChange={(e) => handleAttributeChange(attr.id, e.target.checked ? 'true' : 'false', false)}
+                                                    className="w-4 h-4"
+                                                />
+                                                <span className="text-gray-700 text-sm">Ja</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         type="submit"

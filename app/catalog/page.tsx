@@ -10,6 +10,7 @@ import { Filter, X } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductGrid from '@/components/shop/ProductGrid';
+import AttributeFilters from '@/components/catalog/AttributeFilters';
 import { Product, ProductCategory, SortOption } from '@/lib/types';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { viewItemList } from '@/lib/analytics';
@@ -32,6 +33,8 @@ function CatalogContent() {
     const [inStockOnly, setInStockOnly] = useState(
         searchParams.get('inStock') === 'true'
     );
+    const [attributeFilters, setAttributeFilters] = useState<{ [key: string]: string[] }>({});
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     // Пагинация
@@ -42,7 +45,7 @@ function CatalogContent() {
 
     useEffect(() => {
         fetchProducts();
-    }, [selectedCategory]);
+    }, [selectedCategory, attributeFilters]);
 
     // Analytics при загрузке товаров
     useEffect(() => {
@@ -113,6 +116,11 @@ function CatalogContent() {
                 params.append('category', selectedCategory);
             }
 
+            // Add attribute filters
+            if (Object.keys(attributeFilters).length > 0) {
+                params.append('attributes', JSON.stringify(attributeFilters));
+            }
+
             const response = await fetch(`/api/products?${params}`, {
                 cache: 'no-store',
                 headers: {
@@ -155,6 +163,25 @@ function CatalogContent() {
         updateURL({ inStock: newValue, page: 1 });
     };
 
+    const handleAttributeFilterChange = (attributeSlug: string, valueIds: string[]) => {
+        setAttributeFilters(prev => {
+            const updated = { ...prev };
+            if (valueIds.length === 0) {
+                delete updated[attributeSlug];
+            } else {
+                updated[attributeSlug] = valueIds;
+            }
+            return updated;
+        });
+        setCurrentPage(1);
+    };
+
+    const handleClearAllFilters = () => {
+        setAttributeFilters({});
+        setInStockOnly(false);
+        setCurrentPage(1);
+    };
+
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
         updateURL({ page });
@@ -162,9 +189,15 @@ function CatalogContent() {
     };
 
     // Фильтруем товары
-    const filteredProducts = inStockOnly
-        ? products.filter((p) => p.inStock)
-        : products;
+    const filteredProducts = products.filter((p) => {
+        // Stock filter
+        if (inStockOnly && !p.inStock) return false;
+
+        // Price filter
+        if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
+
+        return true;
+    });
 
     // Сортируем товары
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -312,35 +345,204 @@ function CatalogContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="mb-12"
+                        className="mb-8"
                     >
                         <h1 className="text-4xl lg:text-5xl font-light text-gray-900 mb-4">
                             Katalog
                         </h1>
-                        <p className="text-lg text-gray-600 max-w-2xl">
+                        <p className="text-lg text-gray-600">
                             Entdecken Sie unsere Premium-Auswahl an Kosmetikprodukten
                         </p>
                     </motion.div>
 
                     {/* Mobile Filter Button */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="md:hidden mb-4"
-                    >
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                    <div className="md:hidden mb-4">
+                        <button
                             onClick={() => setShowMobileFilters(!showMobileFilters)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                            aria-label="Filter öffnen"
-                            aria-expanded={showMobileFilters}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors rounded-xl"
                         >
                             <Filter className="w-5 h-5" />
                             <span>Filter & Sortierung</span>
-                        </motion.button>
-                    </motion.div>
+                        </button>
+                    </div>
+
+                    {/* Main Content: Sidebar + Products */}
+                    <div className="flex gap-8">
+                        {/* Desktop Sidebar Filters */}
+                        <motion.aside
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="hidden md:block w-64 flex-shrink-0"
+                        >
+                            <div className="sticky top-24 space-y-6">
+                                {/* Categories */}
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
+                                        Kategorien
+                                    </h3>
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={() => handleCategoryChange('all')}
+                                            className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${selectedCategory === 'all'
+                                                ? 'bg-black text-white'
+                                                : 'text-gray-700 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            Alle Produkte
+                                        </button>
+                                        {categories.map((cat) => (
+                                            <button
+                                                key={cat.id}
+                                                onClick={() => handleCategoryChange(cat.id)}
+                                                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${selectedCategory === cat.id
+                                                    ? 'bg-black text-white'
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                                    }`}
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Price Range */}
+                                <div className="pt-6 border-t border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
+                                        Preis
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <input
+                                                type="number"
+                                                value={priceRange[0]}
+                                                onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded"
+                                                min="0"
+                                            />
+                                            <span className="text-gray-500">—</span>
+                                            <input
+                                                type="number"
+                                                value={priceRange[1]}
+                                                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded"
+                                                min="0"
+                                            />
+                                            <span className="text-gray-500">€</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stock Filter */}
+                                <div className="pt-6 border-t border-gray-200">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={inStockOnly}
+                                            onChange={handleInStockToggle}
+                                            className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                                        />
+                                        <span className="text-sm text-gray-700">Nur verfügbare</span>
+                                    </label>
+                                </div>
+
+                                {/* Attribute Filters */}
+                                <div className="pt-6 border-t border-gray-200">
+                                    <AttributeFilters
+                                        selectedCategory={selectedCategory}
+                                        selectedFilters={attributeFilters}
+                                        onFilterChange={handleAttributeFilterChange}
+                                        onClearAll={handleClearAllFilters}
+                                    />
+                                </div>
+                            </div>
+                        </motion.aside>
+
+                        {/* Products Area */}
+                        <div className="flex-1">
+                            {/* Sort Bar */}
+                            <div className="flex items-center justify-between mb-6">
+                                <p className="text-sm text-gray-600">
+                                    {sortedProducts.length} {sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}
+                                </p>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-gray-900"
+                                >
+                                    <option value="newest">Neueste zuerst</option>
+                                    <option value="price-asc">Preis aufsteigend</option>
+                                    <option value="price-desc">Preis absteigend</option>
+                                    <option value="name-asc">Name A-Z</option>
+                                    <option value="name-desc">Name Z-A</option>
+                                </select>
+                            </div>
+
+                            {/* Products Grid */}
+                            {paginatedProducts.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <p className="text-gray-600 mb-4">Keine Produkte gefunden</p>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedCategory('all');
+                                            setInStockOnly(false);
+                                            setAttributeFilters({});
+                                            setPriceRange([0, 1000]);
+                                        }}
+                                        className="px-6 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors rounded-xl"
+                                    >
+                                        Filter zurücksetzen
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <motion.div
+                                        variants={containerVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                                    >
+                                        <ProductGrid products={paginatedProducts} animated />
+                                    </motion.div>
+
+                                    {/* Pagination */}
+                                    {totalPages > 1 && (
+                                        <div className="mt-12 flex justify-center items-center gap-2">
+                                            <button
+                                                onClick={() => handlePageChange(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Zurück
+                                            </button>
+
+                                            <div className="flex gap-2">
+                                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => handlePageChange(page)}
+                                                        className={`px-4 py-2 text-sm rounded-lg transition-colors ${currentPage === page
+                                                            ? 'bg-black text-white'
+                                                            : 'border border-gray-300 hover:bg-gray-100'
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <button
+                                                onClick={() => handlePageChange(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Weiter
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
 
                     {/* Mobile Filters Drawer */}
                     <AnimatePresence>
@@ -354,307 +556,94 @@ function CatalogContent() {
                                     className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
                                 />
                                 <motion.div
-                                    initial={{ x: '100%' }}
+                                    initial={{ x: '-100%' }}
                                     animate={{ x: 0 }}
-                                    exit={{ x: '100%' }}
+                                    exit={{ x: '-100%' }}
                                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                    className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-xl p-6 overflow-y-auto z-50"
+                                    className="fixed left-0 top-0 bottom-0 w-80 bg-white shadow-xl p-6 overflow-y-auto z-50"
                                 >
                                     <div className="flex justify-between items-center mb-6">
-                                        <h2 className="text-xl font-medium">Filter & Sortierung</h2>
-                                        <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={() => setShowMobileFilters(false)}
-                                            aria-label="Filter schließen"
-                                        >
+                                        <h2 className="text-xl font-medium">Filter</h2>
+                                        <button onClick={() => setShowMobileFilters(false)}>
                                             <X className="w-6 h-6" />
-                                        </motion.button>
+                                        </button>
                                     </div>
 
-                                    {/* Category Filter Mobile */}
+                                    {/* Categories Mobile */}
                                     <div className="mb-6">
-                                        <h3 className="text-sm font-medium mb-3">Kategorie</h3>
+                                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Kategorien</h3>
                                         <div className="space-y-2">
-                                            <motion.button
-                                                whileHover={{ x: 5 }}
-                                                onClick={() => handleCategoryChange('all')}
-                                                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedCategory === 'all'
-                                                    ? 'bg-black text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            <button
+                                                onClick={() => {
+                                                    handleCategoryChange('all');
+                                                    setShowMobileFilters(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-2 text-sm rounded-lg ${selectedCategory === 'all' ? 'bg-black text-white' : 'bg-gray-100'
                                                     }`}
                                             >
                                                 Alle
-                                            </motion.button>
+                                            </button>
                                             {categories.map((cat) => (
-                                                <motion.button
+                                                <button
                                                     key={cat.id}
-                                                    whileHover={{ x: 5 }}
-                                                    onClick={() => handleCategoryChange(cat.id)}
-                                                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedCategory === cat.id
-                                                        ? 'bg-black text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    onClick={() => {
+                                                        handleCategoryChange(cat.id);
+                                                        setShowMobileFilters(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg ${selectedCategory === cat.id ? 'bg-black text-white' : 'bg-gray-100'
                                                         }`}
                                                 >
                                                     {cat.name}
-                                                </motion.button>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* Sort Mobile */}
-                                    <div className="mb-6">
-                                        <h3 className="text-sm font-medium mb-3">Sortierung</h3>
-                                        <select
-                                            value={sortBy}
-                                            onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                                            className="w-full px-4 py-2 text-sm border border-gray-300 bg-white text-gray-700 focus:outline-none focus:border-gray-900"
-                                            aria-label="Sortierung auswählen"
-                                        >
-                                            <option value="newest">Neueste zuerst</option>
-                                            <option value="price-asc">Preis aufsteigend</option>
-                                            <option value="price-desc">Preis absteigend</option>
-                                            <option value="name-asc">Name A-Z</option>
-                                            <option value="name-desc">Name Z-A</option>
-                                        </select>
+                                    {/* Price Mobile */}
+                                    <div className="mb-6 pb-6 border-b">
+                                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Preis</h3>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <input
+                                                type="number"
+                                                value={priceRange[0]}
+                                                onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                                                className="w-20 px-2 py-1 border rounded"
+                                            />
+                                            <span>—</span>
+                                            <input
+                                                type="number"
+                                                value={priceRange[1]}
+                                                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                                                className="w-20 px-2 py-1 border rounded"
+                                            />
+                                            <span>€</span>
+                                        </div>
                                     </div>
 
-                                    {/* Stock Filter Mobile */}
-                                    <div>
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={handleInStockToggle}
-                                            className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${inStockOnly
-                                                ? 'bg-black text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
-                                            aria-label="Nur verfügbare Produkte anzeigen"
-                                            aria-pressed={inStockOnly}
-                                        >
-                                            <Filter className="w-4 h-4" />
-                                            Nur verfügbar
-                                        </motion.button>
+                                    {/* Stock Mobile */}
+                                    <div className="mb-6 pb-6 border-b">
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={inStockOnly}
+                                                onChange={handleInStockToggle}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <span className="text-sm">Nur verfügbare</span>
+                                        </label>
                                     </div>
+
+                                    {/* Attributes Mobile */}
+                                    <AttributeFilters
+                                        selectedCategory={selectedCategory}
+                                        selectedFilters={attributeFilters}
+                                        onFilterChange={handleAttributeFilterChange}
+                                        onClearAll={handleClearAllFilters}
+                                    />
                                 </motion.div>
                             </>
                         )}
                     </AnimatePresence>
-
-                    {/* Desktop Filters */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="hidden md:flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8"
-                    >
-                        {/* Category Filter */}
-                        <div className="flex flex-wrap gap-2">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleCategoryChange('all')}
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${selectedCategory === 'all'
-                                    ? 'bg-black text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                aria-label="Alle Kategorien anzeigen"
-                                aria-pressed={selectedCategory === 'all'}
-                            >
-                                Alle
-                            </motion.button>
-                            {categories.map((cat) => (
-                                <motion.button
-                                    key={cat.id}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => handleCategoryChange(cat.id)}
-                                    className={`px-4 py-2 text-sm font-medium transition-colors ${selectedCategory === cat.id
-                                        ? 'bg-black text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                    aria-label={`${cat.name} Kategorie anzeigen`}
-                                    aria-pressed={selectedCategory === cat.id}
-                                >
-                                    {cat.name}
-                                </motion.button>
-                            ))}
-                        </div>
-
-                        {/* Sort & Filter Options */}
-                        <div className="flex gap-3">
-                            <select
-                                value={sortBy}
-                                onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                                className="px-4 py-2 text-sm border border-gray-300 bg-white text-gray-700 focus:outline-none focus:border-gray-900"
-                                aria-label="Sortierung auswählen"
-                            >
-                                <option value="newest">Neueste zuerst</option>
-                                <option value="price-asc">Preis aufsteigend</option>
-                                <option value="price-desc">Preis absteigend</option>
-                                <option value="name-asc">Name A-Z</option>
-                                <option value="name-desc">Name Z-A</option>
-                            </select>
-
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleInStockToggle}
-                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${inStockOnly
-                                    ? 'bg-black text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                aria-label="Nur verfügbare Produkte anzeigen"
-                                aria-pressed={inStockOnly}
-                            >
-                                <Filter className="w-4 h-4" />
-                                Nur verfügbar
-                            </motion.button>
-                        </div>
-                    </motion.div>
-
-                    {/* Active Filters */}
-                    <AnimatePresence>
-                        {(selectedCategory !== 'all' || inStockOnly) && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="mb-6 flex flex-wrap gap-2 items-center overflow-hidden"
-                            >
-                                <span className="text-sm text-gray-600">Aktive Filter:</span>
-                                {selectedCategory !== 'all' && (
-                                    <motion.button
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        exit={{ scale: 0 }}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handleCategoryChange('all')}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm hover:bg-gray-800 transition-colors"
-                                    >
-                                        {categories.find(c => c.id === selectedCategory)?.name}
-                                        <X className="w-4 h-4" />
-                                    </motion.button>
-                                )}
-                                {inStockOnly && (
-                                    <motion.button
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        exit={{ scale: 0 }}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleInStockToggle}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm hover:bg-gray-800 transition-colors"
-                                    >
-                                        Nur verfügbar
-                                        <X className="w-4 h-4" />
-                                    </motion.button>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Products Grid */}
-                    {paginatedProducts.length === 0 ? (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-center py-20"
-                        >
-                            <p className="text-gray-600 mb-4">Keine Produkte gefunden</p>
-                            {(selectedCategory !== 'all' || inStockOnly) && (
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        setSelectedCategory('all');
-                                        setInStockOnly(false);
-                                        updateURL({ category: 'all', inStock: false });
-                                    }}
-                                    className="px-6 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                                >
-                                    Filter zurücksetzen
-                                </motion.button>
-                            )}
-                        </motion.div>
-                    ) : (
-                        <>
-                            <motion.div
-                                variants={containerVariants}
-                                initial="hidden"
-                                animate="visible"
-                                className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-                            >
-                                <ProductGrid products={paginatedProducts} animated />
-                            </motion.div>
-
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.8 }}
-                                    className="mt-12 flex justify-center items-center gap-2"
-                                >
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handlePageChange(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className="px-4 py-2 text-sm border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        aria-label="Vorherige Seite"
-                                    >
-                                        Zurück
-                                    </motion.button>
-
-                                    <div className="flex gap-2">
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                            <motion.button
-                                                key={page}
-                                                whileHover={{ scale: currentPage === page ? 1 : 1.1 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => handlePageChange(page)}
-                                                className={`px-4 py-2 text-sm transition-colors ${currentPage === page
-                                                    ? 'bg-black text-white'
-                                                    : 'border border-gray-300 hover:bg-gray-100'
-                                                    }`}
-                                                aria-label={`Seite ${page}`}
-                                                aria-current={currentPage === page ? 'page' : undefined}
-                                            >
-                                                {page}
-                                            </motion.button>
-                                        ))}
-                                    </div>
-
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handlePageChange(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className="px-4 py-2 text-sm border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        aria-label="Nächste Seite"
-                                    >
-                                        Weiter
-                                    </motion.button>
-                                </motion.div>
-                            )}
-                        </>
-                    )}
-
-                    {/* Results count */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 1 }}
-                        className="mt-12 text-center text-sm text-gray-500"
-                    >
-                        {sortedProducts.length} {sortedProducts.length === 1 ? 'Produkt' : 'Produkte'}{' '}
-                        gefunden
-                        {totalPages > 1 && (
-                            <span> · Seite {currentPage} von {totalPages}</span>
-                        )}
-                    </motion.div>
                 </div>
             </div>
 

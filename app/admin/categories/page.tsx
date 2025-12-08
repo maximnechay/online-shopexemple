@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, ArrowLeft, Upload, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { apiPost, apiPut, apiDelete } from '@/lib/api/client';
+import { apiPost, apiPut, apiDelete, fetchCSRFToken } from '@/lib/api/client';
 
 interface Category {
     id: string;
@@ -32,6 +32,8 @@ export default function CategoriesPage() {
         description: '',
         image: ''
     });
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingEditImage, setUploadingEditImage] = useState(false);
 
     useEffect(() => {
         loadCategories();
@@ -90,6 +92,13 @@ export default function CategoriesPage() {
             return;
         }
 
+        // Validate ID format
+        const idRegex = /^[a-z0-9-]+$/;
+        if (!idRegex.test(newCategory.id)) {
+            alert('ID muss lowercase sein und darf nur Buchstaben, Zahlen und Bindestriche enthalten');
+            return;
+        }
+
         try {
             await apiPost('/api/admin/categories', newCategory);
             await loadCategories();
@@ -98,6 +107,68 @@ export default function CategoriesPage() {
         } catch (error) {
             console.error('Error creating category:', error);
             alert('Netzwerkfehler beim Erstellen der Kategorie');
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+            alert('Bitte nur JPEG, PNG oder WebP Bilder hochladen');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Bild zu groß. Maximum 5MB');
+            return;
+        }
+
+        if (isEdit) {
+            setUploadingEditImage(true);
+        } else {
+            setUploadingImage(true);
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Get CSRF token
+            const csrfToken = await fetchCSRFToken();
+
+            const response = await fetch('/api/admin/products/upload-image', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include',
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Upload failed');
+            }
+
+            const data = await response.json();
+
+            if (isEdit) {
+                setEditForm({ ...editForm, image: data.url });
+            } else {
+                setNewCategory({ ...newCategory, image: data.url });
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Fehler beim Hochladen des Bildes');
+        } finally {
+            if (isEdit) {
+                setUploadingEditImage(false);
+            } else {
+                setUploadingImage(false);
+            }
         }
     };
 
@@ -144,15 +215,19 @@ export default function CategoriesPage() {
                         <div className="grid gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Kategorie-ID * (z.B. "perfume", "skincare")
+                                    Kategorie-ID * (nur lowercase: a-z, 0-9, -)
                                 </label>
                                 <input
                                     type="text"
                                     value={newCategory.id}
-                                    onChange={(e) => setNewCategory({ ...newCategory, id: e.target.value })}
+                                    onChange={(e) => setNewCategory({ ...newCategory, id: e.target.value.toLowerCase() })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                                     placeholder="z.B. perfume"
+                                    pattern="[a-z0-9-]+"
                                 />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt
+                                </p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
@@ -185,14 +260,47 @@ export default function CategoriesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Bild URL</label>
-                                <input
-                                    type="text"
-                                    value={newCategory.image}
-                                    onChange={(e) => setNewCategory({ ...newCategory, image: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                    placeholder="https://..."
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Bild</label>
+                                <div className="space-y-3">
+                                    {newCategory.image && (
+                                        <div className="relative inline-block">
+                                            <img
+                                                src={newCategory.image}
+                                                alt="Preview"
+                                                className="w-32 h-32 object-cover rounded-lg"
+                                            />
+                                            <button
+                                                onClick={() => setNewCategory({ ...newCategory, image: '' })}
+                                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition">
+                                            {uploadingImage ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Hochladen...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-4 h-4" />
+                                                    Bild hochladen
+                                                </>
+                                            )}
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                                onChange={(e) => handleImageUpload(e, false)}
+                                                className="hidden"
+                                                disabled={uploadingImage}
+                                            />
+                                        </label>
+                                        <p className="text-xs text-gray-500 mt-1">JPEG, PNG oder WebP (max 5MB)</p>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex gap-3">
                                 <button
@@ -246,13 +354,47 @@ export default function CategoriesPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Bild URL</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.image}
-                                            onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Bild</label>
+                                        <div className="space-y-3">
+                                            {editForm.image && (
+                                                <div className="relative inline-block">
+                                                    <img
+                                                        src={editForm.image}
+                                                        alt="Preview"
+                                                        className="w-32 h-32 object-cover rounded-lg"
+                                                    />
+                                                    <button
+                                                        onClick={() => setEditForm({ ...editForm, image: '' })}
+                                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition">
+                                                    {uploadingEditImage ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Hochladen...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="w-4 h-4" />
+                                                            Bild hochladen
+                                                        </>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                                        onChange={(e) => handleImageUpload(e, true)}
+                                                        className="hidden"
+                                                        disabled={uploadingEditImage}
+                                                    />
+                                                </label>
+                                                <p className="text-xs text-gray-500 mt-1">JPEG, PNG oder WebP (max 5MB)</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="flex gap-3">
                                         <button
