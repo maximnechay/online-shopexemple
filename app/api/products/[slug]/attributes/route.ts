@@ -31,6 +31,7 @@ interface DatabaseProductAttribute {
         slug: string;
         display_order: number;
         created_at: string;
+        image_url?: string | null;
     };
 }
 
@@ -60,6 +61,7 @@ function transformProductAttributeFromDB(dbAttr: DatabaseProductAttribute): Prod
             slug: dbAttr.attribute_values.slug,
             displayOrder: dbAttr.attribute_values.display_order,
             createdAt: dbAttr.attribute_values.created_at,
+            imageUrl: dbAttr.attribute_values.image_url || undefined,
         } : undefined,
     };
 }
@@ -111,7 +113,8 @@ export async function GET(
           value,
           slug,
           display_order,
-          created_at
+          created_at,
+          image_url
         )
       `)
             .eq('product_id', product.id)

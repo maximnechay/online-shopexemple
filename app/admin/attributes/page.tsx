@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, PlusCircle, Pencil, Trash2, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { Attribute, AttributeValue } from '@/lib/types/attributes';
-import { apiPost, apiDelete, apiPatch } from '@/lib/api/client';
-
+import { apiPost, apiDelete, apiPatch, fetchCSRFToken } from '@/lib/api/client';
 interface Category {
     id: string;
     name: string;
@@ -30,7 +29,65 @@ export default function AttributesManagementPage() {
     });
     const [newValues, setNewValues] = useState<{ [key: string]: string }>({});
     const [valueCategories, setValueCategories] = useState<{ [key: string]: string[] }>({});
+    const [uploadingImage, setUploadingImage] = useState<string | null>(null);
 
+    const uploadValueImage = async (valueId: string, file: File) => {
+        try {
+            setUploadingImage(valueId);
+
+            // Получаем CSRF токен
+            const token = await fetchCSRFToken();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`/api/admin/attributes/values/${valueId}/image`, {
+                method: 'POST',
+                headers: {
+                    'x-csrf-token': token, // Добавляем CSRF токен
+                },
+                body: formData,
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Upload failed');
+            }
+
+            await loadAttributes();
+        } catch (e) {
+            console.error('Error uploading image', e);
+            alert('Fehler beim Hochladen des Bildes: ' + (e instanceof Error ? e.message : 'Unknown error'));
+        } finally {
+            setUploadingImage(null);
+        }
+    };
+
+    const deleteValueImage = async (valueId: string) => {
+        if (!confirm('Bild wirklich entfernen?')) return;
+        try {
+            // Получаем CSRF токен
+            const token = await fetchCSRFToken();
+
+            const response = await fetch(`/api/admin/attributes/values/${valueId}/image`, {
+                method: 'DELETE',
+                headers: {
+                    'x-csrf-token': token,
+                },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                throw new Error('Delete failed');
+            }
+
+            await loadAttributes();
+        } catch (e) {
+            console.error('Error deleting image', e);
+            alert('Fehler beim Löschen des Bildes');
+        }
+    };
     const loadCategories = async () => {
         try {
             const res = await fetch('/api/admin/categories');
@@ -487,21 +544,72 @@ export default function AttributesManagementPage() {
                                             {attr.values && attr.values.length > 0 && (
                                                 <div className="space-y-2">
                                                     {attr.values.map((val) => {
-                                                        // Always get fresh data from state to avoid stale closure
                                                         const freshAttr = attributes.find(a => a.id === attr.id);
                                                         const freshVal = freshAttr?.values?.find(v => v.id === val.id);
                                                         const freshCategories = freshVal?.categories || [];
+                                                        const imageUrl = freshVal?.imageUrl;
 
                                                         return (
                                                             <div key={val.id} className="bg-white border border-gray-200 rounded-lg">
                                                                 <div className="flex items-center justify-between px-3 py-2">
-                                                                    <div className="flex items-center gap-2 flex-1">
-                                                                        <span className="text-sm font-medium">{val.value}</span>
-                                                                        {freshCategories.length > 0 && (
-                                                                            <span className="text-xs text-gray-500">({freshCategories.length} Kategorien)</span>
+                                                                    <div className="flex items-center gap-3 flex-1">
+                                                                        {/* Image preview */}
+                                                                        {imageUrl && (
+                                                                            <div className="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                                                                                <img
+                                                                                    src={imageUrl}
+                                                                                    alt={val.value}
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            </div>
                                                                         )}
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-sm font-medium">{val.value}</span>
+                                                                                {freshCategories.length > 0 && (
+                                                                                    <span className="text-xs text-gray-500">({freshCategories.length} Kategorien)</span>
+                                                                                )}
+                                                                            </div>
+                                                                            {imageUrl && (
+                                                                                <span className="text-xs text-green-600">✓ Bild hochgeladen</span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-1">
+                                                                        {/* Upload button */}
+                                                                        <label className="p-1 text-blue-600 hover:text-blue-700 rounded hover:bg-blue-50 transition cursor-pointer">
+                                                                            <input
+                                                                                type="file"
+                                                                                accept="image/jpeg,image/png,image/webp"
+                                                                                className="hidden"
+                                                                                disabled={uploadingImage === val.id}
+                                                                                onChange={(e) => {
+                                                                                    const file = e.target.files?.[0];
+                                                                                    if (file) {
+                                                                                        uploadValueImage(val.id, file);
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                            {uploadingImage === val.id ? (
+                                                                                <span className="text-xs">...</span>
+                                                                            ) : (
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                                </svg>
+                                                                            )}
+                                                                        </label>
+                                                                        {/* Delete image button */}
+                                                                        {imageUrl && (
+                                                                            <button
+                                                                                onClick={() => deleteValueImage(val.id)}
+                                                                                className="p-1 text-orange-600 hover:text-orange-700 rounded hover:bg-orange-50 transition"
+                                                                                title="Bild entfernen"
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             onClick={() => toggleValueExpanded(val.id)}
                                                                             className="p-1 text-gray-600 hover:text-gray-900 rounded hover:bg-gray-50 transition"
@@ -546,6 +654,21 @@ export default function AttributesManagementPage() {
                                                     })}
                                                 </div>
                                             )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                                         </div>
                                     )}
                                 </div>

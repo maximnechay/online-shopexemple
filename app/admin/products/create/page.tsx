@@ -17,7 +17,7 @@ export default function CreateProduct() {
     const [images, setImages] = useState<string[]>([]);
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const [selectedAttributes, setSelectedAttributes] = useState<{ [attributeId: string]: string | string[] }>({});
-
+    const [creating, setCreating] = useState(false);
     const [form, setForm] = useState({
         name: '',
         price: '',
@@ -80,11 +80,12 @@ export default function CreateProduct() {
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Валидация: должно быть хотя бы одно изображение
         if (images.length === 0) {
-            alert('Bitte laden Sie mindestens ein Bild hoch');
+            alert('Bitte mindestens ein Bild hochladen');
             return;
         }
+
+        setCreating(true); // ДОБАВЛЕНО
 
         const payload = {
             name: form.name,
@@ -99,55 +100,69 @@ export default function CreateProduct() {
                 ? Number(form.stockQuantity)
                 : 0,
             in_stock: form.inStock,
-            images: images.length > 0 ? images : null, // Массив URL или null
-            tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null, // Преобразуем строку в массив
+            images: images.length > 0 ? images : null,
+            tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null,
         };
 
         try {
             const data = await apiPost('/api/admin/products', payload);
             console.log('✅ Product created:', data);
-            console.log('📝 Selected attributes:', selectedAttributes);
+
+            // ИСПРАВЛЕНИЕ: API возвращает snake_case
+            const productId = data.id;
+            console.log('💾 Product ID:', productId);
 
             // Save product attributes
             if (Object.keys(selectedAttributes).length > 0) {
-                const productId = data.id;
-                console.log('💾 Saving attributes for product:', productId);
+                console.log('📋 Attributes to save:', selectedAttributes);
 
-                const attributePromises = Object.entries(selectedAttributes).map(([attributeId, value]) => {
-                    if (Array.isArray(value)) {
-                        // Multiselect - create multiple entries
-                        console.log('  📋 Multiselect attribute:', attributeId, 'values:', value);
-                        return Promise.all(
-                            value.map(valueId =>
-                                apiPost('/api/admin/products/attributes', {
-                                    productId,
-                                    attributeId,
-                                    attributeValueId: valueId,
+                const attributePromises = Object.entries(selectedAttributes)
+                    .filter(([_, value]) => {
+                        // Пропускаем пустые значения
+                        if (Array.isArray(value)) {
+                            return value.length > 0;
+                        }
+                        return value && value !== '';
+                    })
+                    .map(([attributeId, value]) => {
+                        if (Array.isArray(value)) {
+                            console.log('  📋 Multiselect:', attributeId, '→', value);
+                            return Promise.all(
+                                value.map(valueId => {
+                                    console.log('    ↳ Saving:', { productId, attributeId, valueId });
+                                    return apiPost('/api/admin/products/attributes', {
+                                        productId,
+                                        attributeId,
+                                        attributeValueId: valueId,
+                                    });
                                 })
-                            )
-                        );
-                    } else if (value) {
-                        // Single select
-                        console.log('  📌 Single attribute:', attributeId, 'value:', value);
-                        return apiPost('/api/admin/products/attributes', {
-                            productId,
-                            attributeId,
-                            attributeValueId: value,
-                        });
-                    }
-                });
+                            );
+                        } else {
+                            console.log('  📌 Single:', attributeId, '→', value);
+                            return apiPost('/api/admin/products/attributes', {
+                                productId,
+                                attributeId,
+                                attributeValueId: value,
+                            });
+                        }
+                    });
 
+                console.log('⏳ Saving', attributePromises.length, 'attribute(s)...');
                 await Promise.all(attributePromises);
                 console.log('✅ All attributes saved');
             } else {
                 console.log('⚠️ No attributes selected');
             }
 
+            console.log('🎉 Redirecting to products list...');
             router.push('/admin/products');
             router.refresh();
         } catch (error: any) {
-            console.error('Create product error:', error);
+            console.error('❌ Error details:', error);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error stack:', error.stack);
             alert(error.message || 'Fehler beim Erstellen des Produkts');
+            setCreating(false);
         }
     };
 
@@ -419,10 +434,20 @@ export default function CreateProduct() {
 
                     <button
                         type="submit"
-                        disabled={images.length === 0}
-                        className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={creating || images.length === 0}
+                        className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        Produkt erstellen
+                        {creating ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Erstelle Produkt...
+                            </>
+                        ) : (
+                            'Produkt erstellen'
+                        )}
                     </button>
                 </form>
             </div>

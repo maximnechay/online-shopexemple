@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
                     value,
                     slug,
                     display_order,
-                    categories
+                    categories,
+                    image_url
                 )
             `)
             .order('display_order', { ascending: true });
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
                 slug: val.slug,
                 displayOrder: val.display_order,
                 categories: val.categories || [],
+                imageUrl: val.image_url || undefined,
             })) || [],
         }));
 

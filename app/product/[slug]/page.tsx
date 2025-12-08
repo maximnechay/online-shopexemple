@@ -320,7 +320,8 @@ export default function ProductPage() {
                                                     name: attr.attribute.name
                                                 } : undefined,
                                                 attribute_values: attr.attributeValue ? {
-                                                    value: attr.attributeValue.value
+                                                    value: attr.attributeValue.value,
+                                                    image_url: attr.attributeValue.imageUrl || null
                                                 } : undefined
                                             }))
                                         }}

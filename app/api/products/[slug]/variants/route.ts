@@ -49,7 +49,7 @@ export async function GET(
               attribute_value_id,
               custom_value,
               attributes:attribute_id (slug, name),
-              attribute_values:attribute_value_id (value)
+              attribute_values:attribute_value_id (value, image_url)
             `)
                         .eq('product_id', variant.id);
 

@@ -13,7 +13,9 @@ export interface Attribute {
     createdAt: string;
     updatedAt: string;
     values?: AttributeValue[];
-}export interface AttributeValue {
+}
+
+export interface AttributeValue {
     id: string;
     attributeId: string;
     value: string;
@@ -21,6 +23,7 @@ export interface Attribute {
     displayOrder: number;
     categories?: string[]; // Array of category slugs
     createdAt: string;
+    imageUrl?: string;
 }
 
 export interface ProductAttribute {
@@ -46,7 +49,9 @@ export interface DatabaseAttribute {
     categories?: string[];
     created_at: string;
     updated_at: string;
-}export interface DatabaseAttributeValue {
+}
+
+export interface DatabaseAttributeValue {
     id: string;
     attribute_id: string;
     value: string;
@@ -54,6 +59,7 @@ export interface DatabaseAttribute {
     display_order: number;
     categories?: string[];
     created_at: string;
+    image_url?: string;
 }
 
 // Product Variants
@@ -80,7 +86,9 @@ export interface DatabaseProductVariant {
     variant_product_id: string;
     variant_type: string;
     created_at: string;
-}export interface DatabaseProductAttribute {
+}
+
+export interface DatabaseProductAttribute {
     id: string;
     product_id: string;
     attribute_id: string;

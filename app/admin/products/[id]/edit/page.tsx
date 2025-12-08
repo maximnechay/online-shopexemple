@@ -24,6 +24,7 @@ interface Attribute {
 interface AttributeValue {
     id: string;
     value: string;
+    imageUrl?: string;
 }
 
 interface ProductAttribute {
@@ -65,21 +66,25 @@ export default function EditProduct({ params }: EditProductProps) {
     });
 
     // Загрузка всех атрибутов
+
     useEffect(() => {
         async function loadAttributes() {
             try {
-                const res = await fetch('/api/attributes');
+                // БЫЛО: const res = await fetch('/api/attributes');
+                const res = await fetch('/api/admin/attributes'); // ← ИСПРАВЛЕНО
                 if (!res.ok) throw new Error('Failed to load attributes');
                 const data = await res.json();
                 setAllAttributes(data);
 
-                // Загружаем значения для каждого атрибута
+                // Значения уже есть в response (data.values)
                 const valuesMap: Record<string, AttributeValue[]> = {};
                 for (const attr of data) {
-                    const valuesRes = await fetch(`/api/attributes/${attr.id}/values`);
-                    if (valuesRes.ok) {
-                        const values = await valuesRes.json();
-                        valuesMap[attr.id] = values;
+                    if (attr.values && attr.values.length > 0) {
+                        valuesMap[attr.id] = attr.values.map((val: any) => ({
+                            id: val.id,
+                            value: val.value,
+                            imageUrl: val.imageUrl || null // ← ДОБАВЛЕНО
+                        }));
                     }
                 }
                 setAttributeValues(valuesMap);
