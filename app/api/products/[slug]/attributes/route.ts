@@ -118,14 +118,13 @@ export async function GET(
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('❌ Error fetching product attributes:', error);
+            console.error('Error fetching product attributes:', error);
             return NextResponse.json(
                 { error: 'Failed to fetch product attributes' },
                 { status: 500 }
             );
         }
 
-        console.log('✅ Attributes found:', data?.length || 0);
         const attributes = (data || []).map(transformProductAttributeFromDB);
 
         return NextResponse.json(attributes, {

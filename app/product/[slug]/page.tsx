@@ -15,9 +15,9 @@ import ProductReviews from '@/components/product/ProductReviews';
 import VariantSelector from '@/components/product/VariantSelector';
 import { useReviewStats } from '@/lib/contexts/ReviewStatsContext';
 
-export default function ProductPage() { // ← Убрали params из пропсов
-    const params = useParams(); // ← Используем useParams hook
-    const slug = params.slug as string; // ← Получаем slug
+export default function ProductPage() {
+    const params = useParams();
+    const slug = params.slug as string;
 
     const [product, setProduct] = useState<Product | null>(null);
     const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
@@ -97,6 +97,7 @@ export default function ProductPage() { // ← Убрали params из проп
             addToWishlist(product as any);
         }
     };
+
     const handleAddToCart = () => {
         if (!product) return;
         setIsAdding(true);
@@ -298,23 +299,44 @@ export default function ProductPage() { // ← Убрали params из проп
                                 )}
                             </div>
 
-                            {/* Variant Selector */}
-                            {productVariants.length > 0 && product && (
-                                <VariantSelector
-                                    currentProductId={product.id}
-                                    variants={productVariants}
-                                    variantAttributeSlug="volumen"
-                                />
+                            {/* Variant Selector - ИСПРАВЛЕНО */}
+                            {product && (
+                                <div className="pt-6 border-t border-gray-100">
+                                    <VariantSelector
+                                        currentProductId={product.id}
+                                        currentProductSlug={product.slug}
+                                        currentProduct={{
+                                            id: product.id,
+                                            name: product.name,
+                                            slug: product.slug,
+                                            price: product.price,
+                                            inStock: product.inStock,
+                                            images: product.images,
+                                            attributes: productAttributes.map(attr => ({
+                                                attribute_value_id: attr.attributeValueId || undefined,
+                                                custom_value: attr.customValue,
+                                                attributes: attr.attribute ? {
+                                                    slug: attr.attribute.slug,
+                                                    name: attr.attribute.name
+                                                } : undefined,
+                                                attribute_values: attr.attributeValue ? {
+                                                    value: attr.attributeValue.value
+                                                } : undefined
+                                            }))
+                                        }}
+                                        variants={productVariants}
+                                    />
+                                </div>
                             )}
 
                             {/* Quantity Selector */}
                             {product.inStock && (
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 pt-4">
                                     <span className="text-sm font-medium text-gray-700">Menge:</span>
-                                    <div className="flex items-center border border-gray-300 rounded-lg">
+                                    <div className="flex items-center border-2 border-gray-300 rounded-xl">
                                         <button
                                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                            className="p-3 hover:bg-gray-50 transition-colors"
+                                            className="p-3 hover:bg-gray-50 transition-colors rounded-l-xl"
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
@@ -323,7 +345,7 @@ export default function ProductPage() { // ← Убрали params из проп
                                         </span>
                                         <button
                                             onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
-                                            className="p-3 hover:bg-gray-50 transition-colors"
+                                            className="p-3 hover:bg-gray-50 transition-colors rounded-r-xl"
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>

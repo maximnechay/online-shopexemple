@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, Euro, FileText, PackagePlus, ArrowLeft, Loader2, Package } from 'lucide-react';
+import { Tag, Euro, FileText, PackagePlus, ArrowLeft, Loader2, Package, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useCategories } from '@/lib/hooks/useCategories';
 import ImageUpload from '@/components/admin/ImageUpload';
@@ -12,7 +12,26 @@ interface EditProductProps {
     params: Promise<{ id: string }>;
 }
 
-type Tab = 'details' | 'stock';
+type Tab = 'details' | 'stock' | 'attributes';
+
+interface Attribute {
+    id: string;
+    name: string;
+    slug: string;
+    type: 'select' | 'text';
+}
+
+interface AttributeValue {
+    id: string;
+    value: string;
+}
+
+interface ProductAttribute {
+    id: string;
+    attributeId: string;
+    attributeValueId: string | null;
+    customValue: string | null;
+}
 
 export default function EditProduct({ params }: EditProductProps) {
     const router = useRouter();
@@ -22,6 +41,13 @@ export default function EditProduct({ params }: EditProductProps) {
     const [activeTab, setActiveTab] = useState<Tab>('details');
     const [images, setImages] = useState<string[]>([]);
     const [currentStock, setCurrentStock] = useState<number>(0);
+
+    // Атрибуты
+    const [allAttributes, setAllAttributes] = useState<Attribute[]>([]);
+    const [attributeValues, setAttributeValues] = useState<Record<string, AttributeValue[]>>({});
+    const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
+    const [attributesForm, setAttributesForm] = useState<Record<string, string>>({});
+
     const [stockAdjustment, setStockAdjustment] = useState({
         quantityChange: '',
         reason: '',
@@ -37,6 +63,33 @@ export default function EditProduct({ params }: EditProductProps) {
         tags: '',
         inStock: true,
     });
+
+    // Загрузка всех атрибутов
+    useEffect(() => {
+        async function loadAttributes() {
+            try {
+                const res = await fetch('/api/attributes');
+                if (!res.ok) throw new Error('Failed to load attributes');
+                const data = await res.json();
+                setAllAttributes(data);
+
+                // Загружаем значения для каждого атрибута
+                const valuesMap: Record<string, AttributeValue[]> = {};
+                for (const attr of data) {
+                    const valuesRes = await fetch(`/api/attributes/${attr.id}/values`);
+                    if (valuesRes.ok) {
+                        const values = await valuesRes.json();
+                        valuesMap[attr.id] = values;
+                    }
+                }
+                setAttributeValues(valuesMap);
+            } catch (error) {
+                console.error('Error loading attributes:', error);
+            }
+        }
+
+        loadAttributes();
+    }, []);
 
     // Загрузка данных продукта
     useEffect(() => {
@@ -63,6 +116,24 @@ export default function EditProduct({ params }: EditProductProps) {
 
                 setCurrentStock(product.stock_quantity || 0);
                 setImages(product.images || []);
+
+                // Загружаем атрибуты продукта
+                const attrsRes = await fetch(`/api/products/${product.slug}/attributes`);
+                if (attrsRes.ok) {
+                    const attrs = await attrsRes.json();
+                    setProductAttributes(attrs);
+
+                    // Преобразуем в форму для редактирования
+                    const formData: Record<string, string> = {};
+                    attrs.forEach((attr: any) => {
+                        if (attr.attributeValueId) {
+                            formData[attr.attributeId] = attr.attributeValueId;
+                        } else if (attr.customValue) {
+                            formData[attr.attributeId] = attr.customValue;
+                        }
+                    });
+                    setAttributesForm(formData);
+                }
             } catch (error) {
                 console.error('Error loading product:', error);
                 alert('Fehler beim Laden des Produkts');
@@ -89,7 +160,6 @@ export default function EditProduct({ params }: EditProductProps) {
             [name]: checked,
         }));
 
-        // Автосохранение статуса доступности
         if (name === 'inStock') {
             try {
                 await apiPut(`/api/admin/products/${productId}`, { in_stock: checked });
@@ -115,6 +185,46 @@ export default function EditProduct({ params }: EditProductProps) {
         console.log('🗑️ Image removed:', url);
     };
 
+    const handleAttributeChange = (attributeId: string, value: string) => {
+        setAttributesForm(prev => ({
+            ...prev,
+            [attributeId]: value
+        }));
+    };
+
+    const saveAttributes = async () => {
+        try {
+            // Преобразуем форму в массив атрибутов
+            const attributes = Object.entries(attributesForm)
+                .filter(([_, value]) => value) // Только заполненные
+                .map(([attributeId, value]) => {
+                    const attribute = allAttributes.find(a => a.id === attributeId);
+
+                    if (attribute?.type === 'select') {
+                        // Для select - это ID значения
+                        return {
+                            attributeId,
+                            attributeValueId: value,
+                            customValue: null
+                        };
+                    } else {
+                        // Для text - это кастомное значение
+                        return {
+                            attributeId,
+                            attributeValueId: null,
+                            customValue: value
+                        };
+                    }
+                });
+
+            await apiPost(`/api/admin/products/${productId}/attributes`, { attributes });
+            alert('✅ Attribute erfolgreich gespeichert!');
+        } catch (error) {
+            console.error('Error saving attributes:', error);
+            alert('Fehler beim Speichern der Attribute');
+        }
+    };
+
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -123,7 +233,6 @@ export default function EditProduct({ params }: EditProductProps) {
             return;
         }
 
-        // Преобразуем tags из строки в массив
         const tagsArray = form.tags
             ? form.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
             : [];
@@ -180,10 +289,10 @@ export default function EditProduct({ params }: EditProductProps) {
                 </Link>
 
                 {/* Tabs Navigation */}
-                <div className="flex border-b border-gray-200 mb-8">
+                <div className="flex border-b border-gray-200 mb-8 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('details')}
-                        className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'details'
+                        className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'details'
                             ? 'border-black text-black'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
@@ -192,8 +301,18 @@ export default function EditProduct({ params }: EditProductProps) {
                         Produktdetails
                     </button>
                     <button
+                        onClick={() => setActiveTab('attributes')}
+                        className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'attributes'
+                            ? 'border-black text-black'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Settings className="w-4 h-4" />
+                        Attribute
+                    </button>
+                    <button
                         onClick={() => setActiveTab('stock')}
-                        className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === 'stock'
+                        className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'stock'
                             ? 'border-black text-black'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
@@ -364,6 +483,70 @@ export default function EditProduct({ params }: EditProductProps) {
                             Änderungen speichern
                         </button>
                     </form>
+                )}
+
+                {/* Tab: Attribute */}
+                {activeTab === 'attributes' && (
+                    <div className="space-y-6 bg-gray-50 p-8 rounded-3xl border border-gray-200 shadow-sm">
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                            <p className="text-sm text-blue-900">
+                                ℹ️ Fügen Sie Attribute hinzu um Varianten zu ermöglichen (z.B. Größe, Farbe, Länge)
+                            </p>
+                        </div>
+
+                        {allAttributes.length === 0 ? (
+                            <div className="text-center py-8">
+                                <p className="text-gray-600 mb-4">Keine Attribute verfügbar</p>
+                                <Link
+                                    href="/admin/attributes"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    Attribute verwalten →
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {allAttributes.map(attribute => (
+                                    <div key={attribute.id} className="bg-white p-6 rounded-2xl border border-gray-200">
+                                        <label className="block text-gray-900 font-medium mb-3">
+                                            {attribute.name}
+                                            <span className="text-xs text-gray-500 ml-2">({attribute.slug})</span>
+                                        </label>
+
+                                        {attribute.type === 'select' && attributeValues[attribute.id] ? (
+                                            <select
+                                                value={attributesForm[attribute.id] || ''}
+                                                onChange={(e) => handleAttributeChange(attribute.id, e.target.value)}
+                                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black bg-white"
+                                            >
+                                                <option value="">-- Wählen --</option>
+                                                {attributeValues[attribute.id].map(value => (
+                                                    <option key={value.id} value={value.id}>
+                                                        {value.value}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={attributesForm[attribute.id] || ''}
+                                                onChange={(e) => handleAttributeChange(attribute.id, e.target.value)}
+                                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black"
+                                                placeholder={`${attribute.name} eingeben...`}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={saveAttributes}
+                                    className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition"
+                                >
+                                    Attribute speichern
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Tab: Lagerbestand */}
