@@ -1,7 +1,6 @@
 // components/product/VariantSelector.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { useMemo } from 'react';
@@ -26,28 +25,29 @@ interface VariantSelectorProps {
     currentProductSlug: string;
     currentProduct?: ProductVariant;
     variants: ProductVariant[];
+    onVariantChange?: (variant: ProductVariant) => void;
+    selectedVariant?: ProductVariant | null;
 }
 
 const ATTRIBUTE_CONFIG: Record<string, {
-    displayType: 'color' | 'button' | 'dropdown';
+    displayType: 'color' | 'button';
     colorMap?: Record<string, string>;
 }> = {
     'farbe': {
         displayType: 'color',
         colorMap: {
+            'Dark Brown #2': '#3d2817',
+            'Golden Blonde #610': '#F5E6D3',
             'Blonde': '#F5E6D3',
             'Black': '#1a1a1a',
             'Brown': '#654321',
-            'Auburn': '#A52A2A',
-            'Red': '#DC143C',
-            'Ash Blonde': '#E6E0D4',
-            'Platinum': '#E5E4E2',
-            'Chestnut': '#954535',
         }
     },
     'lange': { displayType: 'button' },
+    'length': { displayType: 'button' },
     'volumen': { displayType: 'button' },
     'gewicht': { displayType: 'button' },
+    'weight': { displayType: 'button' },
     'grosse': { displayType: 'button' },
 };
 
@@ -56,26 +56,42 @@ export default function VariantSelector({
     currentProductSlug,
     currentProduct,
     variants,
+    onVariantChange,
+    selectedVariant,
 }: VariantSelectorProps) {
-    const router = useRouter();
 
     const allVariants = useMemo(() => {
-        const hasCurrentProduct = variants.some(v => v.id === currentProductId);
-        if (!hasCurrentProduct && currentProduct) {
-            return [currentProduct, ...variants];
-        }
+        // НЕ добавляем главный продукт в список вариантов
+        // Варианты - это только дочерние продукты
         return variants;
-    }, [variants, currentProductId, currentProduct]);
+    }, [variants]);
 
     if (!allVariants || allVariants.length < 2) {
         return null;
     }
 
-    // Получаем текущий продукт
-    const current = allVariants.find(v => v.slug === currentProductSlug) || currentProduct;
+    // Используем selectedVariant если есть, иначе текущий продукт
+    const current = selectedVariant || currentProduct;
+    const currentAttributes = useMemo(() => {
+        const attrs = new Map<string, string>();
+        if (current?.attributes) {
+            current.attributes.forEach(attr => {
+                const slug = attr.attributes?.slug;
+                const value = attr.attribute_values?.value || attr.custom_value;
+                if (slug && value) {
+                    attrs.set(slug, value);
+                }
+            });
+        }
+        return attrs;
+    }, [current]);
 
-    const attributeMap = useMemo(() => {
-        const map = new Map<string, Map<string, { variant: ProductVariant; value: string; imageUrl?: string }>>();
+    const varyingAttributes = useMemo(() => {
+        const attrMap = new Map<string, {
+            name: string;
+            values: Set<string>;
+            images: Map<string, string>;
+        }>();
 
         allVariants.forEach(variant => {
             if (!variant.attributes) return;
@@ -83,139 +99,139 @@ export default function VariantSelector({
             variant.attributes.forEach(attr => {
                 const slug = attr.attributes?.slug;
                 const value = attr.attribute_values?.value || attr.custom_value;
+                const name = attr.attributes?.name || slug;
                 const imageUrl = attr.attribute_values?.image_url;
 
                 if (slug && value) {
-                    if (!map.has(slug)) {
-                        map.set(slug, new Map());
+                    if (!attrMap.has(slug)) {
+                        attrMap.set(slug, {
+                            name: name || slug,
+                            values: new Set(),
+                            images: new Map()
+                        });
                     }
-                    map.get(slug)!.set(value, { variant, value, imageUrl: imageUrl || undefined });
+                    attrMap.get(slug)!.values.add(value);
+                    if (imageUrl) {
+                        attrMap.get(slug)!.images.set(value, imageUrl);
+                    }
                 }
             });
         });
 
-        return map;
-    }, [allVariants]);
-    const isOptionCompatible = (attrSlug: string, attrValue: string) => {
-        // Получаем текущие значения всех атрибутов кроме проверяемого
-        const currentValues = new Map(currentAttributes);
-        currentValues.set(attrSlug, attrValue);
-
-        // Ищем вариант с такой комбинацией атрибутов
-        return allVariants.some(variant => {
-            if (!variant.attributes) return false;
-
-            // Проверяем что у варианта есть все нужные атрибуты
-            for (const [slug, value] of currentValues) {
-                const hasAttr = variant.attributes.some(attr =>
-                    attr.attributes?.slug === slug &&
-                    (attr.attribute_values?.value === value || attr.custom_value === value)
-                );
-                if (!hasAttr) return false;
-            }
-
-            return true;
-        });
-    };
-    const { varyingAttributes, currentAttributes } = useMemo(() => {
         const varying: Array<{
             slug: string;
             name: string;
-            options: Array<{
-                value: string;
-                variant: ProductVariant;
-                available: boolean;
-                imageUrl?: string;
-            }>;
+            values: Array<{ value: string; imageUrl?: string }>;
         }> = [];
 
-        // Атрибуты текущего продукта
-        const currentAttrs = new Map<string, string>();
-        if (current?.attributes) {
-            current.attributes.forEach(attr => {
-                const slug = attr.attributes?.slug;
-                const value = attr.attribute_values?.value || attr.custom_value;
-                if (slug && value) {
-                    currentAttrs.set(slug, value);
-                }
-            });
-        }
-
-        attributeMap.forEach((values, slug) => {
-            if (values.size > 1) {
-                // Атрибут варьируется - добавляем в селекторы
-                let name = slug;
-                for (const variant of allVariants) {
-                    const attr = variant.attributes?.find(a => a.attributes?.slug === slug);
-                    if (attr?.attributes?.name) {
-                        name = attr.attributes.name;
-                        break;
-                    }
-                }
-
-                const options = Array.from(values.values()).map(item => ({
-                    value: item.value,
-                    variant: item.variant,
-                    available: item.variant.inStock,
-                    imageUrl: item.imageUrl
-                }));
-
-                options.sort((a, b) => {
-                    const aNum = parseFloat(a.value.replace(/[^0-9.]/g, ''));
-                    const bNum = parseFloat(b.value.replace(/[^0-9.]/g, ''));
+        attrMap.forEach((data, slug) => {
+            if (data.values.size > 1) {
+                const sortedValues = Array.from(data.values).sort((a, b) => {
+                    const aNum = parseFloat(a.replace(/[^0-9.]/g, ''));
+                    const bNum = parseFloat(b.replace(/[^0-9.]/g, ''));
                     if (!isNaN(aNum) && !isNaN(bNum)) {
                         return aNum - bNum;
                     }
-                    return a.value.localeCompare(b.value);
+                    return a.localeCompare(b);
                 });
 
-                varying.push({ slug, name, options });
+                varying.push({
+                    slug,
+                    name: data.name,
+                    values: sortedValues.map(v => ({
+                        value: v,
+                        imageUrl: data.images.get(v)
+                    }))
+                });
             }
         });
 
-        return { varyingAttributes: varying, currentAttributes: currentAttrs };
-    }, [attributeMap, allVariants, current]);
+        return varying;
+    }, [allVariants]);
 
     if (varyingAttributes.length === 0) {
         return null;
     }
 
-    const handleVariantChange = (variant: ProductVariant) => {
-        if (variant.slug !== currentProductSlug) {
-            router.push(`/product/${variant.slug}`);
+    const findBestVariant = (changedSlug: string, newValue: string): ProductVariant | null => {
+        let bestMatch: ProductVariant | null = null;
+        let bestScore = -1;
+
+        // Ищем только среди variants, НЕ включая главный продукт
+        for (const variant of variants) {
+            if (!variant.attributes) continue;
+
+            const variantAttrs = new Map<string, string>();
+            variant.attributes.forEach(attr => {
+                const slug = attr.attributes?.slug;
+                const value = attr.attribute_values?.value || attr.custom_value;
+                if (slug && value) {
+                    variantAttrs.set(slug, value);
+                }
+            });
+
+            if (variantAttrs.get(changedSlug) !== newValue) {
+                continue;
+            }
+
+            let score = 0;
+            currentAttributes.forEach((currentValue, slug) => {
+                if (slug !== changedSlug && variantAttrs.get(slug) === currentValue) {
+                    score++;
+                }
+            });
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = variant;
+            }
+        }
+
+        return bestMatch;
+    };
+
+    const handleChange = (attrSlug: string, value: string) => {
+        const bestVariant = findBestVariant(attrSlug, value);
+
+        if (bestVariant && onVariantChange) {
+            onVariantChange(bestVariant);
         }
     };
 
-    const renderColorSelector = (category: typeof varyingAttributes[0]) => {
-        const config = ATTRIBUTE_CONFIG[category.slug];
+    const renderColorSelector = (attribute: typeof varyingAttributes[0]) => {
+        const config = ATTRIBUTE_CONFIG[attribute.slug];
         const colorMap = config?.colorMap || {};
-        const currentValue = currentAttributes.get(category.slug);
+        const currentValue = currentAttributes.get(attribute.slug);
 
         return (
-            <div key={category.slug} className="space-y-3">
+            <div key={attribute.slug} className="space-y-3">
                 <label className="block text-sm font-medium text-gray-900">
-                    {category.name}
+                    {attribute.name}
                 </label>
                 <div className="flex flex-wrap gap-3">
-                    {category.options.map((option) => {
-                        const isSelected = option.value === currentValue;
-                        const isCompatible = isOptionCompatible(category.slug, option.value);
-                        const color = colorMap[option.value] || '#cccccc';
-                        const hasImage = !!option.imageUrl;
+                    {attribute.values.map(({ value, imageUrl }) => {
+                        const isSelected = value === currentValue;
+                        const color = colorMap[value] || '#cccccc';
+                        const hasImage = !!imageUrl;
 
-                        // Не показываем несовместимые опции
-                        if (!isCompatible) return null;
+                        const bestVariant = findBestVariant(attribute.slug, value);
+                        const isAvailable = bestVariant?.inStock ?? true;
 
                         return (
                             <button
-                                key={option.value}
-                                onClick={() => handleVariantChange(option.variant)}
-                                disabled={!option.available}
+                                key={value}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleChange(attribute.slug, value);
+                                }}
+                                disabled={!isAvailable}
                                 className={`
-                                relative group
-                                ${!option.available ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-                            `}
-                                title={option.value}
+                                    relative group
+                                    ${!isAvailable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}
+                                    transition-transform
+                                `}
+                                title={value}
                             >
                                 <div
                                     className={`
@@ -227,22 +243,16 @@ export default function VariantSelector({
                                     `}
                                     style={hasImage ? {} : { backgroundColor: color }}
                                 >
-                                    {hasImage ? (
+                                    {hasImage && (
                                         <img
-                                            src={option.imageUrl}
-                                            alt={option.value}
+                                            src={imageUrl}
+                                            alt={value}
                                             className="w-full h-full object-cover"
                                         />
-                                    ) : null}
-
-                                    {!option.available && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-                                            <div className="w-full h-0.5 bg-red-500 rotate-45"></div>
-                                        </div>
                                     )}
                                 </div>
-                                <div className="text-xs text-center mt-1 text-gray-700 group-hover:text-gray-900">
-                                    {option.value}
+                                <div className="text-xs text-center mt-1 text-gray-700">
+                                    {value}
                                 </div>
                             </button>
                         );
@@ -252,69 +262,50 @@ export default function VariantSelector({
         );
     };
 
-    const renderButtonSelector = (category: typeof varyingAttributes[0]) => {
-        const currentValue = currentAttributes.get(category.slug);
+    const renderButtonSelector = (attribute: typeof varyingAttributes[0]) => {
+        const currentValue = currentAttributes.get(attribute.slug);
 
         return (
-            <div key={category.slug} className="space-y-3">
+            <div key={attribute.slug} className="space-y-3">
                 <label className="block text-sm font-medium text-gray-900">
-                    {category.name}
+                    {attribute.name}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {category.options.map((option) => {
-                        const isSelected = option.value === currentValue;
-                        const isCompatible = isOptionCompatible(category.slug, option.value);
-
-                        // Не показываем несовместимые опции
-                        if (!isCompatible) return null;
+                    {attribute.values.map(({ value }) => {
+                        const isSelected = value === currentValue;
+                        const bestVariant = findBestVariant(attribute.slug, value);
+                        const isAvailable = bestVariant?.inStock ?? true;
 
                         return (
                             <button
-                                key={option.value}
-                                onClick={() => handleVariantChange(option.variant)}
-                                disabled={!option.available}
+                                key={value}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleChange(attribute.slug, value);
+                                }}
+                                disabled={!isAvailable}
                                 className={`
                                     relative overflow-hidden px-4 py-3 rounded-xl text-sm font-medium transition-all border-2
                                     ${isSelected
                                         ? 'border-black bg-black text-white'
-                                        : option.available
+                                        : isAvailable
                                             ? 'border-gray-300 hover:border-black hover:bg-gray-50 text-gray-900'
                                             : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                                     }
                                 `}
                             >
-                                {option.variant.images && option.variant.images[0] && (
-                                    <div className="absolute inset-0 opacity-10">
-                                        <img
-                                            src={option.variant.images[0]}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                )}
-
                                 <div className="relative flex flex-col items-center gap-1">
-                                    <span className="font-semibold">{option.value}</span>
-                                    {option.variant.price !== current?.price ? (
-                                        <span className={`text-xs font-medium ${isSelected ? 'opacity-80' : 'text-gray-600'}`}>
-                                            {formatPrice(option.variant.price)}
+                                    <span className="font-semibold">{value}</span>
+                                    {bestVariant && bestVariant.price !== current?.price && (
+                                        <span className={`text-xs ${isSelected ? 'opacity-80' : 'text-gray-600'}`}>
+                                            {formatPrice(bestVariant.price)}
                                         </span>
-                                    ) : isSelected ? (
-                                        <span className="text-xs opacity-80">
-                                            {formatPrice(option.variant.price)}
-                                        </span>
-                                    ) : null}
+                                    )}
                                 </div>
                                 {isSelected && (
                                     <div className="absolute top-1 right-1">
                                         <Check className="w-4 h-4" />
-                                    </div>
-                                )}
-                                {!option.available && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white/90">
-                                        <span className="text-xs text-red-600 font-medium px-2 py-0.5 rounded">
-                                            Ausverkauft
-                                        </span>
                                     </div>
                                 )}
                             </button>
@@ -327,14 +318,14 @@ export default function VariantSelector({
 
     return (
         <div className="space-y-6">
-            {varyingAttributes.map((category) => {
-                const config = ATTRIBUTE_CONFIG[category.slug];
+            {varyingAttributes.map((attribute) => {
+                const config = ATTRIBUTE_CONFIG[attribute.slug];
                 const displayType = config?.displayType || 'button';
 
                 if (displayType === 'color') {
-                    return renderColorSelector(category);
+                    return renderColorSelector(attribute);
                 } else {
-                    return renderButtonSelector(category);
+                    return renderButtonSelector(attribute);
                 }
             })}
 

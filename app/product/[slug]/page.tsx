@@ -29,6 +29,7 @@ export default function ProductPage() {
     const addItem = useCartStore((state) => state.addItem);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
     const [isAdding, setIsAdding] = useState(false);
 
     useEffect(() => {
@@ -42,6 +43,14 @@ export default function ProductPage() {
             loadStats([product.id]);
         }
     }, [product?.id]);
+
+
+
+    useEffect(() => {
+        if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
+            setSelectedImage(0);
+        }
+    }, [selectedVariant]);
 
     const fetchProduct = async () => {
         setLoading(true);
@@ -57,7 +66,6 @@ export default function ProductPage() {
             const data = await response.json();
             setProduct(data);
 
-            // Load product attributes using slug
             try {
                 const attrsResponse = await fetch(`/api/products/${slug}/attributes`);
                 if (attrsResponse.ok) {
@@ -68,7 +76,6 @@ export default function ProductPage() {
                 console.error('Error fetching product attributes:', err);
             }
 
-            // Load product variants
             try {
                 const variantsResponse = await fetch(`/api/products/${slug}/variants`);
                 if (variantsResponse.ok) {
@@ -154,11 +161,17 @@ export default function ProductPage() {
         );
     }
 
-    const discount = product.compareAtPrice
-        ? calculateDiscount(product.price, product.compareAtPrice)
+    const displayProduct = selectedVariant || product;
+    const discount = displayProduct.compareAtPrice
+        ? calculateDiscount(displayProduct.price, displayProduct.compareAtPrice)
         : 0;
 
     const reviewStats = product ? getStats(product.id) || { average: 0, total: 0 } : { average: 0, total: 0 };
+
+    // Определяем какие изображения использовать
+    const displayImages = (selectedVariant?.images && selectedVariant.images.length > 0)
+        ? selectedVariant.images
+        : product.images;
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -166,7 +179,6 @@ export default function ProductPage() {
 
             <main className="flex-1 pt-24 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    {/* Breadcrumb */}
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                         <Link href="/" className="hover:text-gray-900 transition-colors">
                             Startseite
@@ -180,13 +192,11 @@ export default function ProductPage() {
                     </div>
 
                     <div className="grid lg:grid-cols-2 gap-12 mb-16">
-                        {/* Images */}
                         <div className="space-y-4">
-                            {/* Main Image */}
                             <div className="relative aspect-square rounded-3xl overflow-hidden bg-gray-50 border border-gray-100">
                                 <div
                                     className="absolute inset-0 bg-cover bg-center"
-                                    style={{ backgroundImage: `url(${product.images[selectedImage]})` }}
+                                    style={{ backgroundImage: `url(${displayImages[selectedImage]})` }}
                                 />
                                 {discount > 0 && (
                                     <span className="absolute top-4 left-4 bg-black/80 text-white text-xs font-medium px-4 py-2 rounded-full uppercase tracking-wider">
@@ -194,23 +204,21 @@ export default function ProductPage() {
                                     </span>
                                 )}
 
-                                {/* Image Counter */}
-                                {product.images.length > 1 && (
+                                {displayImages.length > 1 && (
                                     <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                        {selectedImage + 1} / {product.images.length}
+                                        {selectedImage + 1} / {displayImages.length}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Thumbnails - Always show if there are images */}
-                            {product.images.length > 1 && (
-                                <div className={`grid gap-4 ${product.images.length === 2
+                            {displayImages.length > 1 && (
+                                <div className={`grid gap-4 ${displayImages.length === 2
                                     ? 'grid-cols-2'
-                                    : product.images.length === 3
+                                    : displayImages.length === 3
                                         ? 'grid-cols-3'
                                         : 'grid-cols-4'
                                     }`}>
-                                    {product.images.map((image, index) => (
+                                    {displayImages.map((image: string, index: number) => (
                                         <button
                                             key={index}
                                             onClick={() => setSelectedImage(index)}
@@ -229,21 +237,17 @@ export default function ProductPage() {
                             )}
                         </div>
 
-                        {/* Product Info */}
                         <div className="space-y-6">
-                            {/* Brand */}
                             {product.brand && (
                                 <p className="text-xs text-gray-500 uppercase tracking-[0.18em]">
                                     {product.brand}
                                 </p>
                             )}
 
-                            {/* Title */}
                             <h1 className="text-4xl lg:text-5xl font-light text-gray-900 tracking-tight">
                                 {product.name}
                             </h1>
 
-                            {/* Rating */}
                             {reviewStats.total > 0 && (
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
@@ -263,24 +267,21 @@ export default function ProductPage() {
                                 </div>
                             )}
 
-                            {/* Price */}
                             <div className="flex items-center gap-4">
                                 <span className="text-4xl font-bold text-gray-900">
-                                    {formatPrice(product.price)}
+                                    {formatPrice(displayProduct.price)}
                                 </span>
-                                {product.compareAtPrice && (
+                                {displayProduct.compareAtPrice && (
                                     <span className="text-2xl text-gray-400 line-through">
-                                        {formatPrice(product.compareAtPrice)}
+                                        {formatPrice(displayProduct.compareAtPrice)}
                                     </span>
                                 )}
                             </div>
 
-                            {/* Description */}
                             <p className="text-lg text-gray-600 leading-relaxed">
                                 {product.description}
                             </p>
 
-                            {/* Stock Status */}
                             <div className="flex items-center gap-2">
                                 {product.inStock ? (
                                     <>
@@ -299,7 +300,6 @@ export default function ProductPage() {
                                 )}
                             </div>
 
-                            {/* Variant Selector - ИСПРАВЛЕНО */}
                             {product && (
                                 <div className="pt-6 border-t border-gray-100">
                                     <VariantSelector
@@ -330,12 +330,12 @@ export default function ProductPage() {
                                             })),
                                         }}
                                         variants={productVariants}
+                                        onVariantChange={setSelectedVariant}
+                                        selectedVariant={selectedVariant}
                                     />
-
                                 </div>
                             )}
 
-                            {/* Quantity Selector */}
                             {product.inStock && (
                                 <div className="flex items-center gap-4 pt-4">
                                     <span className="text-sm font-medium text-gray-700">Menge:</span>
@@ -359,7 +359,6 @@ export default function ProductPage() {
                                 </div>
                             )}
 
-                            {/* Actions */}
                             <div className="flex gap-4">
                                 <button
                                     disabled={!product.inStock || isAdding}
@@ -386,7 +385,6 @@ export default function ProductPage() {
                                 </button>
                             </div>
 
-                            {/* Features */}
                             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
                                 <div className="text-center">
                                     <Truck className="w-7 h-7 text-gray-900 mx-auto mb-2" strokeWidth={1.5} />
@@ -402,30 +400,50 @@ export default function ProductPage() {
                                 </div>
                             </div>
 
-                            {/* Product Attributes */}
-                            {productAttributes.length > 0 && (
-                                <div className="pt-6 border-t border-gray-100">
-                                    <h3 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">
-                                        Produkteigenschaften
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {productAttributes
-                                            .filter(attr => attr.attribute?.visibleInCatalog !== false)
-                                            .map((attr) => (
-                                                <div key={attr.id} className="flex flex-col">
+                            {selectedVariant ? (
+                                selectedVariant.attributes && selectedVariant.attributes.length > 0 && (
+                                    <div className="pt-6 border-t border-gray-100">
+                                        <h3 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">
+                                            Produkteigenschaften
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {selectedVariant.attributes.map((attr: any, index: number) => (
+                                                <div key={index} className="flex flex-col">
                                                     <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                                                        {attr.attribute?.name}
+                                                        {attr.attributes?.name || '—'}
                                                     </span>
                                                     <span className="text-sm font-medium text-gray-900">
-                                                        {attr.attributeValue?.value || attr.customValue || '—'}
+                                                        {attr.attribute_values?.value || attr.custom_value || '—'}
                                                     </span>
                                                 </div>
                                             ))}
+                                        </div>
                                     </div>
-                                </div>
+                                )
+                            ) : (
+                                productAttributes.length > 0 && (
+                                    <div className="pt-6 border-t border-gray-100">
+                                        <h3 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">
+                                            Produkteigenschaften
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {productAttributes
+                                                .filter(attr => attr.attribute?.visibleInCatalog !== false)
+                                                .map((attr) => (
+                                                    <div key={attr.id} className="flex flex-col">
+                                                        <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                                                            {attr.attribute?.name}
+                                                        </span>
+                                                        <span className="text-sm font-medium text-gray-900">
+                                                            {attr.attributeValue?.value || attr.customValue || '—'}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )
                             )}
 
-                            {/* Tags */}
                             {product.tags && product.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-2 pt-6 border-t border-gray-200">
                                     {product.tags.map((tag, index) => (
@@ -442,7 +460,6 @@ export default function ProductPage() {
                     </div>
                 </div>
 
-                {/* Reviews Section */}
                 <ProductReviews
                     productId={product.id}
                     productName={product.name}

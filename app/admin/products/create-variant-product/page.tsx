@@ -52,7 +52,7 @@ export default function CreateVariantProductPage() {
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
-    const [brand, setBrand] = useState('BELLAMI');
+    const [brand, setBrand] = useState('');
     const [images, setImages] = useState<string[]>([]);
     const [tags, setTags] = useState('');
 
@@ -70,11 +70,6 @@ export default function CreateVariantProductPage() {
         }
     ]);
 
-    // Load attributes on mount
-    useEffect(() => {
-        loadAttributes();
-    }, []);
-
     const loadAttributes = async () => {
         try {
             setLoadingAttributes(true);
@@ -88,7 +83,9 @@ export default function CreateVariantProductPage() {
             setLoadingAttributes(false);
         }
     };
-
+    useEffect(() => {
+        loadAttributes();
+    }, []);
     // Parent product image handlers
     const handleParentImageUploaded = (url: string) => {
         setImages(prev => [...prev, url]);
@@ -178,7 +175,50 @@ export default function CreateVariantProductPage() {
             setSlug(generateSlug(name));
         }
     };
+    const generateSKU = (variant: Variant) => {
+        // Префикс бренда
+        const brandPrefix = brand.slice(0, 3).toUpperCase();
 
+        // Собираем значения атрибутов
+        const attrParts: string[] = [];
+
+        Object.entries(variant.attributes).forEach(([slug, attrData]) => {
+            const attribute = attributes.find(a => a.slug === slug);
+            if (!attribute) return;
+
+            let value = '';
+
+            // Если выбрано значение из списка
+            if (attrData.valueId) {
+                const attrValue = attribute.values.find(v => v.id === attrData.valueId);
+                value = attrValue?.value || '';
+            }
+            // Если введен custom value
+            else if (attrData.customValue) {
+                value = attrData.customValue;
+            }
+
+            if (value) {
+                // Очищаем значение от спецсимволов и делаем uppercase
+                const cleanValue = value
+                    .replace(/[^a-zA-Z0-9]/g, '')
+                    .toUpperCase()
+                    .slice(0, 6); // Максимум 6 символов
+
+                if (cleanValue) {
+                    attrParts.push(cleanValue);
+                }
+            }
+        });
+
+        // Если атрибутов нет, добавляем случайный код
+        if (attrParts.length === 0) {
+            const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `${brandPrefix}-${randomCode}`;
+        }
+
+        return `${brandPrefix}-${attrParts.join('-')}`;
+    };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -456,14 +496,26 @@ export default function CreateVariantProductPage() {
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     SKU *
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    value={variant.sku}
-                                                    onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                                    placeholder="BFLX-16-120-610"
-                                                    required
-                                                />
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={variant.sku}
+                                                        onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
+                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                                        placeholder="BFLX-16-120-610"
+                                                        required
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newSKU = generateSKU(variant);
+                                                            updateVariant(variant.id, 'sku', newSKU);
+                                                        }}
+                                                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm whitespace-nowrap"
+                                                    >
+                                                        Auto
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div>

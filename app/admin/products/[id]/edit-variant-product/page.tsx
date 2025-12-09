@@ -91,7 +91,7 @@ export default function EditVariantProductPage() {
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
-    const [brand, setBrand] = useState('BELLAMI');
+    const [brand, setBrand] = useState('');
     const [images, setImages] = useState<string[]>([]);
     const [tags, setTags] = useState('');
 
