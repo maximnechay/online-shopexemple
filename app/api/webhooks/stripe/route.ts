@@ -189,11 +189,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         // 2) Создаём order_items
         const orderItems = items.map((item: any) => ({
             order_id: order.id,
-            product_id: item.productId,
-            product_name: item.productName,
-            product_price: item.productPrice,
-            quantity: item.quantity,
-            total: item.productPrice * item.quantity,
+            product_id: item.pid || item.productId,
+            variant_id: item.vid || item.variantId || null,
+            product_name: item.n || item.productName,
+            product_price: item.p || item.productPrice,
+            quantity: item.q || item.quantity,
+            total: (item.p || item.productPrice) * (item.q || item.quantity),
         }));
 
         const { error: itemsError } = await supabaseAdmin

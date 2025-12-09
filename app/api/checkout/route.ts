@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Проверяем наличие и цены товаров
+        // Проверяем наличие и цены товаров
         for (const item of items) {
             const product = products.find(p => p.id === item.id);
 
@@ -79,31 +80,65 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            if (!product.in_stock) {
-                return NextResponse.json(
-                    { error: `Produkt ${item.name} ist nicht verfügbar` },
-                    { status: 400 }
-                );
-            }
+            // Если есть variantId - проверяем цену и наличие варианта
+            if (item.variantId) {
+                const { data: variant } = await supabaseAdmin
+                    .from('product_variants')
+                    .select('id, price, stock_quantity, in_stock')
+                    .eq('id', item.variantId)
+                    .single();
 
-            if (product.stock_quantity < item.quantity) {
-                return NextResponse.json(
-                    {
-                        error: `Nicht genügend Lagerbestand für ${item.name}. Verfügbar: ${product.stock_quantity}`
-                    },
-                    { status: 400 }
-                );
-            }
+                if (!variant) {
+                    return NextResponse.json(
+                        { error: `Variante für ${item.name} nicht gefunden` },
+                        { status: 400 }
+                    );
+                }
 
-            // Проверяем что цена из корзины совпадает с текущей ценой
-            const priceDifference = Math.abs(Number(product.price) - item.price);
-            if (priceDifference > 0.01) { // Допускаем погрешность 1 цент
-                return NextResponse.json(
-                    {
-                        error: `Цена товара ${item.name} изменилась. Пожалуйста, обновите корзину.`
-                    },
-                    { status: 400 }
-                );
+                if (!variant.in_stock) {
+                    return NextResponse.json(
+                        { error: `${item.name} ist nicht verfügbar` },
+                        { status: 400 }
+                    );
+                }
+
+                if (variant.stock_quantity < item.quantity) {
+                    return NextResponse.json(
+                        { error: `Nicht genügend Lagerbestand für ${item.name}. Verfügbar: ${variant.stock_quantity}` },
+                        { status: 400 }
+                    );
+                }
+
+                const priceDifference = Math.abs(Number(variant.price) - item.price);
+                if (priceDifference > 0.01) {
+                    return NextResponse.json(
+                        { error: `Preis für ${item.name} hat sich geändert. Bitte aktualisieren Sie Ihren Warenkorb.` },
+                        { status: 400 }
+                    );
+                }
+            } else {
+                // Обычный продукт без варианта
+                if (!product.in_stock) {
+                    return NextResponse.json(
+                        { error: `${item.name} ist nicht verfügbar` },
+                        { status: 400 }
+                    );
+                }
+
+                if (product.stock_quantity < item.quantity) {
+                    return NextResponse.json(
+                        { error: `Nicht genügend Lagerbestand für ${item.name}. Verfügbar: ${product.stock_quantity}` },
+                        { status: 400 }
+                    );
+                }
+
+                const priceDifference = Math.abs(Number(product.price) - item.price);
+                if (priceDifference > 0.01) {
+                    return NextResponse.json(
+                        { error: `Preis für ${item.name} hat sich geändert. Bitte aktualisieren Sie Ihren Warenkorb.` },
+                        { status: 400 }
+                    );
+                }
             }
         }
 
@@ -189,10 +224,11 @@ export async function POST(req: NextRequest) {
                 deliveryCity: delivery_city,
                 deliveryPostalCode: delivery_postal_code,
                 itemsJson: JSON.stringify(items.map((item) => ({
-                    productId: item.id,
-                    productName: item.name,
-                    productPrice: item.price,
-                    quantity: item.quantity,
+                    pid: item.id,
+                    n: item.name.substring(0, 50),  // Сокращаем название до 50 символов
+                    p: item.price,
+                    q: item.quantity,
+                    vid: item.variantId || null,
                 }))),
             },
             success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?session_id={CHECKOUT_SESSION_ID}`,

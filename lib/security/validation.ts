@@ -115,6 +115,7 @@ export const checkoutSchema = z.object({
         name: z.string().min(1).max(200),
         price: z.number().positive('Preis muss positiv sein'),
         quantity: z.number().int().positive('Menge muss positiv sein').max(100, 'Maximale Menge: 100'),
+        variantId: z.string().uuid().nullable().optional(),
     })).min(1, 'Mindestens ein Artikel erforderlich').max(50, 'Zu viele Artikel'),
 
     customer: z.object({

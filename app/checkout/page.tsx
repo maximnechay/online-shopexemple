@@ -394,11 +394,11 @@ export default function CheckoutPage() {
                                                         {item.product.name}
                                                     </h3>
                                                     <p className="text-sm text-gray-600">
-                                                        {item.quantity}x {item.product.price.toFixed(2)} €
+                                                        {item.quantity}x {(item.variantPrice ?? item.product.price).toFixed(2)} €
                                                     </p>
                                                 </div>
                                                 <div className="text-sm font-semibold text-gray-900">
-                                                    {(item.product.price * item.quantity).toFixed(2)} €
+                                                    {((item.variantPrice ?? item.product.price) * item.quantity).toFixed(2)} €
                                                 </div>
                                             </div>
                                         ))}
@@ -858,9 +858,10 @@ export default function CheckoutPage() {
                                         <PayPalButtonsWrapper
                                             items={items.map(item => ({
                                                 id: item.product.id,
-                                                name: item.product.name,
-                                                price: item.product.price,
+                                                name: item.variantName ? `${item.product.name} - ${item.variantName}` : item.product.name,
+                                                price: item.variantPrice ?? item.product.price,
                                                 quantity: item.quantity,
+                                                variantId: item.variantId || null,
                                             }))}
                                             customer={{
                                                 firstName: formData.firstName,
