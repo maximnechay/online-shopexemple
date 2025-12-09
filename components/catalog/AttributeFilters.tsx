@@ -2,14 +2,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Check } from 'lucide-react';
+import Image from 'next/image';
 import { Attribute } from '@/lib/types/attributes';
 
 interface AttributeFiltersProps {
     selectedFilters: { [attributeSlug: string]: string[] };
     onFilterChange: (attributeSlug: string, valueIds: string[]) => void;
     onClearAll: () => void;
-    selectedCategory?: string; // Add category filter
+    selectedCategory?: string;
 }
 
 export default function AttributeFilters({
@@ -45,7 +46,7 @@ export default function AttributeFilters({
     // Filter attributes by selected category
     const visibleAttributes = attributes.filter(attr => {
         if (selectedCategory === 'all') return true;
-        if (!attr.categories || attr.categories.length === 0) return true; // Show if no category specified
+        if (!attr.categories || attr.categories.length === 0) return true;
         return attr.categories.includes(selectedCategory);
     });
 
@@ -59,11 +60,12 @@ export default function AttributeFilters({
         setExpandedAttributes(newExpanded);
     };
 
-    const handleCheckboxChange = (attributeSlug: string, valueId: string, checked: boolean) => {
+    const handleValueToggle = (attributeSlug: string, valueId: string) => {
         const current = selectedFilters[attributeSlug] || [];
-        const updated = checked
-            ? [...current, valueId]
-            : current.filter(id => id !== valueId);
+        const isSelected = current.includes(valueId);
+        const updated = isSelected
+            ? current.filter(id => id !== valueId)
+            : [...current, valueId];
         onFilterChange(attributeSlug, updated);
     };
 
@@ -118,6 +120,16 @@ export default function AttributeFilters({
                 const isExpanded = expandedAttributes.has(attr.slug);
                 const selectedValues = selectedFilters[attr.slug] || [];
 
+                // Filter values by category
+                const visibleValues = attr.values?.filter((val) => {
+                    if (selectedCategory === 'all') return true;
+                    if (!val.categories || val.categories.length === 0) return true;
+                    return val.categories.includes(selectedCategory);
+                }) || [];
+
+                // Check if any value has an image (color swatches)
+                const hasImages = visibleValues.some(val => val.imageUrl);
+
                 return (
                     <div key={attr.id} className="border-b border-gray-200 pb-4">
                         <button
@@ -140,28 +152,56 @@ export default function AttributeFilters({
                         </button>
 
                         {isExpanded && (
-                            <div className="mt-2 space-y-2">
+                            <>
                                 {attr.type === 'boolean' ? (
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedValues.includes('true')}
-                                            onChange={(e) =>
-                                                handleCheckboxChange(attr.slug, 'true', e.target.checked)
-                                            }
-                                            className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
-                                        />
-                                        <span className="text-sm text-gray-700">Ja</span>
-                                    </label>
+                                    <div className="mt-2 space-y-2">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedValues.includes('true')}
+                                                onChange={() => handleValueToggle(attr.slug, 'true')}
+                                                className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                                            />
+                                            <span className="text-sm text-gray-700">Ja</span>
+                                        </label>
+                                    </div>
+                                ) : hasImages ? (
+                                    // Color swatches grid
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {visibleValues.map((val) => {
+                                            const isSelected = selectedValues.includes(val.id);
+                                            return (
+                                                <button
+                                                    key={val.id}
+                                                    onClick={() => handleValueToggle(attr.slug, val.id)}
+                                                    title={val.value}
+                                                    className={`relative w-10 h-10 rounded-lg overflow-hidden transition-all ${isSelected
+                                                            ? 'ring-2 ring-black ring-offset-1'
+                                                            : 'ring-1 ring-gray-300 hover:ring-gray-400'
+                                                        }`}
+                                                >
+                                                    {val.imageUrl && (
+                                                        <Image
+                                                            src={val.imageUrl}
+                                                            alt={val.value}
+                                                            fill
+                                                            className="object-cover"
+                                                            sizes="40px"
+                                                        />
+                                                    )}
+                                                    {isSelected && (
+                                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                                            <Check className="w-5 h-5 text-white" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 ) : (
-                                    attr.values
-                                        ?.filter((val) => {
-                                            // Filter values by selected category
-                                            if (selectedCategory === 'all') return true;
-                                            if (!val.categories || val.categories.length === 0) return true; // Show if no category specified
-                                            return val.categories.includes(selectedCategory);
-                                        })
-                                        .map((val) => (
+                                    // Regular checkbox list
+                                    <div className="mt-2 space-y-2">
+                                        {visibleValues.map((val) => (
                                             <label
                                                 key={val.id}
                                                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded transition"
@@ -169,16 +209,15 @@ export default function AttributeFilters({
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedValues.includes(val.id)}
-                                                    onChange={(e) =>
-                                                        handleCheckboxChange(attr.slug, val.id, e.target.checked)
-                                                    }
+                                                    onChange={() => handleValueToggle(attr.slug, val.id)}
                                                     className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                                                 />
                                                 <span className="text-sm text-gray-700">{val.value}</span>
                                             </label>
-                                        ))
+                                        ))}
+                                    </div>
                                 )}
-                            </div>
+                            </>
                         )}
                     </div>
                 );

@@ -4,8 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Star, Check, X, Eye, Filter, RefreshCw } from 'lucide-react';
-import { apiDelete } from '@/lib/api/client';
-
+import { apiDelete, apiPatch } from '@/lib/api/client';
 interface Review {
     id: string;
     rating: number;
@@ -100,34 +99,24 @@ export default function AdminReviewsPage() {
         try {
             console.log('🔄 Updating review:', reviewId, 'to status:', status);
 
-            const res = await fetch(`/api/admin/reviews/${reviewId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status }),
-            });
+            const data = await apiPatch(`/api/admin/reviews/${reviewId}`, { status });
+            console.log('✅ Review updated:', data.review);
 
-            if (res.ok) {
-                const data = await res.json();
-                console.log('✅ Review updated:', data.review);
+            // Обновляем локальное состояние мгновенно
+            setReviews(prevReviews =>
+                prevReviews.map(r =>
+                    r.id === reviewId ? { ...r, status } : r
+                ).filter(r => {
+                    // Если выбран конкретный фильтр, убираем отзыв из списка
+                    if (filter === 'all') return true;
+                    return r.status === filter;
+                })
+            );
 
-                // Обновляем локальное состояние мгновенно
-                setReviews(prevReviews =>
-                    prevReviews.map(r =>
-                        r.id === reviewId ? { ...r, status } : r
-                    ).filter(r => {
-                        // Если выбран конкретный фильтр, убираем отзыв из списка
-                        if (filter === 'all') return true;
-                        return r.status === filter;
-                    })
-                );
-
-                // Обновляем статистику
-                loadStats();
-            } else {
-                console.error('❌ Failed to update review:', await res.text());
-            }
+            // Обновляем статистику
+            loadStats();
         } catch (error) {
-            console.error('Error updating review:', error);
+            console.error('❌ Failed to update review:', error);
         }
     };
 

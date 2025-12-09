@@ -246,9 +246,10 @@ export default function CheckoutPage() {
                 total: finalTotal,
                 items: items.map(item => ({
                     id: item.product.id,
-                    name: item.product.name,
-                    price: item.product.price,
+                    name: item.variantName ? `${item.product.name} - ${item.variantName}` : item.product.name,
+                    price: item.variantPrice ?? item.product.price,
                     quantity: item.quantity,
+                    variantId: item.variantId || null,
                 })),
             };
 

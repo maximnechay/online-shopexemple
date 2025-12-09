@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Filter, X } from 'lucide-react';
+import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductGrid from '@/components/shop/ProductGrid';
@@ -380,26 +381,40 @@ function CatalogContent() {
                                     <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
                                         Kategorien
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
+                                        {/* All Products */}
                                         <button
                                             onClick={() => handleCategoryChange('all')}
-                                            className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${selectedCategory === 'all'
+                                            className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all ${selectedCategory === 'all'
                                                 ? 'bg-black text-white'
                                                 : 'text-gray-700 hover:bg-gray-100'
                                                 }`}
                                         >
                                             Alle Produkte
                                         </button>
+
+                                        {/* Category buttons with images */}
                                         {categories.map((cat) => (
                                             <button
                                                 key={cat.id}
                                                 onClick={() => handleCategoryChange(cat.id)}
-                                                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${selectedCategory === cat.id
+                                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all ${selectedCategory === cat.id
                                                     ? 'bg-black text-white'
                                                     : 'text-gray-700 hover:bg-gray-100'
                                                     }`}
                                             >
-                                                {cat.name}
+                                                {cat.image && (
+                                                    <div className="relative w-8 h-8 rounded-md overflow-hidden flex-shrink-0">
+                                                        <Image
+                                                            src={cat.image}
+                                                            alt={cat.name}
+                                                            fill
+                                                            className="object-cover"
+                                                            sizes="32px"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <span className="truncate">{cat.name}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -572,13 +587,13 @@ function CatalogContent() {
                                     {/* Categories Mobile */}
                                     <div className="mb-6">
                                         <h3 className="text-sm font-semibold text-gray-900 mb-3">Kategorien</h3>
-                                        <div className="space-y-2">
+                                        <div className="space-y-1">
                                             <button
                                                 onClick={() => {
                                                     handleCategoryChange('all');
                                                     setShowMobileFilters(false);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 text-sm rounded-lg ${selectedCategory === 'all' ? 'bg-black text-white' : 'bg-gray-100'
+                                                className={`w-full text-left px-3 py-2.5 text-sm rounded-lg ${selectedCategory === 'all' ? 'bg-black text-white' : 'bg-gray-100'
                                                     }`}
                                             >
                                                 Alle
@@ -590,10 +605,21 @@ function CatalogContent() {
                                                         handleCategoryChange(cat.id);
                                                         setShowMobileFilters(false);
                                                     }}
-                                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg ${selectedCategory === cat.id ? 'bg-black text-white' : 'bg-gray-100'
+                                                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg ${selectedCategory === cat.id ? 'bg-black text-white' : 'bg-gray-100'
                                                         }`}
                                                 >
-                                                    {cat.name}
+                                                    {cat.image && (
+                                                        <div className="relative w-8 h-8 rounded-md overflow-hidden flex-shrink-0">
+                                                            <Image
+                                                                src={cat.image}
+                                                                alt={cat.name}
+                                                                fill
+                                                                className="object-cover"
+                                                                sizes="32px"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <span className="truncate">{cat.name}</span>
                                                 </button>
                                             ))}
                                         </div>

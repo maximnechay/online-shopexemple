@@ -44,8 +44,6 @@ export default function ProductPage() {
         }
     }, [product?.id]);
 
-
-
     useEffect(() => {
         if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
             setSelectedImage(0);
@@ -108,7 +106,25 @@ export default function ProductPage() {
     const handleAddToCart = () => {
         if (!product) return;
         setIsAdding(true);
-        addItem(product as any, quantity);
+
+        // ✅ ИСПРАВЛЕНО: Если выбран вариант, передаём его данные
+        if (selectedVariant) {
+            // Формируем название варианта из атрибутов
+            const variantName = selectedVariant.attributes
+                ?.map((attr: any) => attr.attribute_values?.value || attr.custom_value)
+                .filter(Boolean)
+                .join(', ') || selectedVariant.name;
+
+            addItem(product as any, quantity, {
+                id: selectedVariant.id,
+                name: variantName,
+                price: selectedVariant.price,
+                image: selectedVariant.images?.[0],
+            });
+        } else {
+            // Продукт без вариантов
+            addItem(product as any, quantity);
+        }
 
         setTimeout(() => {
             setIsAdding(false);
@@ -172,6 +188,10 @@ export default function ProductPage() {
     const displayImages = (selectedVariant?.images && selectedVariant.images.length > 0)
         ? selectedVariant.images
         : product.images;
+
+    // Проверка наличия: если есть вариант - его inStock, иначе продукта
+    const isInStock = selectedVariant ? selectedVariant.inStock : product.inStock;
+    const stockQuantity = selectedVariant?.stockQuantity ?? product.stockQuantity;
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -282,12 +302,13 @@ export default function ProductPage() {
                                 {product.description}
                             </p>
 
+                            {/* Stock status - учитывает выбранный вариант */}
                             <div className="flex items-center gap-2">
-                                {product.inStock ? (
+                                {isInStock ? (
                                     <>
                                         <div className="w-3 h-3 bg-green-500 rounded-full" />
                                         <span className="text-sm text-green-700 font-medium">
-                                            Auf Lager ({product.stockQuantity} verfügbar)
+                                            Auf Lager {stockQuantity > 0 && `(${stockQuantity} verfügbar)`}
                                         </span>
                                     </>
                                 ) : (
@@ -300,6 +321,7 @@ export default function ProductPage() {
                                 )}
                             </div>
 
+                            {/* Variant Selector */}
                             {product && (
                                 <div className="pt-6 border-t border-gray-100">
                                     <VariantSelector
@@ -336,7 +358,8 @@ export default function ProductPage() {
                                 </div>
                             )}
 
-                            {product.inStock && (
+                            {/* Quantity selector - учитывает stock варианта */}
+                            {isInStock && (
                                 <div className="flex items-center gap-4 pt-4">
                                     <span className="text-sm font-medium text-gray-700">Menge:</span>
                                     <div className="flex items-center border-2 border-gray-300 rounded-xl">
@@ -350,7 +373,7 @@ export default function ProductPage() {
                                             {quantity}
                                         </span>
                                         <button
-                                            onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
+                                            onClick={() => setQuantity(Math.min(stockQuantity || 99, quantity + 1))}
                                             className="p-3 hover:bg-gray-50 transition-colors rounded-r-xl"
                                         >
                                             <Plus className="w-4 h-4" />
@@ -361,7 +384,7 @@ export default function ProductPage() {
 
                             <div className="flex gap-4">
                                 <button
-                                    disabled={!product.inStock || isAdding}
+                                    disabled={!isInStock || isAdding}
                                     onClick={handleAddToCart}
                                     className={`flex-1 py-4 rounded-full font-medium transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${isAdding
                                         ? 'bg-green-600 text-white'
@@ -400,6 +423,7 @@ export default function ProductPage() {
                                 </div>
                             </div>
 
+                            {/* Product attributes */}
                             {selectedVariant ? (
                                 selectedVariant.attributes && selectedVariant.attributes.length > 0 && (
                                     <div className="pt-6 border-t border-gray-100">
