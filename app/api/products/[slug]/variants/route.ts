@@ -1,110 +1,166 @@
-// app/api/products/[slug]/variants/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
 
 export async function GET(
-    request: NextRequest,
+    request: Request,
     { params }: { params: Promise<{ slug: string }> }
 ) {
-    try {
-        const { slug } = await params;
+    const { slug } = await params;
 
-        // First, get product ID by slug
+    try {
+        // 1) Находим товар по slug, чтобы взять product_id
         const { data: product, error: productError } = await supabaseAdmin
             .from('products')
-            .select('id, variant_group')
+            .select('id, slug')
             .eq('slug', slug)
             .single();
 
         if (productError || !product) {
+            console.error('PRODUCT FOR VARIANTS NOT FOUND', { slug, productError });
             return NextResponse.json(
                 { error: 'Product not found' },
                 { status: 404 }
             );
         }
 
-        // If product has a variant_group, get all products in that group
-        if (product.variant_group) {
-            const { data: variants, error: variantsError } = await supabaseAdmin
-                .from('products')
-                .select('id, name, slug, price, in_stock, images')
-                .eq('variant_group', product.variant_group)
-                .neq('id', product.id)
-                .order('price', { ascending: true });
+        // 2) Берем все варианты этого товара
+        const { data: variants, error: variantsError } = await supabaseAdmin
+            .from('product_variants')
+            .select(
+                `
+                id,
+                product_id,
+                sku,
+                name,
+                price,
+                compare_at_price,
+                stock_quantity,
+                in_stock,
+                is_active,
+                images,
+                created_at,
+                updated_at
+            `
+            )
+            .eq('product_id', product.id)
+            .order('created_at', { ascending: true });
 
-            if (variantsError) {
-                console.error('Error fetching variants by group:', variantsError);
-                return NextResponse.json({ variants: [] });
+        if (variantsError) {
+            console.error('VARIANTS LOAD ERROR', variantsError);
+            return NextResponse.json(
+                { error: 'Failed to load variants' },
+                { status: 500 }
+            );
+        }
+
+        if (!variants || variants.length === 0) {
+            return NextResponse.json(
+                { variants: [] },
+                {
+                    headers: {
+                        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+                    },
+                }
+            );
+        }
+
+        const variantIds = variants.map(v => v.id);
+
+        // 3) Подтягиваем атрибуты для этих variant_id
+        // ВАЖНО: названия отношений могут отличаться, если ты по-другому создал FK.
+        // Если ругнется — проверь названия таблиц и FK.
+        const { data: attributesData, error: attrsError } = await supabaseAdmin
+            .from('product_attributes')
+            .select(`
+                id,
+                product_id,
+                variant_id,
+                attribute_id,
+                attribute_value_id,
+                custom_value,
+                created_at,
+                attribute:attributes (
+                    id,
+                    slug,
+                    name
+                ),
+                attributeValue:attribute_values (
+                    id,
+                    value,
+                    image_url
+                )
+            `)
+            .in('variant_id', variantIds);
+
+        if (attrsError) {
+            console.error('VARIANT ATTRIBUTES LOAD ERROR', attrsError);
+        }
+
+        const attrsByVariant = new Map<
+            string,
+            Array<{
+                attribute_value_id?: string;
+                custom_value?: string | null;
+                attributes?: { slug: string; name: string };
+                attribute_values?: { value: string; image_url?: string | null };
+            }>
+        >();
+
+        (attributesData || []).forEach((row: any) => {
+            const variantId = row.variant_id;
+            if (!attrsByVariant.has(variantId)) {
+                attrsByVariant.set(variantId, []);
             }
 
-            // Get attributes for each variant to show in selector
-            const variantsWithAttributes = await Promise.all(
-                (variants || []).map(async (variant) => {
-                    const { data: attrs } = await supabaseAdmin
-                        .from('product_attributes')
-                        .select(`
-              attribute_value_id,
-              custom_value,
-              attributes:attribute_id (slug, name),
-              attribute_values:attribute_value_id (value, image_url)
-            `)
-                        .eq('product_id', variant.id);
-
-                    return {
-                        id: variant.id,
-                        name: variant.name,
-                        slug: variant.slug,
-                        price: variant.price,
-                        inStock: variant.in_stock,
-                        images: variant.images,
-                        attributes: attrs || [],
-                    };
-                })
-            );
-
-            return NextResponse.json({
-                variants: variantsWithAttributes,
-                groupBy: 'variant_group',
+            attrsByVariant.get(variantId)!.push({
+                attribute_value_id: row.attribute_value_id || undefined,
+                custom_value: row.custom_value ?? null,
+                attributes: row.attribute
+                    ? {
+                        slug: row.attribute.slug,
+                        name: row.attribute.name,
+                    }
+                    : undefined,
+                attribute_values: row.attributeValue
+                    ? {
+                        value: row.attributeValue.value,
+                        image_url: row.attributeValue.image_url ?? null,
+                    }
+                    : undefined,
             });
-        }
+        });
 
-        // Fallback: check product_variants table
-        const { data: variantLinks, error: linksError } = await supabaseAdmin
-            .from('product_variants')
-            .select(`
-        variant_type,
-        variant_product:variant_product_id (
-          id,
-          name,
-          slug,
-          price,
-          in_stock,
-          images
-        )
-      `)
-            .eq('parent_product_id', product.id);
-
-        if (linksError) {
-            console.error('Error fetching variant links:', linksError);
-            return NextResponse.json({ variants: [] });
-        }
-
-        const variants = (variantLinks || []).map((link: any) => ({
-            ...link.variant_product,
-            variantType: link.variant_type,
+        // 4) Маппим варианты под формат VariantSelector
+        const result = (variants || []).map(v => ({
+            id: v.id,
+            name: v.name,
+            // пока у вариантов нет своего slug, используем slug продукта
+            slug: product.slug,
+            price: Number(v.price),
+            inStock: v.in_stock && v.stock_quantity > 0,
+            images: v.images ?? [],
+            attributes: attrsByVariant.get(v.id) || [],
         }));
 
-        return NextResponse.json({
-            variants,
-            groupBy: 'parent_child',
-        });
-    } catch (error) {
-        console.error('Error in product variants API:', error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { variants: result },
+            {
+                headers: {
+                    'Cache-Control': 'no-store, max-age=0, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                },
+            }
+        );
+    } catch (e) {
+        console.error('Error fetching product variants:', e);
+        return NextResponse.json(
+            { error: 'Failed to fetch product variants' },
             { status: 500 }
         );
     }

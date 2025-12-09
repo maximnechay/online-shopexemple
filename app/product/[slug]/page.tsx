@@ -315,18 +315,23 @@ export default function ProductPage() {
                                             attributes: productAttributes.map(attr => ({
                                                 attribute_value_id: attr.attributeValueId || undefined,
                                                 custom_value: attr.customValue,
-                                                attributes: attr.attribute ? {
-                                                    slug: attr.attribute.slug,
-                                                    name: attr.attribute.name
-                                                } : undefined,
-                                                attribute_values: attr.attributeValue ? {
-                                                    value: attr.attributeValue.value,
-                                                    image_url: attr.attributeValue.imageUrl || null
-                                                } : undefined
-                                            }))
+                                                attributes: attr.attribute
+                                                    ? {
+                                                        slug: attr.attribute.slug,
+                                                        name: attr.attribute.name,
+                                                    }
+                                                    : undefined,
+                                                attribute_values: attr.attributeValue
+                                                    ? {
+                                                        value: attr.attributeValue.value,
+                                                        image_url: attr.attributeValue.imageUrl || null,
+                                                    }
+                                                    : undefined,
+                                            })),
                                         }}
                                         variants={productVariants}
                                     />
+
                                 </div>
                             )}
 
