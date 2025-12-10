@@ -139,9 +139,10 @@ export async function GET(
         const result = (variants || []).map(v => ({
             id: v.id,
             name: v.name,
-            // пока у вариантов нет своего slug, используем slug продукта
             slug: product.slug,
             price: Number(v.price),
+            compareAtPrice: v.compare_at_price ? Number(v.compare_at_price) : null,
+            stockQuantity: v.stock_quantity,  // ✅ Добавлено
             inStock: v.in_stock && v.stock_quantity > 0,
             images: v.images ?? [],
             attributes: attrsByVariant.get(v.id) || [],

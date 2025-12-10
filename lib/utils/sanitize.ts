@@ -1,73 +1,64 @@
 // lib/utils/sanitize.ts
-import DOMPurify from 'isomorphic-dompurify';
 
 /**
- * Полная санитизация HTML - удаляет все теги
- * Использовать для: заголовков, имен, названий
+ * Простая санитизация без jsdom (работает в Vercel serverless)
  */
+
+// Удаляет все HTML теги
+function stripTags(str: string): string {
+    if (!str) return '';
+    return str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .trim();
+}
+
+// Разрешает только определённые теги
+function allowTags(str: string, allowedTags: string[]): string {
+    if (!str) return '';
+
+    // Удаляем опасные теги и атрибуты
+    let clean = str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .replace(/javascript:/gi, '');
+
+    // Regex для разрешённых тегов
+    const tagPattern = allowedTags.join('|');
+    const allowedPattern = new RegExp(`<(?!\/?(${tagPattern})(?:\\s|>|$))[^>]+>`, 'gi');
+
+    clean = clean.replace(allowedPattern, '');
+
+    // Удаляем атрибуты из разрешённых тегов
+    const attrPattern = new RegExp(`<(${tagPattern})\\s+[^>]*>`, 'gi');
+    clean = clean.replace(attrPattern, '<$1>');
+
+    return clean.trim();
+}
+
 export function sanitizeHTML(dirty: string): string {
-    if (!dirty) return '';
-
-    return DOMPurify.sanitize(dirty, {
-        ALLOWED_TAGS: [], // Не разрешаем никакие теги
-        ALLOWED_ATTR: [], // Не разрешаем никакие атрибуты
-        KEEP_CONTENT: true, // Сохраняем текстовое содержимое
-    });
+    return stripTags(dirty);
 }
 
-/**
- * Базовая санитизация для отзывов
- * Разрешает только безопасное форматирование текста
- */
 export function sanitizeReview(review: string): string {
-    if (!review) return '';
-
-    return DOMPurify.sanitize(review, {
-        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li'],
-        ALLOWED_ATTR: [],
-        KEEP_CONTENT: true,
-    });
+    return allowTags(review, ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li']);
 }
 
-/**
- * Санитизация для описаний товаров (админ может добавить форматирование)
- * Более либеральная, но все еще безопасная
- */
 export function sanitizeProductDescription(description: string): string {
-    if (!description) return '';
-
-    return DOMPurify.sanitize(description, {
-        ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li', 'h3', 'h4'],
-        KEEP_CONTENT: true,
-    });
+    return allowTags(description, ['p', 'br', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li', 'h3', 'h4']);
 }
 
-/**
- * Клиентская версия санитизации (для компонентов)
- * Проверяет наличие window перед использованием
- */
 export function sanitizeHTMLClient(dirty: string): string {
-    if (typeof window === 'undefined') {
-        return sanitizeHTML(dirty);
-    }
-
-    const clientPurify = DOMPurify(window);
-    return clientPurify.sanitize(dirty, {
-        ALLOWED_TAGS: [],
-        ALLOWED_ATTR: [],
-        KEEP_CONTENT: true,
-    });
+    return sanitizeHTML(dirty);
 }
 
 export function sanitizeReviewClient(review: string): string {
-    if (typeof window === 'undefined') {
-        return sanitizeReview(review);
-    }
-
-    const clientPurify = DOMPurify(window);
-    return clientPurify.sanitize(review, {
-        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li'],
-        ALLOWED_ATTR: [],
-        KEEP_CONTENT: true,
-    });
+    return sanitizeReview(review);
 }

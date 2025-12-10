@@ -189,9 +189,12 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // Получение пути к файлу
+        // Получение параметров
         const { searchParams } = new URL(request.url);
         const filePath = searchParams.get('path');
+        const imageUrl = searchParams.get('imageUrl');
+        const productId = searchParams.get('productId');
+        const variantId = searchParams.get('variantId');
 
         if (!filePath) {
             return NextResponse.json(
@@ -201,19 +204,71 @@ export async function DELETE(request: NextRequest) {
         }
 
         console.log('🗑️ Deleting:', filePath);
+        console.log('📦 ProductId:', productId, 'VariantId:', variantId, 'ImageUrl:', imageUrl);
 
-        // Удаление из Storage
+        // 1. Удаление из Storage
         const { error: deleteError } = await supabase
             .storage
             .from(BUCKET_NAME)
             .remove([filePath]);
 
         if (deleteError) {
-            console.error('❌ Delete error:', deleteError);
-            return NextResponse.json(
-                { error: 'Fehler beim Löschen des Bildes', details: deleteError.message },
-                { status: 500 }
-            );
+            console.error('❌ Storage delete error:', deleteError);
+            // Продолжаем даже если файл не найден в storage
+        }
+
+        // 2. Обновление БД - удаление URL из массива images
+        if (imageUrl) {
+            // Если указан variantId - обновляем product_variants
+            if (variantId) {
+                const { data: variant } = await supabase
+                    .from('product_variants')
+                    .select('images')
+                    .eq('id', variantId)
+                    .single();
+
+                if (variant?.images) {
+                    const updatedImages = (variant.images as string[]).filter(
+                        img => img !== imageUrl
+                    );
+
+                    const { error: updateError } = await supabase
+                        .from('product_variants')
+                        .update({ images: updatedImages })
+                        .eq('id', variantId);
+
+                    if (updateError) {
+                        console.error('❌ Variant update error:', updateError);
+                    } else {
+                        console.log('✅ Variant images updated');
+                    }
+                }
+            }
+            // Если указан productId - обновляем products
+            else if (productId) {
+                const { data: product } = await supabase
+                    .from('products')
+                    .select('images')
+                    .eq('id', productId)
+                    .single();
+
+                if (product?.images) {
+                    const updatedImages = (product.images as string[]).filter(
+                        img => img !== imageUrl
+                    );
+
+                    const { error: updateError } = await supabase
+                        .from('products')
+                        .update({ images: updatedImages })
+                        .eq('id', productId);
+
+                    if (updateError) {
+                        console.error('❌ Product update error:', updateError);
+                    } else {
+                        console.log('✅ Product images updated');
+                    }
+                }
+            }
         }
 
         console.log('✅ Image deleted successfully');

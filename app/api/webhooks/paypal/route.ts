@@ -165,7 +165,7 @@ async function handlePaymentCaptured(resource: any) {
         // Получаем заказ с items
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .select('id, payment_status, payment_id, order_number, order_items(product_id, quantity)')
+            .select('id, payment_status, payment_id, order_number, order_items(product_id, variant_id, quantity)')
             .eq('id', supabaseOrderId)
             .single();
 
@@ -183,6 +183,7 @@ async function handlePaymentCaptured(resource: any) {
         // 📦 УМЕНЬШАЕМ СКЛАД
         const stockItems = order.order_items.map((item: any) => ({
             productId: item.product_id,
+            variantId: item.variant_id || null,
             quantity: item.quantity,
             notes: `PayPal payment confirmed for order ${order.order_number}`,
         }));
@@ -314,7 +315,7 @@ async function handlePaymentRefunded(resource: any) {
         // Получаем заказ с items
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .select('id, payment_status, payment_id, order_number, order_items(product_id, quantity)')
+            .select('id, payment_status, payment_id, order_number, order_items(product_id, variant_id, quantity)')
             .eq('id', supabaseOrderId)
             .single();
 
@@ -342,6 +343,7 @@ async function handlePaymentRefunded(resource: any) {
         // 📦 ВОЗВРАЩАЕМ ТОВАР НА СКЛАД
         const stockItems = order.order_items.map((item: any) => ({
             productId: item.product_id,
+            variantId: item.variant_id || null,
             quantity: item.quantity,
             notes: `PayPal refund processed for order ${order.order_number}`,
         }));

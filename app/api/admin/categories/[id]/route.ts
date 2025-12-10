@@ -3,13 +3,18 @@ import { createServerSupabaseAdminClient } from '@/lib/supabase/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { validateRequest, updateCategorySchema } from '@/lib/security/validation';
 import { createAuditLog } from '@/lib/security/audit-log';
+import { checkAdmin } from '@/lib/auth/admin-check';
+
+export const dynamic = 'force-dynamic';
 
 // PUT - обновить категорию
 export async function PUT(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
-    // Rate limiting
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
         return NextResponse.json(
@@ -24,9 +29,8 @@ export async function PUT(
     try {
         const supabase = createServerSupabaseAdminClient();
         const body = await request.json();
-        const { id } = await params;
+        const { id } = params;
 
-        // Validation
         const validation = validateRequest(updateCategorySchema, body);
         if (!validation.success) {
             return NextResponse.json(
@@ -57,7 +61,6 @@ export async function PUT(
             );
         }
 
-        // Audit log
         await createAuditLog({
             action: 'category.update',
             resourceType: 'category',
@@ -80,9 +83,11 @@ export async function PUT(
 // DELETE - удалить категорию
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
-    // Rate limiting
+    const adminCheck = await checkAdmin(request);
+    if (adminCheck instanceof NextResponse) return adminCheck;
+
     const rateLimitResult = rateLimit(request, RATE_LIMITS.admin);
     if (!rateLimitResult.success) {
         return NextResponse.json(
@@ -96,9 +101,8 @@ export async function DELETE(
 
     try {
         const supabase = createServerSupabaseAdminClient();
-        const { id } = await params;
+        const { id } = params;
 
-        // Проверяем, есть ли товары в этой категории
         const { data: products } = await supabase
             .from('products')
             .select('id')
@@ -125,7 +129,6 @@ export async function DELETE(
             );
         }
 
-        // Audit log
         await createAuditLog({
             action: 'category.delete',
             resourceType: 'category',

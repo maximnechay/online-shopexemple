@@ -102,7 +102,24 @@ export default function ProductPage() {
             addToWishlist(product as any);
         }
     };
+    const groupedAttrs = Object.values(
+        productAttributes
+            .filter(attr => attr.attribute?.visibleInCatalog !== false)
+            .reduce((acc: any, attr: any) => {
+                const key = attr.attribute?.id || attr.attribute_id;
+                if (!key) return acc;
 
+                const name = attr.attribute?.name;
+                const value = attr.attributeValue?.value || attr.customValue;
+                if (!value) return acc;
+
+                if (!acc[key]) {
+                    acc[key] = { name, values: new Set<string>() };
+                }
+                acc[key].values.add(value);
+                return acc;
+            }, {})
+    );
     const handleAddToCart = () => {
         if (!product) return;
         setIsAdding(true);
@@ -451,18 +468,16 @@ export default function ProductPage() {
                                             Produkteigenschaften
                                         </h3>
                                         <div className="grid grid-cols-2 gap-3">
-                                            {productAttributes
-                                                .filter(attr => attr.attribute?.visibleInCatalog !== false)
-                                                .map((attr) => (
-                                                    <div key={attr.id} className="flex flex-col">
-                                                        <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                                                            {attr.attribute?.name}
-                                                        </span>
-                                                        <span className="text-sm font-medium text-gray-900">
-                                                            {attr.attributeValue?.value || attr.customValue || '—'}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                            {groupedAttrs.map((attr: any, index: number) => (
+                                                <div key={index} className="flex flex-col">
+                                                    <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                                                        {attr.name}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-gray-900">
+                                                        {[...attr.values].join(', ')}
+                                                    </span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )

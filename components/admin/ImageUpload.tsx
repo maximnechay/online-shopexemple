@@ -13,6 +13,9 @@ interface ImageUploadProps {
     existingImages?: string[];
     maxImages?: number;
     className?: string;
+    // Новые props для обновления БД при удалении
+    productId?: string;
+    variantId?: string;
 }
 
 interface UploadedImage {
@@ -27,7 +30,9 @@ export default function ImageUpload({
     onImagesReordered,
     existingImages = [],
     maxImages = 5,
-    className = ''
+    className = '',
+    productId,
+    variantId
 }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -142,8 +147,21 @@ export default function ImageUpload({
             if (path) {
                 const csrfToken = await fetchCSRFToken();
 
+                // Формируем URL с параметрами для обновления БД
+                const params = new URLSearchParams({
+                    path: path,
+                    imageUrl: url
+                });
+
+                // Добавляем productId или variantId если есть
+                if (variantId) {
+                    params.append('variantId', variantId);
+                } else if (productId) {
+                    params.append('productId', productId);
+                }
+
                 const response = await fetch(
-                    `/api/admin/products/upload-image?path=${encodeURIComponent(path)}`,
+                    `/api/admin/products/upload-image?${params.toString()}`,
                     {
                         method: 'DELETE',
                         headers: {
@@ -235,8 +253,8 @@ export default function ImageUpload({
                                 onDragOver={(e) => handleImageDragOver(e, index)}
                                 onDragEnd={handleImageDragEnd}
                                 className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-move ${index === 0
-                                        ? 'border-amber-400 ring-2 ring-amber-200'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-amber-400 ring-2 ring-amber-200'
+                                    : 'border-gray-200 hover:border-gray-300'
                                     } ${draggedIndex === index ? 'opacity-50 scale-95' : ''}`}
                             >
                                 <Image
@@ -318,8 +336,8 @@ export default function ImageUpload({
             {canUploadMore && (
                 <div
                     className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${dragActive
-                            ? 'border-amber-500 bg-amber-50'
-                            : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-gray-300 hover:border-gray-400'
                         }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}

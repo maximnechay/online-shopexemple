@@ -5,6 +5,7 @@ export type StockEventType = 'purchase' | 'refund' | 'manual_adjust' | 'cancelle
 
 export interface StockChange {
     productId: string;
+    variantId?: string | null;
     quantity: number;
     orderId?: string;
     paymentId?: string;
@@ -106,6 +107,7 @@ export async function decreaseStock(
         // Prepare items for PostgreSQL function
         const itemsJson = items.map(item => ({
             productId: item.productId,
+            variantId: item.variantId || null,
             quantity: item.quantity,
             notes: item.notes || `Purchase for order`,
         }));

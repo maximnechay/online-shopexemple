@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
         // Получаем заказ с items
         const { data: existingOrder, error: fetchError } = await supabaseAdmin
             .from('orders')
+            .select('*, order_items(product_id, variant_id, quantity)')
             .select('*, order_items(product_id, quantity)')
             .eq('id', supabaseOrderId)
             .single();
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
         // 📦 УМЕНЬШАЕМ СКЛАД
         const stockItems = existingOrder.order_items.map((item: any) => ({
             productId: item.product_id,
+            variantId: item.variant_id || null,
             quantity: item.quantity,
             notes: `PayPal payment captured for order ${existingOrder.order_number}`,
         }));

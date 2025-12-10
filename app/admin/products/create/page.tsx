@@ -297,7 +297,7 @@ export default function CreateProduct() {
                         price: v.price,
                         compareAtPrice: v.compareAtPrice || undefined,
                         stockQuantity: v.stockQuantity,
-                        images: v.images.length > 0 ? v.images : images,
+                        images: v.images,
                         attributes: variantAttributes
                     };
                 });

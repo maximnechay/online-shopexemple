@@ -212,8 +212,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
         // 3) 📦 УМЕНЬШАЕМ СКЛАД (критически важный шаг!)
         const stockItems = items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
+            productId: item.pid || item.productId,
+            variantId: item.vid || item.variantId || null,
+            quantity: item.q || item.quantity,
             notes: `Stripe payment confirmed for order ${order.order_number}`,
         }));
 
@@ -379,7 +380,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         // Находим заказ по payment_intent_id
         const { data: order, error: orderError } = await supabaseAdmin
             .from('orders')
-            .select('id, payment_status, payment_id, order_number, order_items(product_id, quantity)')
+            .select('id, payment_status, payment_id, order_number, order_items(product_id, variant_id, quantity)')
             .eq('stripe_payment_intent_id', paymentIntentId)
             .single();
 
@@ -409,6 +410,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         // 📦 ВОЗВРАЩАЕМ ТОВАР НА СКЛАД
         const stockItems = order.order_items.map((item: any) => ({
             productId: item.product_id,
+            variantId: item.variant_id || null,
             quantity: item.quantity,
             notes: `Refund processed for order ${order.order_number}`,
         }));
