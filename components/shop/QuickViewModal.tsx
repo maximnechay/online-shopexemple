@@ -168,8 +168,8 @@ export default function QuickViewModal() {
                                             key={idx}
                                             onClick={() => setCurrentImageIndex(idx)}
                                             className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${idx === currentImageIndex
-                                                    ? 'border-black'
-                                                    : 'border-transparent hover:border-gray-300'
+                                                ? 'border-black'
+                                                : 'border-transparent hover:border-gray-300'
                                                 }`}
                                         >
                                             <div
@@ -211,8 +211,8 @@ export default function QuickViewModal() {
                                                 <Star
                                                     key={i}
                                                     className={`w-5 h-5 ${i < Math.floor(reviewStats.average)
-                                                            ? 'text-amber-400 fill-amber-400'
-                                                            : 'text-gray-300'
+                                                        ? 'text-amber-400 fill-amber-400'
+                                                        : 'text-gray-300'
                                                         }`}
                                                 />
                                             ))}
@@ -226,13 +226,21 @@ export default function QuickViewModal() {
 
                             {/* Price */}
                             <div className="flex items-center gap-3">
-                                <span className="text-3xl font-medium text-gray-900">
-                                    {formatPrice(product.price)}
-                                </span>
-                                {product.compareAtPrice && (
-                                    <span className="text-lg text-gray-400 line-through">
-                                        {formatPrice(product.compareAtPrice)}
+                                {product.maxPrice && product.maxPrice !== product.price ? (
+                                    <span className="text-3xl font-medium text-gray-900">
+                                        {formatPrice(product.price)} – {formatPrice(product.maxPrice)}
                                     </span>
+                                ) : (
+                                    <>
+                                        <span className="text-3xl font-medium text-gray-900">
+                                            {formatPrice(product.price)}
+                                        </span>
+                                        {product.compareAtPrice && (
+                                            <span className="text-lg text-gray-400 line-through">
+                                                {formatPrice(product.compareAtPrice)}
+                                            </span>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
@@ -308,10 +316,10 @@ export default function QuickViewModal() {
                                     onClick={handleAddToCart}
                                     disabled={!product.inStock}
                                     className={`flex-1 h-14 rounded-full font-medium transition-all flex items-center justify-center gap-2 ${isAdding
-                                            ? 'bg-green-600 text-white'
-                                            : product.inStock
-                                                ? 'bg-black text-white hover:bg-gray-800'
-                                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        ? 'bg-green-600 text-white'
+                                        : product.inStock
+                                            ? 'bg-black text-white hover:bg-gray-800'
+                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                         }`}
                                 >
                                     <ShoppingBag className="w-5 h-5" />
@@ -321,8 +329,8 @@ export default function QuickViewModal() {
                                 <button
                                     onClick={handleWishlistToggle}
                                     className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${inWishlist
-                                            ? 'bg-black text-white'
-                                            : 'border border-gray-300 hover:border-black'
+                                        ? 'bg-black text-white'
+                                        : 'border border-gray-300 hover:border-black'
                                         }`}
                                 >
                                     <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
@@ -343,20 +351,20 @@ export default function QuickViewModal() {
             </div>
 
             <style jsx global>{`
-                @keyframes scale-in {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.95);
+                    @keyframes scale-in {
+                        from {
+                            opacity: 0;
+                            transform: scale(0.95);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: scale(1);
+                        }
                     }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
+                    .animate-scale-in {
+                        animation: scale-in 0.2s ease-out;
                     }
-                }
-                .animate-scale-in {
-                    animation: scale-in 0.2s ease-out;
-                }
-            `}</style>
+                `}</style>
         </>
     );
 }

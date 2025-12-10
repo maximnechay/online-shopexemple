@@ -124,7 +124,7 @@ export default function ContactsPage() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="flex-1 pt-8 md:pt-12 pb-20">
+            <main className="flex-1 pt-8 md:pt-6 pb-20">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     {/* Hero */}
                     <div className="text-center mb-16">

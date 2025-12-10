@@ -30,9 +30,10 @@ export const createCategorySchema = z.object({
 
 export const updateCategorySchema = z.object({
     name: z.string().min(1).max(100),
-    slug: z.string().min(1).max(100),
+    slug: z.string().max(100).optional(),
     description: z.string().max(500).optional().nullable(),
     image: z.string().url().optional().nullable(),
+    homepage_position: z.number().min(1).max(4).optional().nullable(),
 });
 
 // Order validation schemas
