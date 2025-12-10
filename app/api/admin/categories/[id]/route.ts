@@ -39,7 +39,7 @@ export async function PUT(
             );
         }
 
-        const { name, slug, description, image } = validation.data;
+        const { name, slug, description, image, homepage_position } = validation.data;
 
         const { data, error } = await supabase
             .from('categories')
@@ -48,6 +48,7 @@ export async function PUT(
                 slug: slug || id,
                 description: description || null,
                 image: image || null,
+                homepage_position: homepage_position ?? null,
             })
             .eq('id', id)
             .select()
@@ -67,7 +68,7 @@ export async function PUT(
             resourceId: id,
             ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
             userAgent: request.headers.get('user-agent') || 'unknown',
-            metadata: { name, slug },
+            metadata: { name, slug, homepage_position },
         });
 
         return NextResponse.json(data);
