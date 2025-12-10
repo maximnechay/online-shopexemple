@@ -256,7 +256,8 @@ function CatalogContent() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-16 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+
                     <div className="max-w-7xl mx-auto">
                         {/* Header skeleton */}
                         <motion.div
@@ -311,7 +312,8 @@ function CatalogContent() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <div className="flex-1 pt-6 md:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+                <div className="flex-1 pt-4 md:pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+
                     <div className="max-w-7xl mx-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -339,7 +341,8 @@ function CatalogContent() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <div className="flex-1 pt-6 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
+            <div className="flex-1 pt-3 sm:pt-4 md:pt-4 pb-20 px-4 sm:px-6 lg:px-8">
+
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <motion.div
@@ -348,12 +351,13 @@ function CatalogContent() {
                         transition={{ duration: 0.6 }}
                         className="mb-8"
                     >
-                        <h1 className="text-4xl lg:text-5xl font-light text-gray-900 mb-4">
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 mb-3">
                             Katalog
                         </h1>
-                        <p className="text-lg text-gray-600">
+                        <p className="text-base md:text-lg text-gray-600">
                             Entdecken Sie unsere Premium-Auswahl an Kosmetikprodukten
                         </p>
+
                     </motion.div>
 
                     {/* Mobile Filter Button */}
@@ -683,7 +687,8 @@ export default function CatalogPage() {
         <Suspense fallback={
             <div className="min-h-screen bg-white">
                 <Header />
-                <div className="pt-24 pb-16">
+                <div className="pt-12 md:pt-24 pb-16">
+
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="animate-pulse">Loading...</div>
                     </div>
