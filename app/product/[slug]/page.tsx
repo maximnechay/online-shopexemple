@@ -152,7 +152,7 @@ export default function ProductPage() {
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <Header />
-                <main className="flex-1 pt-24 pb-16">
+                <main className="flex-1 pt-20 pb-16">
                     <div className="max-w-7xl mx-auto px-6 lg:px-8">
                         <div className="animate-pulse">
                             <div className="h-8 bg-gray-200 rounded w-1/4 mb-8" />
@@ -214,7 +214,7 @@ export default function ProductPage() {
         <div className="min-h-screen bg-white flex flex-col">
             <Header />
 
-            <main className="flex-1 pt-24 pb-16">
+            <main className="flex-1 pt-16 pb-16">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                         <Link href="/" className="hover:text-gray-900 transition-colors">
@@ -305,13 +305,23 @@ export default function ProductPage() {
                             )}
 
                             <div className="flex items-center gap-4">
-                                <span className="text-4xl font-bold text-gray-900">
-                                    {formatPrice(displayProduct.price)}
-                                </span>
-                                {displayProduct.compareAtPrice && (
-                                    <span className="text-2xl text-gray-400 line-through">
-                                        {formatPrice(displayProduct.compareAtPrice)}
+                                {!selectedVariant && product.maxPrice && product.maxPrice !== product.price ? (
+                                    // Диапазон цен когда вариант не выбран
+                                    <span className="text-4xl font-bold text-gray-900">
+                                        {formatPrice(product.price)} – {formatPrice(product.maxPrice)}
                                     </span>
+                                ) : (
+                                    // Конкретная цена (варианта или обычного товара)
+                                    <>
+                                        <span className="text-4xl font-bold text-gray-900">
+                                            {formatPrice(displayProduct.price)}
+                                        </span>
+                                        {displayProduct.compareAtPrice && (
+                                            <span className="text-2xl text-gray-400 line-through">
+                                                {formatPrice(displayProduct.compareAtPrice)}
+                                            </span>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
@@ -351,22 +361,24 @@ export default function ProductPage() {
                                             price: product.price,
                                             inStock: product.inStock,
                                             images: product.images,
-                                            attributes: productAttributes.map(attr => ({
-                                                attribute_value_id: attr.attributeValueId || undefined,
-                                                custom_value: attr.customValue,
-                                                attributes: attr.attribute
-                                                    ? {
-                                                        slug: attr.attribute.slug,
-                                                        name: attr.attribute.name,
-                                                    }
-                                                    : undefined,
-                                                attribute_values: attr.attributeValue
-                                                    ? {
-                                                        value: attr.attributeValue.value,
-                                                        image_url: attr.attributeValue.imageUrl || null,
-                                                    }
-                                                    : undefined,
-                                            })),
+                                            attributes: productVariants.length > 0
+                                                ? []
+                                                : productAttributes.map(attr => ({
+                                                    attribute_value_id: attr.attributeValueId || undefined,
+                                                    custom_value: attr.customValue,
+                                                    attributes: attr.attribute
+                                                        ? {
+                                                            slug: attr.attribute.slug,
+                                                            name: attr.attribute.name,
+                                                        }
+                                                        : undefined,
+                                                    attribute_values: attr.attributeValue
+                                                        ? {
+                                                            value: attr.attributeValue.value,
+                                                            image_url: attr.attributeValue.imageUrl || null,
+                                                        }
+                                                        : undefined,
+                                                })),
                                         }}
                                         variants={productVariants}
                                         onVariantChange={setSelectedVariant}

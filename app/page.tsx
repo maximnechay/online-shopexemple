@@ -11,7 +11,6 @@ import {
     Truck,
     Shield,
     Award,
-    Star,
     Sparkles,
     Mail
 } from 'lucide-react';
@@ -26,6 +25,7 @@ import type { HomeMiniBanner } from '@/lib/types/miniBanner';
 import type { Category } from '@/lib/types/category';
 import { fetchActiveHomeMiniBanners } from '@/lib/supabase/homeMiniBanners';
 import { fetchCategories } from '@/lib/supabase/categories';
+
 export default function HomePage() {
     const [bestsellers, setBestsellers] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,6 +60,7 @@ export default function HomePage() {
             setHeroLoading(false);
         }
     }
+
     async function loadCategories() {
         try {
             setCategoriesLoading(true);
@@ -125,37 +126,27 @@ export default function HomePage() {
         try {
             const supabase = createClient();
 
-            console.log('🔍 Loading bestsellers from database...');
-
-            // Загружаем товары, которые в наличии
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
                 .eq('in_stock', true)
                 .order('created_at', { ascending: false })
-                .limit(12); // Загружаем больше, чтобы было из чего выбрать
+                .limit(12);
 
             if (error) {
                 console.error('❌ Error loading products:', error);
                 throw error;
             }
 
-            console.log('✅ Loaded products from DB:', data?.length || 0);
-
             if (!data || data.length === 0) {
-                console.warn('⚠️ No products found in database');
                 setBestsellers([]);
                 return;
             }
 
-            // Трансформируем данные из формата БД в формат приложения
             const products = transformProductsFromDB(data);
-
-            // Берем случайные 4 товара из полученных
             const shuffled = [...products].sort(() => 0.5 - Math.random());
             const selected = shuffled.slice(0, 4);
 
-            console.log('✅ Selected bestsellers:', selected.length);
             setBestsellers(selected);
         } catch (error) {
             console.error('❌ Error loading bestsellers:', error);
@@ -169,128 +160,76 @@ export default function HomePage() {
         <div className="min-h-screen bg-white">
             <Header />
 
-            {/* Hero Section - Professional Minimalist */}
-            {/* Hero Section - Professional Minimalist */}
+            {/* Hero Section - Overlay Layout */}
             {heroLoading ? (
-                // Скелетон, пока грузится баннер
-                <section className="pt-8 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="grid lg:grid-cols-2 gap-16 items-center">
-                            <div className="space-y-6">
-                                <div className="h-4 w-56 bg-gray-200 rounded-full animate-pulse" />
-                                <div className="h-10 w-80 bg-gray-200 rounded-full animate-pulse" />
-                                <div className="h-10 w-64 bg-gray-200 rounded-full animate-pulse" />
-                                <div className="h-20 w-full max-w-xl bg-gray-100 rounded-2xl animate-pulse" />
-                                <div className="flex gap-4 pt-4">
-                                    <div className="h-11 w-32 bg-gray-200 rounded-full animate-pulse" />
-                                    <div className="h-11 w-32 bg-gray-100 rounded-full animate-pulse" />
-                                </div>
-                            </div>
-                            <div className="relative lg:h-[600px]">
-                                <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm animate-pulse" />
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <section className="relative h-[85vh] min-h-[600px] bg-gray-200 animate-pulse" />
             ) : (
-                <section className="pt-8 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="grid lg:grid-cols-2 gap-16 items-center">
-                            {/* Left Content */}
-                            <div className="space-y-8">
-                                {/* Small badge */}
-                                <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs uppercase tracking-[0.16em] text-gray-600">
-                                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <section className="relative h-[85vh] min-h-[600px] overflow-hidden">
+                    {/* Background Image - Mobile */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center md:hidden"
+                        style={{
+                            backgroundImage: `url('${heroBanner?.mobileImageUrl || heroBanner?.desktopImageUrl || fallbackHeroImage}')`
+                        }}
+                    />
+                    {/* Background Image - Desktop */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center hidden md:block"
+                        style={{
+                            backgroundImage: `url('${heroBanner?.desktopImageUrl || fallbackHeroImage}')`
+                        }}
+                    />
+
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+
+                    {/* Content */}
+                    <div className="relative h-full flex items-center pt-24 md:pt-0">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                            <div className="max-w-2xl text-white">
+                                {/* Badge */}
+                                <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm px-4 py-1.5 text-xs uppercase tracking-[0.16em] text-white/90 mb-6">
+                                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
                                     Neu im Shop - ausgewählte Profi Marken
                                 </div>
 
-                                <div className="space-y-8">
-                                    <h1
-                                        className="
-                                font-serif
-                                text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
-                                font-light text-gray-900
-                                leading-[1.05] tracking-tight
-                                max-w-[650px]
-                            "
-                                    >
-                                        {heroBanner?.title || 'Premium Beauty'}
-                                        <span className="block mt-4 pb-2 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
-                                            {heroBanner?.subtitle || 'für jeden Tag'}
-                                        </span>
-                                    </h1>
+                                {/* Title */}
+                                <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-light leading-[1.05] tracking-tight mb-6">
+                                    {heroBanner?.title || 'Premium Beauty'}
+                                    <span className="block mt-3 text-amber-200/90">
+                                        {heroBanner?.subtitle || 'für jeden Tag'}
+                                    </span>
+                                </h1>
 
-                                    <p className="text-lg sm:text-xl text-gray-600 leading-[1.8] max-w-xl font-light">
-                                        {heroBanner?.description ? (
-                                            heroBanner.description
-                                        ) : (
-                                            <>
-                                                Hochwertige Kosmetik von führenden Marken.
-                                                <br />
-                                                <span className="text-gray-900">Professionell kuratiert</span>, authentisch und mit Liebe zum Detail ausgewählt.
-                                            </>
-                                        )}
-                                    </p>
-                                </div>
+                                {/* Description */}
+                                <p className="text-base sm:text-lg text-white/80 leading-relaxed max-w-xl mb-8">
+                                    {heroBanner?.description || 'Hochwertige Kosmetik von führenden Marken. Professionell kuratiert, authentisch und mit Liebe zum Detail ausgewählt.'}
+                                </p>
 
                                 {/* CTA */}
-                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-4">
                                     <Link
                                         href={heroBanner?.buttonUrl || '/catalog'}
-                                        className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                                        className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-900 font-medium hover:bg-gray-100 transition-colors"
                                     >
                                         {heroBanner?.buttonText || 'Zum Shop'}
                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                     <Link
                                         href="/about"
-                                        className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-gray-300 text-gray-900 font-medium hover:border-gray-900 transition-colors"
+                                        className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/40 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm"
                                     >
                                         Mehr erfahren
                                     </Link>
-                                </div>
-
-                                {/* Stats */}
-                                <div className="flex flex-wrap items-center gap-10 pt-8 border-t border-gray-200">
-                                    <div>
-                                        <div className="text-4xl font-light text-gray-900 mb-1">500+</div>
-                                        <div className="text-sm text-gray-600">Produkte</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-4xl font-light text-gray-900 mb-1">50+</div>
-                                        <div className="text-sm text-gray-600">Marken</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-4xl font-light text-gray-900 mb-1">5k+</div>
-                                        <div className="text-sm text-gray-600">Kunden</div>
-                                    </div>
-                                </div>
-
-                                {/* Trust line */}
-                                <div className="flex items-center gap-3 text-sm text-gray-500 pt-2">
-                                    <Shield className="w-4 h-4" />
-                                    <span>Nur geprüfte Original Ware direkt von autorisierten Distributoren</span>
-                                </div>
-                            </div>
-
-                            {/* Right Image */}
-                            <div className="relative lg:h-[600px]">
-                                <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm">
-                                    <div
-                                        className="absolute inset-0 bg-cover bg-center"
-                                        style={{
-                                            backgroundImage: `url('${heroBanner?.desktopImageUrl || fallbackHeroImage}')`
-                                        }}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
             )}
+
             {/* Mini banners under hero */}
-            <section className="px-4 sm:px-6 lg:px-8 pb-16">
+            <section className="px-4 sm:px-6 lg:px-8 py-16">
                 <div className="max-w-7xl mx-auto">
                     {miniLoading ? (
                         <div className="grid md:grid-cols-3 gap-6">
@@ -341,7 +280,6 @@ export default function HomePage() {
                 </div>
             </section>
 
-
             {/* Brand strip */}
             <section className="py-10 px-4 sm:px-6 lg:px-8 border-y border-gray-100 bg-white">
                 <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-6">
@@ -358,7 +296,6 @@ export default function HomePage() {
                 </div>
             </section>
 
-            {/* Categories Section */}
             {/* Categories Section */}
             <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
                 <div className="max-w-7xl mx-auto">
@@ -406,7 +343,6 @@ export default function HomePage() {
                 </div>
             </section>
 
-
             {/* Bestseller Section */}
             <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
                 <div className="max-w-7xl mx-auto">
@@ -440,7 +376,6 @@ export default function HomePage() {
                             ))}
                         </div>
                     ) : bestsellers.length === 0 ? (
-                        // Пустое состояние если нет товаров
                         <div className="text-center py-16">
                             <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -493,7 +428,7 @@ export default function HomePage() {
                                             {product.name}
                                         </h3>
                                         <p className="text-xs text-gray-500 mb-3">
-                                            {product.attributes?.find(attr => attr.name === 'Größe')?.value || ''}
+                                            {product.attributes?.find((attr: { name: string; value: string }) => attr.name === 'Größe')?.value || ''}
                                         </p>
                                         <div className="mt-auto flex items-center justify-between">
                                             <div className="flex items-center gap-2">
@@ -593,7 +528,6 @@ export default function HomePage() {
             <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
                 <div className="max-w-4xl mx-auto rounded-3xl border border-gray-100 bg-gray-50/60 p-8 sm:p-10">
                     {newsletterSuccess ? (
-                        // Success state
                         <div className="flex flex-col items-center justify-center text-center py-8">
                             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
                                 <Check className="w-8 h-8 text-emerald-600" />
@@ -612,7 +546,6 @@ export default function HomePage() {
                             </button>
                         </div>
                     ) : (
-                        // Form state
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
                                 <div className="flex items-start gap-4">
@@ -621,18 +554,18 @@ export default function HomePage() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-medium text-gray-900 mb-1">
-                                            Exklusive Angebote per E Mail
+                                            Exklusive Angebote per E-Mail
                                         </h3>
                                         <p className="text-sm text-gray-600 max-w-md">
                                             Erfahren Sie als erste von neuen Marken, Aktionen und limitierten Editionen.
-                                            Kein Spam, nur Beauty Inspiration.
+                                            Kein Spam, nur Beauty-Inspiration.
                                         </p>
                                     </div>
                                 </div>
                                 <form onSubmit={handleNewsletterSubmit} className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
                                     <input
                                         type="email"
-                                        placeholder="Ihre E Mail Adresse"
+                                        placeholder="Ihre E-Mail-Adresse"
                                         value={newsletterEmail}
                                         onChange={(e) => setNewsletterEmail(e.target.value)}
                                         required

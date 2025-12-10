@@ -152,13 +152,23 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {/* Price */}
                 <div className="mt-auto flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-base font-medium text-gray-900">
-                            {formatPrice(product.price)}
-                        </span>
-                        {product.compareAtPrice && (
-                            <span className="text-xs text-gray-400 line-through">
-                                {formatPrice(product.compareAtPrice)}
+                        {product.maxPrice && product.maxPrice !== product.price ? (
+                            // Диапазон цен для товаров с вариантами
+                            <span className="text-base font-medium text-gray-900">
+                                {formatPrice(product.price)} – {formatPrice(product.maxPrice)}
                             </span>
+                        ) : (
+                            // Одна цена
+                            <>
+                                <span className="text-base font-medium text-gray-900">
+                                    {formatPrice(product.price)}
+                                </span>
+                                {product.compareAtPrice && (
+                                    <span className="text-xs text-gray-400 line-through">
+                                        {formatPrice(product.compareAtPrice)}
+                                    </span>
+                                )}
+                            </>
                         )}
                     </div>
                     <span className="text-xs font-medium text-gray-500 group-hover:text-gray-900 flex items-center gap-1">

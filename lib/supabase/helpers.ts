@@ -10,6 +10,7 @@ export function transformProductFromDB(dbProduct: any): Product {
         slug: dbProduct.slug,
         description: dbProduct.description,
         price: dbProduct.price,
+        maxPrice: dbProduct.max_price || undefined,
         compareAtPrice: dbProduct.compare_at_price,
         images: dbProduct.images,
         category: dbProduct.category,

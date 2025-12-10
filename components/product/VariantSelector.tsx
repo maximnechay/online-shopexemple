@@ -297,7 +297,7 @@ export default function VariantSelector({
                             >
                                 <div className="relative flex flex-col items-center gap-1">
                                     <span className="font-semibold">{value}</span>
-                                    {bestVariant && bestVariant.price !== current?.price && (
+                                    {bestVariant && (!selectedVariant || bestVariant.price !== current?.price) && (
                                         <span className={`text-xs ${isSelected ? 'opacity-80' : 'text-gray-600'}`}>
                                             {formatPrice(bestVariant.price)}
                                         </span>

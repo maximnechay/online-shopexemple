@@ -149,9 +149,25 @@ export async function PUT(
 
             if (attrsInsertError) {
                 console.error('Error inserting product attributes:', attrsInsertError);
-                // если хочешь жестко: можно вернуть 500
-                // сейчас просто лог, а варианты считаем сохраненными
             }
+        }
+
+        // 4) Обновляем parent product с диапазоном цен и общим stock
+        if (upserted && upserted.length > 0) {
+            const prices = upserted.map(v => Number(v.price));
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const totalStock = upserted.reduce((sum, v) => sum + (v.stock_quantity || 0), 0);
+
+            await supabaseAdmin
+                .from('products')
+                .update({
+                    price: minPrice,
+                    max_price: maxPrice !== minPrice ? maxPrice : null,
+                    stock_quantity: totalStock,
+                    in_stock: totalStock > 0
+                })
+                .eq('id', productId);
         }
 
         return NextResponse.json({

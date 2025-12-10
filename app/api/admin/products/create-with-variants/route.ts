@@ -145,14 +145,17 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 4) Update parent product with min price and total stock
-        const minPrice = Math.min(...data.variants.map(v => v.price));
+        // 4) Update parent product with price range and total stock
+        const prices = data.variants.map(v => v.price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
         const totalStock = data.variants.reduce((sum, v) => sum + v.stockQuantity, 0);
 
         await supabaseAdmin
             .from('products')
             .update({
                 price: minPrice,
+                max_price: maxPrice !== minPrice ? maxPrice : null,
                 stock_quantity: totalStock
             })
             .eq('id', parentProduct.id);

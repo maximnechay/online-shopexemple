@@ -40,7 +40,7 @@ export default function AboutPage() {
                                 </div>
                             </div>
 
-                            <div className="relative lg:h-[600px]">
+                            <div className="relative h-[400px] md:h-[500px] lg:h-[600px]">
                                 <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm">
                                     <Image
                                         src="https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1974&auto=format&fit=crop"

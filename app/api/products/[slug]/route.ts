@@ -23,6 +23,7 @@ export async function GET(
                 slug,
                 description,
                 price,
+                max_price,
                 compare_at_price,
                 images,
                 category,
@@ -60,6 +61,7 @@ export async function GET(
             slug: product.slug,
             description: product.description,
             price: Number(product.price),
+            maxPrice: product.max_price ? Number(product.max_price) : undefined,
             compareAtPrice: product.compare_at_price
                 ? Number(product.compare_at_price)
                 : null,

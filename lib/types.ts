@@ -6,6 +6,7 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
+  maxPrice?: number;
   compareAtPrice?: number; // Цена до скидки
   images: string[];
   category: ProductCategory;
