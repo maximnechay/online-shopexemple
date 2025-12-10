@@ -20,18 +20,71 @@ import Footer from '@/components/layout/Footer';
 import { createClient } from '@/lib/supabase/client';
 import type { Product } from '@/lib/types';
 import { transformProductsFromDB } from '@/lib/supabase/helpers';
-
+import type { HomeBanner } from '@/lib/types/banner';
+import { fetchActiveHomeBanner } from '@/lib/supabase/homeBanner';
+import type { HomeMiniBanner } from '@/lib/types/miniBanner';
+import type { Category } from '@/lib/types/category';
+import { fetchActiveHomeMiniBanners } from '@/lib/supabase/homeMiniBanners';
+import { fetchCategories } from '@/lib/supabase/categories';
 export default function HomePage() {
     const [bestsellers, setBestsellers] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [heroBanner, setHeroBanner] = useState<HomeBanner | null>(null);
+    const [heroLoading, setHeroLoading] = useState(true);
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [newsletterLoading, setNewsletterLoading] = useState(false);
     const [newsletterSuccess, setNewsletterSuccess] = useState(false);
     const [newsletterError, setNewsletterError] = useState('');
+    const fallbackHeroImage = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&h=1600&fit=crop";
+    const [miniBanners, setMiniBanners] = useState<HomeMiniBanner[]>([]);
+    const [miniLoading, setMiniLoading] = useState(true);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
 
     useEffect(() => {
         loadBestsellers();
+        loadHeroBanner();
+        loadMiniBanners();
+        loadCategories();
     }, []);
+
+    async function loadHeroBanner() {
+        try {
+            setHeroLoading(true);
+            const banner = await fetchActiveHomeBanner();
+            setHeroBanner(banner);
+        } catch (error) {
+            console.error('❌ Error loading hero banner:', error);
+            setHeroBanner(null);
+        } finally {
+            setHeroLoading(false);
+        }
+    }
+    async function loadCategories() {
+        try {
+            setCategoriesLoading(true);
+            const data = await fetchCategories();
+            setCategories(data);
+        } catch (error) {
+            console.error('❌ Error loading categories:', error);
+            setCategories([]);
+        } finally {
+            setCategoriesLoading(false);
+        }
+    }
+
+    async function loadMiniBanners() {
+        try {
+            setMiniLoading(true);
+            const banners = await fetchActiveHomeMiniBanners(3);
+            setMiniBanners(banners);
+        } catch (e) {
+            console.error('❌ Error loading mini banners:', e);
+            setMiniBanners([]);
+        } finally {
+            setMiniLoading(false);
+        }
+    }
 
     async function handleNewsletterSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -117,121 +170,177 @@ export default function HomePage() {
             <Header />
 
             {/* Hero Section - Professional Minimalist */}
-            <section className="pt-8 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid lg:grid-cols-2 gap-16 items-center">
-                        {/* Left Content */}
-                        <div className="space-y-8">
-                            {/* Small badge */}
-                            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs uppercase tracking-[0.16em] text-gray-600">
-                                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                Neu im Shop - ausgewählte Profi Marken
-                            </div>
-
-                            <div className="space-y-8">
-                                <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl font-light text-gray-900 leading-[0.95] tracking-tight">
-                                    Premium Beauty
-                                    <span className="block mt-4 pb-2 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
-                                        für jeden Tag
-                                    </span>
-                                </h1>
-
-                                <p className="text-lg sm:text-xl text-gray-600 leading-[1.8] max-w-xl font-light">
-                                    Hochwertige Kosmetik von führenden Marken.
-                                    <br />
-                                    <span className="text-gray-900">Professionell kuratiert</span>, authentisch und mit Liebe zum Detail ausgewählt.
-                                </p>
-                            </div>
-
-                            {/* CTA */}
-                            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                                <Link
-                                    href="/catalog"
-                                    className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
-                                >
-                                    Zum Shop
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </Link>
-                                <Link
-                                    href="/about"
-                                    className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-gray-300 text-gray-900 font-medium hover:border-gray-900 transition-colors"
-                                >
-                                    Mehr erfahren
-                                </Link>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="flex flex-wrap items-center gap-10 pt-8 border-t border-gray-200">
-                                <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">500+</div>
-                                    <div className="text-sm text-gray-600">Produkte</div>
-                                </div>
-                                <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">50+</div>
-                                    <div className="text-sm text-gray-600">Marken</div>
-                                </div>
-                                <div>
-                                    <div className="text-4xl font-light text-gray-900 mb-1">5k+</div>
-                                    <div className="text-sm text-gray-600">Kunden</div>
+            {/* Hero Section - Professional Minimalist */}
+            {heroLoading ? (
+                // Скелетон, пока грузится баннер
+                <section className="pt-8 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="grid lg:grid-cols-2 gap-16 items-center">
+                            <div className="space-y-6">
+                                <div className="h-4 w-56 bg-gray-200 rounded-full animate-pulse" />
+                                <div className="h-10 w-80 bg-gray-200 rounded-full animate-pulse" />
+                                <div className="h-10 w-64 bg-gray-200 rounded-full animate-pulse" />
+                                <div className="h-20 w-full max-w-xl bg-gray-100 rounded-2xl animate-pulse" />
+                                <div className="flex gap-4 pt-4">
+                                    <div className="h-11 w-32 bg-gray-200 rounded-full animate-pulse" />
+                                    <div className="h-11 w-32 bg-gray-100 rounded-full animate-pulse" />
                                 </div>
                             </div>
-
-                            {/* Trust line */}
-                            <div className="flex items-center gap-3 text-sm text-gray-500 pt-2">
-                                <Shield className="w-4 h-4" />
-                                <span>Nur geprüfte Original Ware direkt von autorisierten Distributoren</span>
+                            <div className="relative lg:h-[600px]">
+                                <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm animate-pulse" />
                             </div>
                         </div>
+                    </div>
+                </section>
+            ) : (
+                <section className="pt-8 md:pt-16 pb-20 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="grid lg:grid-cols-2 gap-16 items-center">
+                            {/* Left Content */}
+                            <div className="space-y-8">
+                                {/* Small badge */}
+                                <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs uppercase tracking-[0.16em] text-gray-600">
+                                    <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    Neu im Shop - ausgewählte Profi Marken
+                                </div>
 
-                        {/* Right Image */}
-                        <div className="relative lg:h-[600px]">
-                            <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm">
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center"
-                                    style={{
-                                        backgroundImage:
-                                            "url('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&h=1600&fit=crop')"
-                                    }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                                <div className="space-y-8">
+                                    <h1
+                                        className="
+                                font-serif
+                                text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
+                                font-light text-gray-900
+                                leading-[1.05] tracking-tight
+                                max-w-[650px]
+                            "
+                                    >
+                                        {heroBanner?.title || 'Premium Beauty'}
+                                        <span className="block mt-4 pb-2 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
+                                            {heroBanner?.subtitle || 'für jeden Tag'}
+                                        </span>
+                                    </h1>
 
-                                <div className="absolute bottom-8 left-8 right-8">
-                                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                                        <div className="text-white space-y-1">
-                                            <p className="text-xs uppercase tracking-[0.18em] text-white/70">
-                                                Ihre Routine
-                                            </p>
-                                            <p className="text-2xl font-light">Salonqualität für zuhause</p>
-                                        </div>
-                                        <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs text-gray-900 backdrop-blur">
-                                            <Truck className="w-4 h-4" />
-                                            <span>Versand ab 49 € kostenlos</span>
-                                        </div>
+                                    <p className="text-lg sm:text-xl text-gray-600 leading-[1.8] max-w-xl font-light">
+                                        {heroBanner?.description ? (
+                                            heroBanner.description
+                                        ) : (
+                                            <>
+                                                Hochwertige Kosmetik von führenden Marken.
+                                                <br />
+                                                <span className="text-gray-900">Professionell kuratiert</span>, authentisch und mit Liebe zum Detail ausgewählt.
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+
+                                {/* CTA */}
+                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                    <Link
+                                        href={heroBanner?.buttonUrl || '/catalog'}
+                                        className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                                    >
+                                        {heroBanner?.buttonText || 'Zum Shop'}
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </Link>
+                                    <Link
+                                        href="/about"
+                                        className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-gray-300 text-gray-900 font-medium hover:border-gray-900 transition-colors"
+                                    >
+                                        Mehr erfahren
+                                    </Link>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex flex-wrap items-center gap-10 pt-8 border-t border-gray-200">
+                                    <div>
+                                        <div className="text-4xl font-light text-gray-900 mb-1">500+</div>
+                                        <div className="text-sm text-gray-600">Produkte</div>
                                     </div>
+                                    <div>
+                                        <div className="text-4xl font-light text-gray-900 mb-1">50+</div>
+                                        <div className="text-sm text-gray-600">Marken</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-4xl font-light text-gray-900 mb-1">5k+</div>
+                                        <div className="text-sm text-gray-600">Kunden</div>
+                                    </div>
+                                </div>
+
+                                {/* Trust line */}
+                                <div className="flex items-center gap-3 text-sm text-gray-500 pt-2">
+                                    <Shield className="w-4 h-4" />
+                                    <span>Nur geprüfte Original Ware direkt von autorisierten Distributoren</span>
                                 </div>
                             </div>
 
-                            {/* Floating Badge */}
-                            <div className="absolute -bottom-8 -left-8 bg-white shadow-lg p-6 border border-gray-100 rounded-3xl">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-black flex items-center justify-center rounded-2xl">
-                                        <Award className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-1">
-                                            <div className="text-2xl font-light text-gray-900">4.9/5</div>
-                                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            basierend auf über 1 200 Bewertungen
-                                        </div>
-                                    </div>
+                            {/* Right Image */}
+                            <div className="relative lg:h-[600px]">
+                                <div className="relative h-full rounded-3xl bg-gray-100 overflow-hidden border border-gray-100 shadow-sm">
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center"
+                                        style={{
+                                            backgroundImage: `url('${heroBanner?.desktopImageUrl || fallbackHeroImage}')`
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                                 </div>
                             </div>
                         </div>
                     </div>
+                </section>
+            )}
+            {/* Mini banners under hero */}
+            <section className="px-4 sm:px-6 lg:px-8 pb-16">
+                <div className="max-w-7xl mx-auto">
+                    {miniLoading ? (
+                        <div className="grid md:grid-cols-3 gap-6">
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="rounded-3xl bg-gray-100 border border-gray-100 h-40 animate-pulse"
+                                />
+                            ))}
+                        </div>
+                    ) : miniBanners.length > 0 ? (
+                        <div className="grid md:grid-cols-3 gap-6">
+                            {miniBanners.map((banner) => (
+                                <Link
+                                    key={banner.id}
+                                    href={banner.linkUrl || '/catalog'}
+                                    className="group relative overflow-hidden rounded-3xl bg-gray-100 border border-gray-100 h-40"
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                                        style={{ backgroundImage: `url('${banner.imageUrl}')` }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/5" />
+
+                                    <div className="relative h-full px-5 py-4 flex flex-col justify-between text-white">
+                                        <div>
+                                            <p className="text-[11px] uppercase tracking-[0.18em] text-white/70 mb-1">
+                                                Empfehlung
+                                            </p>
+                                            <h3 className="text-lg font-medium leading-snug">
+                                                {banner.title || 'Kategorie'}
+                                            </h3>
+                                            {banner.description && (
+                                                <p className="mt-1 text-xs text-white/80 line-clamp-2">
+                                                    {banner.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-medium text-white/90">
+                                            Jetzt entdecken
+                                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
             </section>
+
 
             {/* Brand strip */}
             <section className="py-10 px-4 sm:px-6 lg:px-8 border-y border-gray-100 bg-white">
@@ -250,6 +359,7 @@ export default function HomePage() {
             </section>
 
             {/* Categories Section */}
+            {/* Categories Section */}
             <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-16">
@@ -261,55 +371,41 @@ export default function HomePage() {
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {[
-                            {
-                                name: 'Haarpflege',
-                                desc: 'Shampoos & Conditioner',
-                                image:
-                                    'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=600&h=800&fit=crop'
-                            },
-                            {
-                                name: 'Gesichtspflege',
-                                desc: 'Cremes & Seren',
-                                image:
-                                    'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&h=800&fit=crop'
-                            },
-                            {
-                                name: 'Körperpflege',
-                                desc: 'Body Lotions & Öle',
-                                image:
-                                    'https://images.unsplash.com/photo-1571875257727-256c39da42af?w=600&h=800&fit=crop'
-                            },
-                            {
-                                name: 'Make-up',
-                                desc: 'Foundations & Lippenstifte',
-                                image:
-                                    'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=600&h=800&fit=crop'
-                            }
-                        ].map((category, index) => (
-                            <Link
-                                key={index}
-                                href="/catalog"
-                                className="group relative overflow-hidden aspect-[3/4] bg-gray-100 rounded-3xl"
-                            >
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                                    style={{ backgroundImage: `url(${category.image})` }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                                    <h3 className="text-xl font-light mb-1">{category.name}</h3>
-                                    <p className="text-sm text-white/80 mb-3">{category.desc}</p>
-                                    <div className="inline-flex items-center gap-2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                        Ansehen <ArrowRight className="w-4 h-4" />
+                    {categoriesLoading ? (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="rounded-3xl bg-gray-200 h-[340px] animate-pulse" />
+                            ))}
+                        </div>
+                    ) : categories.length === 0 ? (
+                        <p className="text-gray-500">Keine Kategorien verfügbar.</p>
+                    ) : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {categories.map((category: Category) => (
+                                <Link
+                                    key={category.id}
+                                    href={`/catalog?category=${category.slug}`}
+                                    className="group relative overflow-hidden aspect-[3/4] bg-gray-100 rounded-3xl"
+                                >
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                                        style={{ backgroundImage: `url(${category.image})` }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                                        <h3 className="text-xl font-light mb-1">{category.name}</h3>
+                                        <p className="text-sm text-white/80 mb-3">{category.description}</p>
+                                        <div className="inline-flex items-center gap-2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                            Ansehen <ArrowRight className="w-4 h-4" />
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
+
 
             {/* Bestseller Section */}
             <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
