@@ -25,6 +25,7 @@ import type { HomeMiniBanner } from '@/lib/types/miniBanner';
 import type { Category } from '@/lib/types/category';
 import { fetchActiveHomeMiniBanners } from '@/lib/supabase/homeMiniBanners';
 import { fetchCategories } from '@/lib/supabase/categories';
+import { fetchHomepageCategories } from '@/lib/supabase/categories';
 
 export default function HomePage() {
     const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -64,7 +65,7 @@ export default function HomePage() {
     async function loadCategories() {
         try {
             setCategoriesLoading(true);
-            const data = await fetchCategories();
+            const data = await fetchHomepageCategories();
             setCategories(data);
         } catch (error) {
             console.error('❌ Error loading categories:', error);
