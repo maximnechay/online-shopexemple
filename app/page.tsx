@@ -26,6 +26,7 @@ import type { Category } from '@/lib/types/category';
 import { fetchActiveHomeMiniBanners } from '@/lib/supabase/homeMiniBanners';
 import { fetchCategories } from '@/lib/supabase/categories';
 import { fetchHomepageCategories } from '@/lib/supabase/categories';
+import { fetchHomepageProducts } from '@/lib/supabase/helpers';
 
 export default function HomePage() {
     const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -125,30 +126,9 @@ export default function HomePage() {
 
     async function loadBestsellers() {
         try {
-            const supabase = createClient();
-
-            const { data, error } = await supabase
-                .from('products')
-                .select('*')
-                .eq('in_stock', true)
-                .order('created_at', { ascending: false })
-                .limit(12);
-
-            if (error) {
-                console.error('❌ Error loading products:', error);
-                throw error;
-            }
-
-            if (!data || data.length === 0) {
-                setBestsellers([]);
-                return;
-            }
-
-            const products = transformProductsFromDB(data);
-            const shuffled = [...products].sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, 4);
-
-            setBestsellers(selected);
+            setLoading(true);
+            const products = await fetchHomepageProducts();
+            setBestsellers(products);
         } catch (error) {
             console.error('❌ Error loading bestsellers:', error);
             setBestsellers([]);
@@ -433,13 +413,21 @@ export default function HomePage() {
                                         </p>
                                         <div className="mt-auto flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-base font-medium text-gray-900">
-                                                    {product.price.toFixed(2)} €
-                                                </span>
-                                                {product.compareAtPrice && product.compareAtPrice > product.price && (
-                                                    <span className="text-xs text-gray-400 line-through">
-                                                        {product.compareAtPrice.toFixed(2)} €
+                                                {product.maxPrice && product.maxPrice !== product.price ? (
+                                                    <span className="text-base font-medium text-gray-900">
+                                                        {product.price.toFixed(2)} € – {product.maxPrice.toFixed(2)} €
                                                     </span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-base font-medium text-gray-900">
+                                                            {product.price.toFixed(2)} €
+                                                        </span>
+                                                        {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                                            <span className="text-xs text-gray-400 line-through">
+                                                                {product.compareAtPrice.toFixed(2)} €
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                             <span className="text-xs font-medium text-gray-500 group-hover:text-gray-900 flex items-center gap-1">

@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Filter, X } from 'lucide-react';
 import Image from 'next/image';
@@ -28,6 +29,16 @@ function CatalogContent() {
         searchParams.get('category') || 'all'
     );
     const { categories } = useCategories();
+    const orderedCategories = useMemo(
+        () =>
+            [...categories].sort((a, b) => {
+                const posA = (a as any).homepage_position ?? 999;
+                const posB = (b as any).homepage_position ?? 999;
+                return posA - posB;
+            }),
+        [categories]
+    );
+
     const [sortBy, setSortBy] = useState<SortOption>(
         (searchParams.get('sort') as SortOption) || 'newest'
     );
@@ -398,7 +409,8 @@ function CatalogContent() {
                                         </button>
 
                                         {/* Category buttons with images */}
-                                        {categories.map((cat) => (
+                                        {orderedCategories.map((cat) => (
+
                                             <button
                                                 key={cat.id}
                                                 onClick={() => handleCategoryChange(cat.id)}
@@ -602,7 +614,8 @@ function CatalogContent() {
                                             >
                                                 Alle
                                             </button>
-                                            {categories.map((cat) => (
+                                            {orderedCategories.map((cat) => (
+
                                                 <button
                                                     key={cat.id}
                                                     onClick={() => {

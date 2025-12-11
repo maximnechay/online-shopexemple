@@ -141,7 +141,8 @@ export async function PATCH(
             'compare_at_price',
             'brand',
             'tags',
-            'slug'
+            'slug',
+            'homepage_position'
         ];
 
         const updateData: any = {};

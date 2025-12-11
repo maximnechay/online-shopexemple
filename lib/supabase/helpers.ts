@@ -1,4 +1,5 @@
 import { Product } from '@/lib/types';
+import { createClient } from './client';
 
 /**
  * Transforms product data from Supabase format (snake_case) to application format (camelCase)
@@ -32,3 +33,28 @@ export function transformProductFromDB(dbProduct: any): Product {
 export function transformProductsFromDB(dbProducts: any[]): Product[] {
     return dbProducts.map(transformProductFromDB);
 }
+
+/**
+ * Fetches products for homepage (positions 1-4)
+ */
+export async function fetchHomepageProducts(): Promise<Product[]> {
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .not('homepage_position', 'is', null)
+        .order('homepage_position', { ascending: true })
+        .limit(4);
+
+    if (error) {
+        console.error('❌ Error loading homepage products:', error);
+        return [];
+    }
+
+    if (!data || data.length === 0) {
+        return [];
+    }
+
+    return transformProductsFromDB(data);
+}   
