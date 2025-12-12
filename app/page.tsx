@@ -177,7 +177,7 @@ export default function HomePage() {
                                 {/* Title */}
                                 <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-light leading-[1.05] tracking-tight mb-6">
                                     {heroBanner?.title || 'Premium Beauty'}
-                                    <span className="block mt-3 text-amber-200/90">
+                                    <span className="block mt-4 pb-2 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
                                         {heroBanner?.subtitle || 'für jeden Tag'}
                                     </span>
                                 </h1>
@@ -217,7 +217,7 @@ export default function HomePage() {
                             {[1, 2, 3].map((i) => (
                                 <div
                                     key={i}
-                                    className="rounded-3xl bg-gray-100 border border-gray-100 h-40 animate-pulse"
+                                    className="rounded-3xl bg-gray-100 border border-gray-100 h-48 animate-pulse"
                                 />
                             ))}
                         </div>
@@ -227,10 +227,10 @@ export default function HomePage() {
                                 <Link
                                     key={banner.id}
                                     href={banner.linkUrl || '/catalog'}
-                                    className="group relative overflow-hidden rounded-3xl bg-gray-100 border border-gray-100 h-40"
+                                    className="group relative overflow-hidden rounded-3xl bg-gray-100 border border-gray-100 h-48"
                                 >
                                     <div
-                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                                        className="absolute inset-0 bg-cover bg-top transition-transform duration-500 group-hover:scale-105"
                                         style={{ backgroundImage: `url('${banner.imageUrl}')` }}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/5" />

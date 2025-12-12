@@ -1,9 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import type { HomeBanner } from '@/lib/types/banner';
-import { ArrowRight } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Loader2,
+    Monitor,
+    Smartphone
+} from 'lucide-react';
 
 type FormState = {
     id?: string;
@@ -57,10 +64,7 @@ export default function AdminHeroBannerPage() {
                 return;
             }
 
-            if (!data || data.length === 0) {
-                // нет баннера - оставляем форму пустой
-                setForm((prev) => ({ ...prev }));
-            } else {
+            if (data && data.length > 0) {
                 const row = data[0];
                 setForm({
                     id: row.id,
@@ -104,25 +108,26 @@ export default function AdminHeroBannerPage() {
             const supabase = createClient();
 
             if (!form.desktopImageUrl) {
-                setSaveError('Desktop Bild URL ist erforderlich');
+                setSaveError('Desktop Bild ist erforderlich');
                 setSaving(false);
                 return;
             }
 
+            const payload = {
+                title: form.title || null,
+                subtitle: form.subtitle || null,
+                description: form.description || null,
+                button_text: form.buttonText || null,
+                button_url: form.buttonUrl || null,
+                desktop_image_url: form.desktopImageUrl,
+                mobile_image_url: form.mobileImageUrl || null,
+                is_active: form.isActive,
+            };
+
             if (form.id) {
-                // update
                 const { error } = await supabase
                     .from('home_banners')
-                    .update({
-                        title: form.title || null,
-                        subtitle: form.subtitle || null,
-                        description: form.description || null,
-                        button_text: form.buttonText || null,
-                        button_url: form.buttonUrl || null,
-                        desktop_image_url: form.desktopImageUrl,
-                        mobile_image_url: form.mobileImageUrl || null,
-                        is_active: form.isActive,
-                    })
+                    .update(payload)
                     .eq('id', form.id);
 
                 if (error) {
@@ -132,19 +137,9 @@ export default function AdminHeroBannerPage() {
                     setSaveSuccess('Banner wurde gespeichert');
                 }
             } else {
-                // insert
                 const { data, error } = await supabase
                     .from('home_banners')
-                    .insert({
-                        title: form.title || null,
-                        subtitle: form.subtitle || null,
-                        description: form.description || null,
-                        button_text: form.buttonText || null,
-                        button_url: form.buttonUrl || null,
-                        desktop_image_url: form.desktopImageUrl,
-                        mobile_image_url: form.mobileImageUrl || null,
-                        is_active: form.isActive,
-                    })
+                    .insert(payload)
                     .select()
                     .single();
 
@@ -164,206 +159,240 @@ export default function AdminHeroBannerPage() {
         }
     }
 
-    const fallbackDesktopImage =
-        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&h=1600&fit=crop';
+    const fallbackImage = 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1600&h=900&fit=crop';
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Если у тебя есть общий Header админки - подключи его сюда */}
-            <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">
-                            Hero Banner - Startseite
-                        </h1>
-                        <p className="text-sm text-gray-500">
-                            Hier kannst du den großen Banner auf der Startseite bearbeiten.
-                        </p>
-                    </div>
-                    <button
-                        onClick={loadBanner}
-                        disabled={loading}
-                        className="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50"
+        <div className="min-h-screen bg-white py-16 px-6">
+            <div className="max-w-6xl mx-auto">
+                {/* Navigation */}
+                <div className="flex items-center gap-4 mb-8">
+                    <Link
+                        href="/admin/home"
+                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
                     >
-                        Neu laden
-                    </button>
+                        <ArrowLeft className="w-4 h-4" />
+                        Startseite
+                    </Link>
+                    <span className="text-gray-300">/</span>
+                    <Link
+                        href="/admin"
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        Dashboard
+                    </Link>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="grid gap-6 md:grid-cols-[2fr,1.5fr]"
-                >
-                    {/* Левая колонка - форма */}
-                    <div className="space-y-5 rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-                        {loading && (
-                            <p className="text-sm text-gray-500">Banner wird geladen ...</p>
-                        )}
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-4xl font-light text-gray-900 mb-2">Hero Banner</h1>
+                    <p className="text-gray-600">
+                        Großer Banner oben auf der Startseite mit Titel, Bild und Button.
+                    </p>
+                </div>
 
-                        <label className="block">
-                            <span className="text-sm font-medium text-gray-800">
+                <form onSubmit={handleSubmit} className="grid lg:grid-cols-2 gap-8">
+                    {/* Left Column - Form */}
+                    <div className="space-y-6 bg-gray-50 rounded-2xl p-6 border border-gray-200">
+
+                        {/* Desktop Image */}
+                        <div>
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Monitor className="w-4 h-4" />
+                                Desktop Bild *
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2">1600 × 900 px empfohlen</p>
+                            <ImageUpload
+                                existingImages={form.desktopImageUrl ? [form.desktopImageUrl] : []}
+                                maxImages={1}
+                                onImageUploaded={(url) => setForm(prev => ({ ...prev, desktopImageUrl: url }))}
+                                onImageRemoved={() => setForm(prev => ({ ...prev, desktopImageUrl: '' }))}
+                            />
+                        </div>
+
+                        {/* Mobile Image */}
+                        <div>
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Smartphone className="w-4 h-4" />
+                                Mobile Bild (optional)
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2">800 × 1200 px empfohlen</p>
+                            <ImageUpload
+                                existingImages={form.mobileImageUrl ? [form.mobileImageUrl] : []}
+                                maxImages={1}
+                                onImageUploaded={(url) => setForm(prev => ({ ...prev, mobileImageUrl: url }))}
+                                onImageRemoved={() => setForm(prev => ({ ...prev, mobileImageUrl: '' }))}
+                            />
+                        </div>
+
+                        {/* Title */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Haupttitel
-                            </span>
+                            </label>
                             <input
                                 name="title"
                                 value={form.title}
                                 onChange={handleChange}
-                                className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition"
                                 placeholder="Premium Beauty"
                             />
-                        </label>
+                        </div>
 
-                        <label className="block">
-                            <span className="text-sm font-medium text-gray-800">
+                        {/* Subtitle */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Untertitel (farbige Zeile)
-                            </span>
+                            </label>
                             <input
                                 name="subtitle"
                                 value={form.subtitle}
                                 onChange={handleChange}
-                                className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition"
                                 placeholder="für jeden Tag"
                             />
-                        </label>
-                        <label className="block">
-                            <span className="text-sm font-medium text-gray-800">
-                                Beschreibung (Text unter dem Titel)
-                            </span>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Beschreibung
+                            </label>
                             <textarea
                                 name="description"
                                 value={form.description}
                                 onChange={handleChange}
-                                className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
                                 rows={3}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition resize-none"
                                 placeholder="Hochwertige Kosmetik von führenden Marken..."
                             />
-                        </label>
-                        <p className="mt-3 text-xs md:text-sm text-gray-800 max-w-sm">
-                            {form.description ||
-                                'Hochwertige Kosmetik von führenden Marken, professionell kuratiert.'}
-                        </p>
+                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <label className="block">
-                                <span className="text-sm font-medium text-gray-800">
+                        {/* Button */}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Button Text
-                                </span>
+                                </label>
                                 <input
                                     name="buttonText"
                                     value={form.buttonText}
                                     onChange={handleChange}
-                                    className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition"
                                     placeholder="Zum Shop"
                                 />
-                            </label>
-                            <label className="block">
-                                <span className="text-sm font-medium text-gray-800">
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Button Link
-                                </span>
+                                </label>
                                 <input
                                     name="buttonUrl"
                                     value={form.buttonUrl}
                                     onChange={handleChange}
-                                    className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition"
                                     placeholder="/catalog"
                                 />
-                            </label>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <label className="block">
-                                <span className="text-sm font-medium text-gray-800">
-                                    Desktop Bild URL
-                                </span>
-                                <input
-                                    name="desktopImageUrl"
-                                    value={form.desktopImageUrl}
-                                    onChange={handleChange}
-                                    className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
-                                    placeholder="https://..."
-                                    required
-                                />
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Empfohlen: 1600 x 600 px
-                                </p>
-                            </label>
-
-                            <label className="block">
-                                <span className="text-sm font-medium text-gray-800">
-                                    Mobile Bild URL
-                                </span>
-                                <input
-                                    name="mobileImageUrl"
-                                    value={form.mobileImageUrl}
-                                    onChange={handleChange}
-                                    className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-900"
-                                    placeholder="optional"
-                                />
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Wenn leer, wird Desktop Bild verwendet
-                                </p>
-                            </label>
-
-                        </div>
-
-                        <label className="inline-flex items-center gap-2">
+                        {/* Active */}
+                        <label className="flex items-center gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
                                 name="isActive"
                                 checked={form.isActive}
                                 onChange={handleChange}
-                                className="rounded border-gray-300"
+                                className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
                             />
-                            <span className="text-sm text-gray-800">
+                            <span className="text-sm text-gray-700">
                                 Banner auf der Startseite anzeigen
                             </span>
                         </label>
 
+                        {/* Messages */}
                         {saveError && (
-                            <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                                 {saveError}
                             </div>
                         )}
                         {saveSuccess && (
-                            <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                                 {saveSuccess}
                             </div>
                         )}
 
+                        {/* Submit */}
                         <button
                             type="submit"
                             disabled={saving}
-                            className="mt-2 inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-50 transition"
                         >
-                            {saving ? 'Speichern...' : 'Speichern'}
-                            {!saving && <ArrowRight className="w-4 h-4" />}
+                            {saving ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Speichern...
+                                </>
+                            ) : (
+                                <>
+                                    Speichern
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
                         </button>
                     </div>
 
-                    {/* Правая колонка - превью */}
-                    <div className="space-y-3">
-                        <div className="text-sm font-medium text-gray-800">
-                            Vorschau Desktop
+                    {/* Right Column - Preview */}
+                    <div className="space-y-4">
+                        <div className="text-sm font-medium text-gray-700">
+                            Vorschau (wie auf der Startseite)
                         </div>
-                        <div className="relative rounded-2xl border border-gray-200 bg-gray-200 overflow-hidden aspect-[16/7]">
-                            <img
-                                src={form.desktopImageUrl || fallbackDesktopImage}
-                                alt=""
-                                className="absolute inset-0 h-full w-full object-cover"
+
+                        {/* Desktop Preview */}
+                        <div className="relative rounded-2xl overflow-hidden border border-gray-200 aspect-[16/9]">
+                            {/* Background Image */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{
+                                    backgroundImage: `url('${form.desktopImageUrl || fallbackImage}')`
+                                }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/30 to-black/40" />
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="px-6 md:px-10 max-w-md">
-                                    <p className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-1 text-[10px] uppercase tracking-[0.16em] text-gray-700 mb-4">
+
+                            {/* Overlay gradient - как на реальной странице */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+
+                            {/* Content */}
+                            <div className="absolute inset-0 flex items-center p-8">
+                                <div className="max-w-md text-white">
+                                    {/* Badge */}
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm px-3 py-1 text-[10px] uppercase tracking-wider text-white/90 mb-4">
+                                        <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
                                         Neu im Shop
-                                    </p>
-                                    <h2 className="font-serif text-3xl md:text-5xl font-light text-gray-900 leading-[1.05] tracking-tight mb-3">
+                                    </div>
+
+                                    {/* Title */}
+                                    <h2 className="font-serif text-2xl lg:text-3xl font-light leading-tight mb-2">
                                         {form.title || 'Premium Beauty'}
-                                        <span className="block mt-2 pb-1 bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 bg-clip-text text-transparent">
+                                        <span className="block mt-1 text-amber-200/90">
                                             {form.subtitle || 'für jeden Tag'}
                                         </span>
                                     </h2>
+
+                                    {/* Description */}
+                                    <p className="text-xs text-white/70 leading-relaxed mb-4 line-clamp-2">
+                                        {form.description || 'Hochwertige Kosmetik von führenden Marken.'}
+                                    </p>
+
+                                    {/* Button */}
                                     {form.buttonText && (
-                                        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-black px-5 py-2 text-xs font-medium text-white">
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 text-xs font-medium">
                                             {form.buttonText}
                                             <ArrowRight className="w-3 h-3" />
                                         </div>
@@ -371,9 +400,10 @@ export default function AdminHeroBannerPage() {
                                 </div>
                             </div>
                         </div>
+
                         <p className="text-xs text-gray-500">
-                            Das ist nur eine Vorschau. Das endgültige Styling hängt vom Layout
-                            der Startseite ab.
+                            Das ist eine verkleinerte Vorschau. Auf der Startseite wird der Banner
+                            deutlich größer dargestellt.
                         </p>
                     </div>
                 </form>

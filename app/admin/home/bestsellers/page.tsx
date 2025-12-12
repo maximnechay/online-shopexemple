@@ -117,13 +117,23 @@ export default function BestsellersPage() {
     return (
         <div className="min-h-screen bg-white py-16 px-6">
             <div className="max-w-6xl mx-auto">
-                <Link
-                    href="/admin"
-                    className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Zurück zum Dashboard
-                </Link>
+                {/* Navigation */}
+                <div className="flex items-center gap-4 mb-8">
+                    <Link
+                        href="/admin/home"
+                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Startseite
+                    </Link>
+                    <span className="text-gray-300">/</span>
+                    <Link
+                        href="/admin"
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        Dashboard
+                    </Link>
+                </div>
 
                 <div className="mb-8">
                     <h1 className="text-4xl font-light text-gray-900 mb-2">Bestseller verwalten</h1>
@@ -143,8 +153,8 @@ export default function BestsellersPage() {
                                 <div
                                     key={position}
                                     className={`relative rounded-2xl border-2 ${product
-                                            ? 'border-emerald-200 bg-emerald-50'
-                                            : 'border-dashed border-gray-300 bg-gray-50'
+                                        ? 'border-emerald-200 bg-emerald-50'
+                                        : 'border-dashed border-gray-300 bg-gray-50'
                                         } p-4 min-h-[200px]`}
                                 >
                                     <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-medium">
@@ -265,8 +275,8 @@ export default function BestsellersPage() {
                                                         onClick={() => !isOccupied && assignProduct(product.id, pos)}
                                                         disabled={isOccupied || saving === product.id}
                                                         className={`w-8 h-8 rounded-lg text-sm font-medium transition ${isOccupied
-                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                                : 'bg-white border border-gray-300 text-gray-700 hover:border-black hover:bg-black hover:text-white'
+                                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-white border border-gray-300 text-gray-700 hover:border-black hover:bg-black hover:text-white'
                                                             }`}
                                                         title={isOccupied ? 'Position belegt' : `Position ${pos}`}
                                                     >

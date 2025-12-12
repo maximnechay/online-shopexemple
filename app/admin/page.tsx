@@ -14,6 +14,7 @@ import {
     Layers,
     Star,
     Tag,
+    Home,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -57,6 +58,24 @@ export default function AdminPage() {
 
                         <p className="text-gray-600 text-sm leading-relaxed">
                             Alle Kundenbestellungen verwalten und Status aktualisieren.
+                        </p>
+                    </Link>
+
+                    {/* Startseite verwalten */}
+                    <Link
+                        href="/admin/home"
+                        className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
+                    >
+                        <div className="w-14 h-14 bg-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Home className="w-7 h-7" />
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Startseite
+                        </h2>
+
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            Hero-Banner, Bestseller und Mini-Banner auf der Startseite verwalten.
                         </p>
                     </Link>
 
@@ -206,7 +225,7 @@ export default function AdminPage() {
                         </p>
                     </Link>
 
-                    {/* Bewertungen */}
+                    {/* Gutscheine */}
                     <Link
                         href="/admin/coupons"
                         className="group p-8 bg-gray-50 rounded-3xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-300"
