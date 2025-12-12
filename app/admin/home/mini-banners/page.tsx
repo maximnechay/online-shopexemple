@@ -373,17 +373,17 @@ export default function AdminMiniBannersPage() {
                                         <p className="text-xs font-medium text-gray-500 mb-2">Vorschau</p>
 
                                         <div className="group relative overflow-hidden rounded-3xl bg-gray-100 border border-gray-100 h-48 max-w-md">
-                                            {/* Фон как на хоум */}
+                                            {/* Фон */}
                                             <div
-                                                className="absolute inset-0 bg-cover bg-top transition-transform duration-500 group-hover:scale-105"
+                                                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                                                 style={{ backgroundImage: `url('${banner.imageUrl}')` }}
                                             />
 
-                                            {/* Градиент как на хоум */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/5" />
+                                            {/* Узкий градиент только слева */}
+                                            <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
 
-                                            {/* Контент как на хоум мини-баннере */}
-                                            <div className="relative h-full px-5 py-4 flex flex-col justify-between text-white">
+                                            {/* Контент */}
+                                            <div className="relative h-full px-5 py-4 flex flex-col justify-between text-white max-w-[60%]">
                                                 <div>
                                                     <p className="text-[11px] uppercase tracking-[0.18em] text-white/70 mb-1">
                                                         Empfehlung
@@ -392,7 +392,7 @@ export default function AdminMiniBannersPage() {
                                                         {banner.title || 'Kategorie'}
                                                     </h3>
                                                     {banner.description && (
-                                                        <p className="mt-1 text-xs text-white/80 line-clamp-2">
+                                                        <p className="mt-1 text-xs text-white/80 line-clamp-5   ">
                                                             {banner.description}
                                                         </p>
                                                     )}
